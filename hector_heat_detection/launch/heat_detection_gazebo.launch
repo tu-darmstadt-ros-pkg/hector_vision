@@ -1,0 +1,12 @@
+<launch>
+
+  <node pkg="hector_heat_detection" type="heat_detection" name="heat_detection" output="screen">
+    <remap from="thermal/image" to="thermal_camera/image_raw" />
+    <remap from="image_percept" to="worldmodel/image_percept" /> 
+  </node>
+
+  <node pkg="rostopic" type="rostopic" name="rostopic_thermal_cam_publisher" output="screen" args="pub /thermal/mapping thermaleye_msgs/Mapping 0 40 -l" />
+
+  <node pkg="dynamic_reconfigure" type="dynparam" name="dynparam_thermal_cam_loader" output="screen" args="load heat_detection $(find hector_heat_detection)/cfg/heat_detection_gazebo.yaml" />
+
+</launch>

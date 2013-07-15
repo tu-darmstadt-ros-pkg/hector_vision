@@ -1,0 +1,11 @@
+<launch>
+
+
+  <node pkg="hector_heat_detection" type="heat_detection" name="heat_detection" output="screen" respawn="true">
+    <remap from="image_percept" to="worldmodel/image_percept" /> 
+  </node>
+
+  
+
+
+</launch>

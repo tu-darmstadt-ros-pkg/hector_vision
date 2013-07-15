@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+    <node pkg="hector_thermal_self_filter" type="thermal_self_filter_node" name="thermal_self_filter" respawn="true" output="screen" >
+        <!--<remap from="cloud_in" to="base_scan/shadow_filtered" />
+        <remap from="cloud_out" to="base_scan/marking" />
+        <param name="sensor_frame" type="string" value="base_scan_link" />-->
+        <rosparam file="$(find hector_thermal_self_filter)/params/hector_ugv_thermal_self_filter.yaml" command="load" />
+    </node>
+</launch>

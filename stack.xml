@@ -1,0 +1,9 @@
+<stack>
+  <description brief="hector_vision">hector_vision</description>
+  <author>Maintained by Konstantin Fuchs</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hector_vision</url>
+  <depend stack="ros" />
+
+</stack>

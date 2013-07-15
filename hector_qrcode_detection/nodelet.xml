@@ -1,0 +1,7 @@
+<library path="lib/libqrcode_detection_nodelet">
+  <class name="hector_qrcode_detection/qrcode_detection" type="hector_qrcode_detection::qrcode_detection" base_class_type="nodelet::Nodelet">
+    <description>
+      qrcode_detection nodelet
+    </description>
+  </class>
+</library>

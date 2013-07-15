@@ -1,7 +1,5 @@
 bin/
 build/
-cfg/
-docs/
 lib/
 msg_gen/
 srv_gen/

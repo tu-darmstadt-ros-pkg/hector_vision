@@ -29,7 +29,7 @@
 #ifndef __HectorThermalSelfFilter_h_
 #define __HectorThermalSelfFilter_h_
 
-#include <pcl/ros/conversions.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <tf/transform_listener.h>
 #include <robot_self_filter/self_see_filter.h>
 
@@ -61,7 +61,7 @@ public:
   bool pointBelongsToRobot(const geometry_msgs::Point& point_in, const std_msgs::Header& header)//Define argument types)
   {
     pcl::PointCloud<pcl::PointXYZ> cloud_in;
-    cloud_in.header = header;
+    pcl_conversions::toPCL(header, cloud_in.header);
     cloud_in.push_back(pcl::PointXYZ(point_in.x, point_in.y, point_in.z));
 
     pcl::PointCloud<pcl::PointXYZ> cloud_filtered;

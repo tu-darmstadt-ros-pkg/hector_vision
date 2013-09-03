@@ -27,7 +27,7 @@
 //=================================================================================================
 
 #include <hector_qrcode_detection/qrcode_detection.h>
-#include <worldmodel_msgs/ImagePercept.h>
+#include <hector_worldmodel_msgs/ImagePercept.h>
 
 #include <cv.h>
 #include <cv_bridge/cv_bridge.h>
@@ -50,7 +50,7 @@ qrcode_detection_impl::qrcode_detection_impl(ros::NodeHandle nh, ros::NodeHandle
   priv_nh.getParam("rotation_target_frame", rotation_target_frame_id_);
   priv_nh.getParam("rotation_image_size", rotation_image_size_);
 
-  percept_publisher_ = nh_.advertise<worldmodel_msgs::ImagePercept>("image_percept", 10);
+  percept_publisher_ = nh_.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 10);
   qrcode_image_publisher_ = image_transport_.advertiseCamera("image/qrcode", 10);
   camera_subscriber_ = image_transport_.subscribeCamera("image", 10, &qrcode_detection_impl::imageCallback, this);
 
@@ -139,7 +139,7 @@ void qrcode_detection_impl::imageCallback(const sensor_msgs::ImageConstPtr& imag
   scanner_->scan(zbar);
 
   // extract results
-  worldmodel_msgs::ImagePercept percept;
+  hector_worldmodel_msgs::ImagePercept percept;
   percept.header = image->header;
   percept.camera_info = *camera_info;
   percept.info.class_id = "qrcode";

@@ -29,7 +29,7 @@
 #include <ros/ros.h>
 
 #include <hector_thermal_self_filter/hector_thermal_self_filter.h>
-#include <worldmodel_msgs/VerifyPercept.h>
+#include <hector_worldmodel_msgs/VerifyPercept.h>
 
 namespace hector_thermal_self_filter{
 
@@ -49,15 +49,15 @@ public:
     delete self_filter_;
   }
 
-  bool verifyPerceptCallBack(worldmodel_msgs::VerifyPercept::Request  &req,
-                            worldmodel_msgs::VerifyPercept::Response &res )
+  bool verifyPerceptCallBack(hector_worldmodel_msgs::VerifyPercept::Request  &req,
+                            hector_worldmodel_msgs::VerifyPercept::Response &res )
   {
     bool belongsToRobot = self_filter_->pointBelongsToRobot(req.percept.pose.pose.position, req.percept.header);
 
     if (belongsToRobot){
-      res.response = worldmodel_msgs::VerifyPerceptResponse::DISCARD;
+      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::DISCARD;
     }else{
-      res.response = worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
+      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
     }
 
     return true;

@@ -2,7 +2,7 @@
   <description brief="hector_qrcode_detection">
 
      hector_qrcode_detection searches for QR codes in images using the <a href="http://zbar.sourceforge.net/">zbar</a> library.
-     The qrcode_detection node/nodelet publishes worldmodel_msgs/ImagePercept messages and serves as
+     The qrcode_detection node/nodelet publishes hector_worldmodel_msgs/ImagePercept messages and serves as
      an source of input for the <a href="http://ros.org/wiki/hector_object_tracker">hector_object_tracker</a>.
 
   </description>
@@ -12,7 +12,7 @@
   <url>http://ros.org/wiki/hector_qrcode_detection</url>
 
   <depend package="image_transport"/>
-  <depend package="worldmodel_msgs"/>
+  <depend package="hector_worldmodel_msgs"/>
   <depend package="cv_bridge"/>
   <depend package="tf"/>
   <depend package="nodelet"/>

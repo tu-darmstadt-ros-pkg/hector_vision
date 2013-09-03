@@ -2,7 +2,7 @@
   <description brief="hector_heat_detection">
 
      hector_heat_detection searches for image regions within a specific temperature range.
-     The heat_detection node publishes worldmodel_msgs/ImagePercept messages and serves as
+     The heat_detection node publishes hector_worldmodel_msgs/ImagePercept messages and serves as
      an source of input for the <a href="http://ros.org/wiki/hector_object_tracker">hector_object_tracker</a>.
 
   </description>
@@ -15,7 +15,7 @@
   <depend package="rospy"/>
   <depend package="image_transport" />
   <depend package="camera_info_manager" />
-  <depend package="worldmodel_msgs" />
+  <depend package="hector_worldmodel_msgs" />
   <depend package="sensor_msgs" />
   <depend package="cv_bridge" />
   <depend package="std_msgs" />

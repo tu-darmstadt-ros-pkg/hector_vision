@@ -16,7 +16,7 @@ HeatDetection::HeatDetection(){
 
     dyn_rec_server_.setCallback(boost::bind(&HeatDetection::dynRecParamCallback, this, _1, _2));
 
-    pub_ = n.advertise<worldmodel_msgs::ImagePercept>("image_percept",20);
+    pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
 }
 
@@ -79,7 +79,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    blob_detector.detect(img_thres_,keypoints);
 
    //Publish results
-   worldmodel_msgs::ImagePercept ip;
+   hector_worldmodel_msgs::ImagePercept ip;
 
    ip.header= img->header;
    ip.info.class_id = perceptClassId_;

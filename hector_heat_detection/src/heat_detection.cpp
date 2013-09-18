@@ -146,7 +146,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
 
 
 
-       cvImg.header.frame_id = info->header.frame_id;
+       cvImg.header = img->header;
        cvImg.encoding = sensor_msgs::image_encodings::MONO8;
        pub_detection_.publish(cvImg.toImageMsg(),info);
     }

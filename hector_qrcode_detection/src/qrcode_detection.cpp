@@ -149,7 +149,7 @@ void qrcode_detection_impl::imageCallback(const sensor_msgs::ImageConstPtr& imag
     ROS_DEBUG_STREAM("Decoded " << symbol->get_type_name() << " symbol \"" << symbol->get_data() << '"');
 
     // percept.info.object_id = ros::this_node::getName() + "/" + symbol->get_data();
-    percept.info.object_id = symbol->get_data();
+    //percept.info.object_id = symbol->get_data();
     percept.info.object_support = 1.0;
     percept.info.name = symbol->get_data();
 

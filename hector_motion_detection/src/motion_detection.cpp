@@ -12,7 +12,7 @@ MotionDetection::MotionDetection()
     image_transport::ImageTransport image_motion_it(p_n);
     image_transport::ImageTransport image_detected_it(p_n);
 
-    camera_sub_ = it.subscribeCamera("openni/rgb/image_color", 1, &MotionDetection::imageCallback, this);
+    camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
 
     dyn_rec_server_.setCallback(boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2));
 
@@ -39,8 +39,8 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const
     cv::absdiff(img_current_ptr_->image, img_next_ptr->image, diff2);
     cv::bitwise_and(diff1, diff2, img_motion);
     cv::threshold(img_motion, img_motion, motion_detect_threshold_, 255, CV_THRESH_BINARY);
-    //cv::Mat kernel_ero = getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
-    //cv::erode(img_motion, img_motion, kernel_ero);
+    cv::Mat kernel_ero = getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
+    cv::erode(img_motion, img_motion, kernel_ero);
 
     unsigned int number_of_changes = 0;
     int min_x = img_motion.cols, max_x = 0;
@@ -62,11 +62,11 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const
     }
 
     cv::Mat img_detected;
-    img_current_ptr_->image.copyTo(img_detected);
+    img_current_col_ptr_->image.copyTo(img_detected);
 
     if (number_of_changes)
     {
-      cv::rectangle(img_detected, cv::Rect(cv::Point(min_x, min_y), cv::Point(max_x, max_y)), 255);
+      cv::rectangle(img_detected, cv::Rect(cv::Point(min_x, min_y), cv::Point(max_x, max_y)), CV_RGB(255,0,0), 5);
     }
 
     //cv::imshow("view", img_current_ptr_->image);
@@ -85,7 +85,7 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const
       cv_bridge::CvImage cvImg;
       img_detected.copyTo(cvImg.image);
       cvImg.header = img->header;
-      cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+      cvImg.encoding = sensor_msgs::image_encodings::BGR8;
       image_detected_pub_.publish(cvImg.toImageMsg(), info);
     }
   }
@@ -93,6 +93,8 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const
   // shift image buffers
   img_prev_ptr_= img_current_ptr_;
   img_current_ptr_ = img_next_ptr;
+
+  img_current_col_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::BGR8);
 
 
 //  // calculate the standard deviation

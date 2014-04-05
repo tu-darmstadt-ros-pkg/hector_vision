@@ -36,6 +36,7 @@ private:
 
     cv_bridge::CvImageConstPtr img_prev_ptr_;
     cv_bridge::CvImageConstPtr img_current_ptr_;
+    cv_bridge::CvImageConstPtr img_current_col_ptr_;
 
     int motion_detect_threshold_;
     std::string percept_class_id_;

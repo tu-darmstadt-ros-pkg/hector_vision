@@ -1,2 +1,1 @@
-{max_temp_detection: 40.0, min_area_detection: 20.0, min_dist_between_blobs: 10.0,
-  min_temp_detection: 20.0, percept_class_id: victim}
+{motion_detect_threshold: 35, percept_class_id: victim}

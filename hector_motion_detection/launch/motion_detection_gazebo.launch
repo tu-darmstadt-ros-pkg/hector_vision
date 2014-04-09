@@ -1,0 +1,9 @@
+<launch>
+
+  <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen">
+    <remap from="image_percept" to="worldmodel/image_percept" /> 
+  </node>
+
+  <node pkg="dynamic_reconfigure" type="dynparam" name="dynparam_thermal_cam_loader" output="screen" args="load motion_detection $(find hector_motion_detection)/cfg/motion_detection_gazebo.yaml" /> -->
+
+</launch>

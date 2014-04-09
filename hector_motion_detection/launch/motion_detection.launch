@@ -1,0 +1,8 @@
+<launch>
+
+  <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen" respawn="true">
+    <remap from="image_percept" to="worldmodel/image_percept" />
+    <param name="image_transport" value="compressed" />
+  </node>
+
+</launch>

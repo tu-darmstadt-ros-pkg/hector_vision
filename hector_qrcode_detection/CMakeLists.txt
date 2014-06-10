@@ -32,7 +32,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 # download and build zbar library
 add_custom_command(
   OUTPUT lib/libzbar.so
-  COMMAND make INSTALL_DIR=${PROJECT_SOURCE_DIR}
+  COMMAND make INSTALL_DIR=${PROJECT_SOURCE_DIR} CFLAGS=""
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/zbar
 )
 add_custom_target(

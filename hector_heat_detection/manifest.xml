@@ -23,7 +23,5 @@
   <depend package="thermaleye_msgs" />
   <depend package="dynamic_reconfigure" />
 
-  <rosdep name="libopencv-dev"/>
-
 </package>
 

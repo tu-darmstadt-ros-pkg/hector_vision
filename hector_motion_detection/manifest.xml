@@ -20,7 +20,5 @@
   <depend package="image_transport" />
   <depend package="dynamic_reconfigure" />
 
-  <rosdep name="libopencv-dev"/>
-
 </package>
 

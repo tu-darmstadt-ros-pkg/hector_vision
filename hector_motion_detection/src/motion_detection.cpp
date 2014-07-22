@@ -12,7 +12,9 @@ MotionDetection::MotionDetection()
     image_transport::ImageTransport image_motion_it(p_n);
     image_transport::ImageTransport image_detected_it(p_n);
 
-    camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
+    //camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
+
+    image_sub_ = it.subscribe("opstation/rgb/image_color", 1 , &MotionDetection::imageCallback, this);
 
     dyn_rec_server_.setCallback(boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2));
 
@@ -23,7 +25,7 @@ MotionDetection::MotionDetection()
 
 MotionDetection::~MotionDetection() {}
 
-void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info)
+void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, const sensor_msgs::CameraInfoConstPtr& info)
 {
   // get image
   cv_bridge::CvImageConstPtr img_next_ptr(cv_bridge::toCvShare(img, sensor_msgs::image_encodings::MONO8));
@@ -39,7 +41,7 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const
     cv::absdiff(img_current_ptr_->image, img_next_ptr->image, diff2);
     cv::bitwise_and(diff1, diff2, img_motion);
     cv::threshold(img_motion, img_motion, motion_detect_threshold_, 255, CV_THRESH_BINARY);
-    cv::Mat kernel_ero = getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
+    cv::Mat kernel_ero = getStructuringElement(cv::MORPH_RECT, cv::Size(5,5));
     cv::erode(img_motion, img_motion, kernel_ero);
 
     unsigned int number_of_changes = 0;
@@ -70,6 +72,9 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const
     }
 
     //cv::imshow("view", img_current_ptr_->image);
+    sensor_msgs::CameraInfo::Ptr info;
+    info.reset(new sensor_msgs::CameraInfo());
+    info->header = img->header;
 
     if(image_motion_pub_.getNumSubscribers() > 0)
     {

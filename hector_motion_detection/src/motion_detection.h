@@ -23,7 +23,7 @@ public:
     MotionDetection();
     ~MotionDetection();
 private:
-    void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info);
+    void imageCallback(const sensor_msgs::ImageConstPtr& img); //, const sensor_msgs::CameraInfoConstPtr& info);
     //void mappingCallback(const thermaleye_msgs::Mapping& mapping);
     void dynRecParamCallback(MotionDetectionConfig &config, uint32_t level);
 
@@ -31,6 +31,8 @@ private:
     image_transport::CameraSubscriber camera_sub_;
     image_transport::CameraPublisher image_motion_pub_;
     image_transport::CameraPublisher image_detected_pub_;
+
+    image_transport::Subscriber image_sub_;
 
     dynamic_reconfigure::Server<MotionDetectionConfig> dyn_rec_server_;
 

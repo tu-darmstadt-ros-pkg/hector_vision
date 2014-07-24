@@ -66,9 +66,11 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
     cv::Mat img_detected;
     img_current_col_ptr_->image.copyTo(img_detected);
 
-    double percept_size = std::max(std::abs(min_x-max_x), std::abs(min_y-max_y));
+    double percept_size = std::max(std::abs(max_x-min_x), std::abs(max_y-min_y));
+    double area = std::abs(max_x-min_x) * std::abs(max_y-min_y);
+    double density = area > 0.0 ? number_of_changes/area : 0.0;
 
-    if (number_of_changes && max_percept_size > percept_size && percept_size > min_percept_size)
+    if (number_of_changes && max_percept_size > percept_size && percept_size > min_percept_size && density > min_density)
     {
       cv::rectangle(img_detected, cv::Rect(cv::Point(min_x, min_y), cv::Point(max_x, max_y)), CV_RGB(255,0,0), 5);
     }
@@ -159,8 +161,9 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
 void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)
 {
   motion_detect_threshold_ = config.motion_detect_threshold;
-  min_percept_size = config.min_pecept_size;
-  max_percept_size = config.max_pecept_size;
+  min_percept_size = config.motion_detect_min_percept_size;
+  max_percept_size = config.motion_detect_max_percept_size;
+  min_density = config.motion_detect_min_density;
   percept_class_id_ = config.percept_class_id;
 }
 

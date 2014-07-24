@@ -42,6 +42,7 @@ private:
 
     int motion_detect_threshold_;
     double min_percept_size, max_percept_size;
+    double min_density;
     std::string percept_class_id_;
 
 };

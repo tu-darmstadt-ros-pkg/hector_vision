@@ -39,6 +39,7 @@ private:
     cv_bridge::CvImageConstPtr img_current_col_ptr_;
 
     int motion_detect_threshold_;
+    double min_percept_size, max_percept_size;
     std::string percept_class_id_;
 
 };

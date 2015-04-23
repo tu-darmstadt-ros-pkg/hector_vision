@@ -53,11 +53,14 @@ public:
                             hector_worldmodel_msgs::VerifyPercept::Response &res )
   {
     bool belongsToRobot = self_filter_->pointBelongsToRobot(req.percept.pose.pose.position, req.percept.header);
-
+    if (req.percept.info.class_id == "qrcode"){
+       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
+       return true;
+    }
     if (belongsToRobot){
-      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::DISCARD;
+       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::DISCARD;
     }else{
-      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
+       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
     }
 
     return true;

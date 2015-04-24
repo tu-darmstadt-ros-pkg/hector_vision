@@ -76,6 +76,12 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
 //    ROS_INFO("percept_size = %f  min_percept_size = %f  max_percept_size = %f ", percept_size, min_percept_size, max_percept_size);
 //    ROS_INFO("density = %f  min_density = %f", density, min_density);
 
+    int dy = max_y - min_y, dx = max_x - min_x;
+    if(dy < 60)
+        max_y += 60 - dy;
+    if(dx < 60)
+        max_x += 60 - dx;
+
     if (number_of_changes && max_percept_size > percept_size && percept_size > min_percept_size && density > min_density)
     {
       cv::rectangle(img_detected, cv::Rect(cv::Point(min_x, min_y), cv::Point(max_x, max_y)), CV_RGB(255,0,0), 5);

@@ -12,7 +12,7 @@ HeatDetection::HeatDetection(){
     mappingDefined_ = false;
     sub_ = it.subscribeCamera("thermal/image", 1, &HeatDetection::imageCallback,this);
 
-    sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);
+    //sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);
 
     dyn_rec_server_.setCallback(boost::bind(&HeatDetection::dynRecParamCallback, this, _1, _2));
 
@@ -153,11 +153,13 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
 }
 }
 
+/*
 void HeatDetection::mappingCallback(const thermaleye_msgs::Mapping& mapping){
    mapping_ = mapping;
    mappingDefined_ = true;
    ROS_INFO("Mapping received");
 }
+*/
 
 void HeatDetection::dynRecParamCallback(HeatDetectionConfig &config, uint32_t level)
 {

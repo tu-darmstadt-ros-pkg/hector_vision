@@ -1,0 +1,38 @@
+<package>
+  <name>hector_thermal_self_filter</name>
+  <version>1.0.0</version>
+  <description>hector_thermal_self_filter provides a hector_worldmodel_msgs/VerifyPercept service server for the</description>
+  <maintainer email="kohlbrecher@sim.tu-darmstadt.de">Stefan Kohlbrecher</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/hector_thermal_self_filter</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Stefan Kohlbrecher</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>robot_self_filter</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>hector_worldmodel_msgs</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>robot_self_filter</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>pcl_conversions</run_depend>
+  <run_depend>hector_worldmodel_msgs</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>robot_self_filter</test_depend> -->
+  <!-- <test_depend>pcl_ros</test_depend> -->
+  <!-- <test_depend>hector_worldmodel_msgs</test_depend> -->
+
+<export>
+    <cpp cflags="-I${prefix}/include"/>
+</export>
+
+</package>

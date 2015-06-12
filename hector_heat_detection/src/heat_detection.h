@@ -11,7 +11,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
-#include <thermaleye_msgs/Mapping.h>
+//#include <thermaleye_msgs/Mapping.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <hector_heat_detection/HeatDetectionConfig.h>
@@ -24,7 +24,7 @@ public:
     ~HeatDetection();
 private:
     void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info);
-    void mappingCallback(const thermaleye_msgs::Mapping& mapping);
+    //void mappingCallback(const thermaleye_msgs::Mapping& mapping);
     void dynRecParamCallback(HeatDetectionConfig &config, uint32_t level);
 
     ros::Publisher pub_;
@@ -42,7 +42,7 @@ private:
     double minDistBetweenBlobs_;
     std::string perceptClassId_;
 
-    thermaleye_msgs::Mapping mapping_;
+    //thermaleye_msgs::Mapping mapping_;
 
     int image_count_ ;
 

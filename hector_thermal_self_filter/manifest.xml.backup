@@ -1,0 +1,23 @@
+<package>
+  <description brief="hector_thermal_self_filter">
+
+     hector_thermal_self_filter provides a hector_worldmodel_msgs/VerifyPercept service server for the
+     <a href="http://ros.org/wiki/hector_object_tracker">hector_object_tracker</a> package, which
+     filters out heat percepts that are likely caused by parts of the robot itself.
+
+  </description>
+  <author>Stefan Kohlbrecher</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hector_thermal_self_filter</url>
+
+  <depend package="robot_self_filter"/>
+  <depend package="pcl_ros"/>
+  <depend package="hector_worldmodel_msgs"/>
+  
+  <export>
+    <cpp cflags="-I${prefix}/include" />
+  </export>
+
+</package>
+

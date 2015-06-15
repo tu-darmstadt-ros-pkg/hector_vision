@@ -43,6 +43,9 @@ private:
     std::string perceptClassId_;
 
     //thermaleye_msgs::Mapping mapping_;
+    double min_temp_img_;
+    double max_temp_img_;
+
 
     int image_count_ ;
 

@@ -6,6 +6,7 @@ project(hector_heat_detection)
 # TODO: remove all from COMPONENTS that are not catkin packages.
 find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure)
 
+#find_package(OpenCV REQUIRED)
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
 # cmake_minimum_required(VERSION 2.4.6)
@@ -26,9 +27,9 @@ find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info
 # rosbuild_init()
 
 #set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #uncomment if you have defined messages
 #add_message_files(
@@ -49,7 +50,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 # CATKIN_MIGRATION: removed during catkin migration
 # rosbuild_add_boost_directories()
 #find_package(Boost REQUIRED COMPONENTS thread)
-include_directories(${Boost_INCLUDE_DIRS})
+#include_directories(${Boost_INCLUDE_DIRS})
 #target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 #add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
@@ -66,8 +67,7 @@ add_dependencies(heat_detection ${${PROJECT_NAME}_EXPORTED_TARGETS})
 #add_executable(heat_detection src/heat_detection.h)
 #add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-find_package(OpenCV REQUIRED)
-target_link_libraries(heat_detection ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(heat_detection ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #TODO: Define non-absolute include path
 #Teporary includes of opencv with sse3 disabled

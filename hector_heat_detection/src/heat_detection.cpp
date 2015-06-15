@@ -46,8 +46,8 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    //Perform thresholding
 
    //Define image thresholds for victim detection
-   int minThreshold = (int)std::max(std::min(((minTempVictim_ - mapping_.minTemp) *(256.0/( mapping_.maxTemp -  mapping_.minTemp))),255.0),0.0);
-   int maxThreshold = (int)std::max(std::min(((maxTempVictim_ - mapping_.minTemp) *(256.0/( mapping_.maxTemp -  mapping_.minTemp))),255.0),0.0);
+   int minThreshold = (int)std::max(std::min(((minTempVictim_ - min_temp_img_) *(256.0/( max_temp_img_ -  min_temp_img_))),255.0),0.0);
+   int maxThreshold = (int)std::max(std::min(((maxTempVictim_ -min_temp_img_) *(256.0/( max_temp_img_ -  min_temp_img_))),255.0),0.0);
 
    cv::threshold(img_filtered,img_thres_min_,minThreshold,1,cv::THRESH_BINARY);
    cv::threshold(img_filtered,img_thres_max_,maxThreshold,1,cv::THRESH_BINARY_INV);

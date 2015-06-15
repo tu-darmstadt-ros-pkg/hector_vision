@@ -11,8 +11,8 @@ HeatDetection::HeatDetection(){
 
     min_temp_img_ =  10.0;
     max_temp_img_ = 200.0;
+    mappingDefined_ = true;
 
-    mappingDefined_ = false;
     sub_ = it.subscribeCamera("thermal/image", 1, &HeatDetection::imageCallback,this);
 
     //sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);

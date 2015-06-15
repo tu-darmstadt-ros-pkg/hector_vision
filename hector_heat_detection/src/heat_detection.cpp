@@ -9,6 +9,9 @@ HeatDetection::HeatDetection(){
     image_transport::ImageTransport it(n);
     image_transport::ImageTransport p_it(p_n);
 
+    min_temp_img_ =  10.0;
+    max_temp_img_ = 200.0;
+
     mappingDefined_ = false;
     sub_ = it.subscribeCamera("thermal/image", 1, &HeatDetection::imageCallback,this);
 

@@ -67,7 +67,7 @@ add_dependencies(heat_detection ${${PROJECT_NAME}_EXPORTED_TARGETS})
 #add_executable(heat_detection src/heat_detection.h)
 #add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-target_link_libraries(heat_detection ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(heat_detection ${catkin_LIBRARIES})
 
 #TODO: Define non-absolute include path
 #Teporary includes of opencv with sse3 disabled

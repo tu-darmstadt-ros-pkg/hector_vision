@@ -21,11 +21,16 @@ HeatDetection::HeatDetection(){
 
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
+
+   // get_measurement_server_= p_n.advertiseService("get_heat_measurement", getMeasurementSrvCallback);
 }
 
 HeatDetection::~HeatDetection(){}
 
+bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
+                    argo_vision_msgs::GetMeasurement::Response &res){
 
+}
 void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info){
 //if(debug_){
 //    ROS_INFO("count: %i", ++image_count_);
@@ -89,12 +94,14 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    ip.info.class_support = 1;
    ip.camera_info =  *info;
 
+   double max_blob_temperature = 70;
    for(unsigned int i=0; i<keypoints.size();i++)
    {
        ip.x = keypoints.at(i).pt.x;
        ip.y = keypoints.at(i).pt.y;
        pub_.publish(ip);
        ROS_DEBUG("Heat blob found at image coord: (%f, %f)", ip.x, ip.y);
+       //max_blob_temperature =
    }
 
 

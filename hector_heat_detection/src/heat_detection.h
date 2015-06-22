@@ -13,6 +13,7 @@
 
 #include <dynamic_reconfigure/server.h>
 #include <hector_heat_detection/HeatDetectionConfig.h>
+#include <argo_vision_msgs/GetMeasurement.h>
 
 using hector_heat_detection::HeatDetectionConfig;
 
@@ -24,7 +25,8 @@ private:
     void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info);
     //void mappingCallback(const thermaleye_msgs::Mapping& mapping);
     void dynRecParamCallback(HeatDetectionConfig &config, uint32_t level);
-
+    bool getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
+                        argo_vision_msgs::GetMeasurement::Response &res);
     ros::Publisher pub_;
     image_transport::CameraSubscriber sub_;
     image_transport::CameraPublisher pub_detection_;
@@ -50,6 +52,9 @@ private:
     cv::Mat img_thres_min_;
     cv::Mat img_thres_max_;
     cv::Mat img_thres_;
+
+    ros::ServiceServer get_measurement_server_;
+
 
 };
 

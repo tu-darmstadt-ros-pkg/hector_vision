@@ -28,6 +28,8 @@
   <build_depend>image_transport</build_depend>
   <!--<build_depend>thermaleye_msgs</build_depend>-->
   <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>argo_vision_msgs</build_depend>
+
 
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>roscpp</run_depend>
@@ -41,6 +43,7 @@
   <run_depend>image_transport</run_depend>
   <!--<run_depend>thermaleye_msgs</run_depend>-->
   <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>argo_vision_msgs</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
   <!-- <test_depend>roscpp</test_depend> -->

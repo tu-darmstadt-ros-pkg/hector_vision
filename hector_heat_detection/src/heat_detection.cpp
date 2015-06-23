@@ -83,7 +83,6 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    IplImage img_thres_ipl = img_thres_;
 
    cvMul(&img_thres_min_ipl, &img_thres_max_ipl, &img_thres_ipl, 255);
-
    //Perform blob detection
    cv::SimpleBlobDetector::Params params;
    params.filterByColor = true;
@@ -96,13 +95,10 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    params.filterByColor = false;
    params.filterByConvexity = false;
    params.filterByInertia = false;
-
    cv::SimpleBlobDetector blob_detector(params);
    std::vector<cv::KeyPoint> keypoints;
    keypoints.clear();
-
    blob_detector.detect(img_thres_,keypoints);
-
    //Publish results
    hector_worldmodel_msgs::ImagePercept ip;
 
@@ -119,7 +115,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        ip.y = k.pt.y;
        pub_.publish(ip);
        ROS_DEBUG("Heat blob found at image coord: (%f, %f)", ip.x, ip.y);
-       const cv::Mat roi = img_filtered(cv::Rect(k.pt.x - k.size, k.pt.y - k.size, 2*k.size, 2*k.size));
+       const cv::Mat roi = img_filtered(cv::Rect(k.pt.x - (k.size - 1)/2, k.pt.y - (k.size - 1)/2, k.size - 1, k.size - 1));
        int histSize = 256;
        float range[] = { 0, 256 };
        const float* histRange = { range };

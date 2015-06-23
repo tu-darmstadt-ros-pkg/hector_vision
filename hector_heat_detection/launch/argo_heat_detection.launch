@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node pkg="hector_heat_detection" type="heat_detection" name="heat_detection" output="screen">
+    <remap from="thermal/image" to="thermal/image" />
+  </node>
+
+</launch>

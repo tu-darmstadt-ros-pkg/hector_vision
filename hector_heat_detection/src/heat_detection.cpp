@@ -13,6 +13,9 @@ HeatDetection::HeatDetection(){
     max_temp_img_ = 200.0;
     mappingDefined_ = true;
 
+    blob_temperature_ = -1.0;
+    perform_measurement_ = false;
+
     sub_ = it.subscribeCamera("thermal/image", 1, &HeatDetection::imageCallback,this);
 
     //sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);
@@ -22,19 +25,33 @@ HeatDetection::HeatDetection(){
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
 
-   // get_measurement_server_= p_n.advertiseService("get_heat_measurement", getMeasurementSrvCallback);
+    get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
 }
 
 HeatDetection::~HeatDetection(){}
 
 bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
                     argo_vision_msgs::GetMeasurement::Response &res){
+    blob_temperature_ = -1.0;
+    perform_measurement_ = true;
 
+    res.value = blob_temperature_;
+
+    return true;
 }
+
 void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info){
 //if(debug_){
 //    ROS_INFO("count: %i", ++image_count_);
 //}
+    /*if(perform_measurement_) {
+        perform_measurement_ = false;
+    } else {
+        return;
+    }*/
+    std::cout << "Processing image..." << std::endl;
+
+
     if (!mappingDefined_){
         ROS_WARN("Error: Mapping undefined -> cannot perform detection");
     }else{
@@ -94,14 +111,37 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    ip.info.class_support = 1;
    ip.camera_info =  *info;
 
-   double max_blob_temperature = 70;
+   blob_temperature_ = -1.0;
    for(unsigned int i=0; i<keypoints.size();i++)
    {
-       ip.x = keypoints.at(i).pt.x;
-       ip.y = keypoints.at(i).pt.y;
+       cv::KeyPoint k = keypoints.at(i);
+       ip.x = k.pt.x;
+       ip.y = k.pt.y;
        pub_.publish(ip);
        ROS_DEBUG("Heat blob found at image coord: (%f, %f)", ip.x, ip.y);
-       //max_blob_temperature =
+       const cv::Mat roi = img_filtered(cv::Rect(k.pt.x - k.size, k.pt.y - k.size, 2*k.size, 2*k.size));
+       int histSize = 256;
+       float range[] = { 0, 256 };
+       const float* histRange = { range };
+       cv::Mat hist;
+       cv::calcHist(&roi, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, true, false);
+
+       float max_value = 0;
+       for(int j=0; j<histSize; j++) {
+           float h = hist.at<float>(j);
+           std::cout << "value: " << h << std::endl;
+           if (max_value <= h) {
+               max_value = h;
+               if (j > blob_temperature_) {
+                   blob_temperature_ = j;
+               }
+           }
+       }
+       std::cout << hist << std::endl;
+       std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;
+   }
+   if (keypoints.size() == 0) {
+       std::cout << "No blob detected" << std::endl;
    }
 
 

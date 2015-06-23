@@ -35,6 +35,7 @@ private:
     dynamic_reconfigure::Server<HeatDetectionConfig> dyn_rec_server_;
 
     bool mappingDefined_;
+    bool perform_measurement_;
 
     double minTempVictim_;
     double maxTempVictim_;
@@ -46,6 +47,7 @@ private:
     double min_temp_img_;
     double max_temp_img_;
 
+    double blob_temperature_;
 
     int image_count_ ;
 

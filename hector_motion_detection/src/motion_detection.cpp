@@ -5,195 +5,327 @@ MotionDetection::MotionDetection()
   ros::NodeHandle nh;
   ros::NodeHandle p_nh("~"); //private nh
 
-  img_prev_ptr_.reset();
-  img_current_ptr_.reset();
-
   image_transport::ImageTransport it(nh);
-
   image_transport::ImageTransport image_motion_it(p_nh);
   image_transport::ImageTransport image_detected_it(p_nh);
 
-  //camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
-
+  // subscribe topics
   image_sub_ = it.subscribe("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
-  dyn_rec_server_.setCallback(boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2));
 
+  // advertise topics
   image_percept_pub_ = nh.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 20);
   image_motion_pub_ = image_motion_it.advertiseCamera("image_motion", 10);
   image_detected_pub_ = image_detected_it.advertiseCamera("image_detected", 10);
+
+  // dynamic reconfigure
+  dyn_rec_server_.setCallback(boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2));
+
+  update_timer = nh.createTimer(ros::Duration(0.2), &MotionDetection::update, this);
 }
 
 MotionDetection::~MotionDetection()
 {
 }
 
-void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, const sensor_msgs::CameraInfoConstPtr& info)
+void MotionDetection::colorizeDepth(const cv::Mat& gray, cv::Mat& rgb) const
 {
-  // get image
-  cv_bridge::CvImageConstPtr img_next_ptr(cv_bridge::toCvShare(img, sensor_msgs::image_encodings::MONO8));
+  double maxDisp = 255;
+  float S= 1.0f;
+  float V= 1.0f ;
 
-  if (img_prev_ptr_)
+  rgb.create(gray.size(), CV_8UC3);
+  rgb = cv::Scalar::all(0);
+
+  if (maxDisp < 1)
+    return;
+
+  for (int y = 0; y < gray.rows; y++)
   {
-    // Calc differences between the images and do AND-operation
-    // threshold image, low differences are ignored (ex. contrast change due to sunlight)
-    cv::Mat diff1;
-    cv::Mat diff2;
-    cv::Mat img_motion;
-    cv::absdiff(img_prev_ptr_->image, img_next_ptr->image, diff1);
-    cv::absdiff(img_current_ptr_->image, img_next_ptr->image, diff2);
-    cv::bitwise_and(diff1, diff2, img_motion);
-    cv::threshold(img_motion, img_motion, motion_detect_threshold_, 255, CV_THRESH_BINARY);
-    cv::Mat kernel_ero = getStructuringElement(cv::MORPH_RECT, cv::Size(5,5));
-    cv::erode(img_motion, img_motion, kernel_ero);
-
-    unsigned int number_of_changes = 0;
-    int min_x = img_motion.cols, max_x = 0;
-    int min_y = img_motion.rows, max_y = 0;
-    // loop over image and detect changes
-    for(int j = 0; j < img_motion.rows; j++) // height
+    for (int x = 0; x < gray.cols; x++)
     {
-      for(int i = 0; i < img_motion.cols; i++) // width
+      uchar d = gray.at<uchar>(y,x);
+      unsigned int H = 255 - ((uchar)maxDisp - d) * 280/ (uchar)maxDisp;
+      unsigned int hi = (H/60) % 6;
+
+      float f = H/60.f - H/60;
+      float p = V * (1 - S);
+      float q = V * (1 - f * S);
+      float t = V * (1 - (1 - f) * S);
+
+      cv::Point3f res;
+
+      if (hi == 0) //R = V,  G = t,  B = p
+        res = cv::Point3f( p, t, V );
+      if (hi == 1) // R = q, G = V,  B = p
+        res = cv::Point3f( p, V, q );
+      if (hi == 2) // R = p, G = V,  B = t
+        res = cv::Point3f( t, V, p );
+      if (hi == 3) // R = p, G = q,  B = V
+        res = cv::Point3f( V, q, p );
+      if (hi == 4) // R = t, G = p,  B = V
+        res = cv::Point3f( V, p, t );
+      if (hi == 5) // R = V, G = p,  B = q
+        res = cv::Point3f( q, p, V );
+
+      uchar b = (uchar)(std::max(0.f, std::min (res.x, 1.f)) * 255.f);
+      uchar g = (uchar)(std::max(0.f, std::min (res.y, 1.f)) * 255.f);
+      uchar r = (uchar)(std::max(0.f, std::min (res.z, 1.f)) * 255.f);
+
+      rgb.at<cv::Point3_<uchar> >(y,x) = cv::Point3_<uchar>(b, g, r);
+    }
+  }
+}
+
+void MotionDetection::drawOpticalFlowVectors(cv::Mat& img, const cv::Mat& optical_flow, int step, const cv::Scalar& color) const
+{
+  for (int y = 0; y < optical_flow.rows; y += step)
+  {
+    for (int x = 0; x < optical_flow.cols; x += step)
+    {
+      const cv::Point2f& fxy = optical_flow.at<cv::Point2f>(y, x);
+      line(img, cv::Point(x,y), cv::Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), color);
+      circle(img, cv::Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), 1, color, -1);
+    }
+  }
+}
+
+void MotionDetection::computeOpticalFlow(const cv::Mat& prev_img, const cv::Mat& cur_img, cv::Mat& optical_flow, bool use_initial_flow, bool filter) const
+{
+  // compute optical flow
+  int flags = 0;
+  if (use_initial_flow && optical_flow.rows == prev_img.rows && optical_flow.cols == prev_img.cols && optical_flow.type() == CV_32FC2)
+    flags = cv::OPTFLOW_USE_INITIAL_FLOW;
+  else
+    optical_flow = cv::Mat(prev_img.rows, prev_img.cols, CV_32FC2);
+
+  calcOpticalFlowFarneback(prev_img, cur_img, optical_flow, 0.5, 3, 15, 3, 5, 1.2, flags);
+
+  if (filter)
+  {
+    // zero-mean data
+    cv::Point2f mean;
+    mean.x = 0;
+    mean.y = 0;
+    for(int y = 0; y < optical_flow.rows; y++)
+    {
+      for(int x = 0; x < optical_flow.cols; x++)
+        mean += optical_flow.at<cv::Point2f>(y, x);
+    }
+
+    mean.x /= static_cast<float>(optical_flow.rows*optical_flow.cols);
+    mean.y /= static_cast<float>(optical_flow.rows*optical_flow.cols);
+    float mean_length = std::sqrt(mean.x*mean.x + mean.y*mean.y);
+
+    float max_cos = cos(M_PI_2);
+    for(int y = 0; y < optical_flow.rows; y++)
+    {
+      for(int x = 0; x < optical_flow.cols; x++)
       {
-        // check if at pixel (j,i) intensity is equal to 255
-        // this means that the pixel is different in the sequence
-        // of images (prev_frame, current_frame, next_frame)
-        if(static_cast<int>(img_motion.at<uchar>(j,i)) == 255)
-        {
-          number_of_changes++;
-          if (min_x > i) min_x = i;
-          if (max_x < i) max_x = i;
-          if (min_y > j) min_y = j;
-          if (max_y < j) max_y = j;
-        }
+        cv::Point2f& p = optical_flow.at<cv::Point2f>(y, x);
+
+        float cos_pm = (p.x*mean.x+p.y*mean.y) / (std::sqrt(p.x*p.x + p.y*p.y)*mean_length);
+        if (cos_pm > max_cos)
+          p -= mean;
       }
     }
+  }
+}
 
-    cv::Mat img_detected;
-    img_current_col_ptr_->image.copyTo(img_detected);
+void MotionDetection::computeOpticalFlowMagnitude(const cv::Mat& optical_flow, cv::Mat& optical_flow_mag) const
+{
+  optical_flow_mag = cv::Mat(optical_flow.size(), CV_8UC1);
 
-    double percept_size = std::max(std::abs(max_x-min_x), std::abs(max_y-min_y));
-    double area = std::abs(max_x-min_x) * std::abs(max_y-min_y);
-    double density = area > 0.0 ? number_of_changes/area : 0.0;
-
-    min_density = 0.0;
-
-    //    ROS_INFO("number of changes = %lu", number_of_changes);
-    //    ROS_INFO("percept_size = %f  min_percept_size = %f  max_percept_size = %f ", percept_size, min_percept_size, max_percept_size);
-    //    ROS_INFO("density = %f  min_density = %f", density, min_density);
-
-    int dy = max_y - min_y, dx = max_x - min_x;
-    if(dy < 60)
-      max_y += 60 - dy;
-    if(dx < 60)
-      max_x += 60 - dx;
-
-    if (number_of_changes && max_percept_size > percept_size && percept_size > min_percept_size && density > min_density)
+  for (int y = 0; y < optical_flow.rows; y++)
+  {
+    for (int x = 0; x < optical_flow.cols; x++)
     {
-      cv::rectangle(img_detected, cv::Rect(cv::Point(min_x, min_y), cv::Point(max_x, max_y)), CV_RGB(255,0,0), 5);
+      const cv::Point2f& fxy = optical_flow.at<cv::Point2f>(y, x);
+      double magnitude = std::min(std::sqrt(fxy.x*fxy.x+fxy.y*fxy.y)/motion_detect_inv_sensivity_, 1.0);
+      optical_flow_mag.at<uchar>(y, x) = static_cast<uchar>(magnitude*255);
+    }
+  }
+}
+
+void MotionDetection::drawBlobs(cv::Mat& img, const KeyPoints& keypoints) const
+{
+  if (img.rows == 0 || img.cols == 0)
+    return;
+
+  double line_width = 5.0;
+  for (std::vector<cv::KeyPoint>::const_iterator itr = keypoints.begin(); itr != keypoints.end(); itr++)
+  {
+    const cv::KeyPoint& keypoint = *itr;
+
+    if (keypoint.size > 1)
+    {
+      float width = keypoint.size;
+      float height = keypoint.size;
+
+      const cv::Point2f& p = keypoint.pt;
+      cv::rectangle(img, cv::Rect(cv::Point(static_cast<int>(p.x-0.5*width-line_width), static_cast<int>(p.y-0.5*height-line_width)), cv::Point(static_cast<int>(p.x+0.5*width+line_width), static_cast<int>(p.y+0.5*height+line_width))), CV_RGB(255,0,0), 5);
+    }
+  }
+}
+
+void MotionDetection::detectBlobs(const cv::Mat& img, KeyPoints& keypoints) const
+{
+  // Perform thresholding
+  cv::Mat img_thresh;
+  cv::threshold(img, img_thresh, motion_detect_threshold_, 255, CV_THRESH_BINARY);
+
+  //
+  cv::Mat kernel_dil = getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(motion_detect_dilation_size_, motion_detect_dilation_size_));
+  cv::dilate(img_thresh, img_thresh, kernel_dil);
+
+  // Perform blob detection
+  cv::SimpleBlobDetector::Params params;
+  params.minDistBetweenBlobs = 50;
+  params.filterByArea = true;
+  params.minArea = motion_detect_min_area_;
+  params.maxArea = img_thresh.rows * img_thresh.cols;
+  params.filterByCircularity = false;
+  params.filterByColor = true;
+  params.blobColor = 255;
+  params.filterByConvexity = false;
+  params.filterByInertia = false;
+
+  cv::SimpleBlobDetector blob_detector(params);
+  keypoints.clear();
+  blob_detector.detect(img_thresh, keypoints);
+
+#ifdef NDEBUG
+  cv::imshow("blob_detector_input", img_thresh);
+#endif
+}
+
+void MotionDetection::update(const ros::TimerEvent& /*event*/)
+{
+  if (!last_img)
+    return;
+
+  // get image
+  cv_bridge::CvImageConstPtr img_next_ptr(cv_bridge::toCvShare(last_img, sensor_msgs::image_encodings::MONO8));
+  cv_bridge::CvImageConstPtr img_next_col_ptr(cv_bridge::toCvShare(last_img, sensor_msgs::image_encodings::BGR8));
+
+  if (img_prev_ptr_ && img_prev_col_ptr_)
+  {
+    computeOpticalFlow(img_prev_ptr_->image, img_next_ptr->image, optical_flow, motion_detect_use_initial_flow_);
+
+    cv::Mat optical_flow_mag;
+    computeOpticalFlowMagnitude(optical_flow, optical_flow_mag);
+
+    cv::Mat optical_flow_img;
+    img_next_col_ptr->image.copyTo(optical_flow_img);
+    drawOpticalFlowVectors(optical_flow_img, optical_flow);
+#ifdef NDEBUG
+    cv::imshow("flow", optical_flow_img);
+#endif
+
+    cv::Mat optical_flow_mag_img;
+    colorizeDepth(optical_flow_mag, optical_flow_mag_img);
+#ifdef NDEBUG
+    cv::imshow("magnitude", optical_flow_mag_img);
+#endif
+
+    cv::Mat total_flow;
+    optical_flow_mag.copyTo(total_flow);
+
+    if (flow_history.size() < motion_detect_flow_history_size_)
+    {
+      flow_history.push_front(optical_flow_mag);
+      return;
+    }
+    else
+    {
+      for (std::list<cv::Mat>::const_iterator itr = flow_history.begin(); itr != flow_history.end(); itr++)
+      {
+        cv::Mat img_thresh;
+        cv::threshold(*itr, img_thresh, motion_detect_threshold_, 255, CV_THRESH_BINARY);
+        cv::bitwise_and(total_flow, img_thresh, total_flow);
+      }
+
+      flow_history.push_front(optical_flow_mag);
+
+      while (flow_history.size() > motion_detect_flow_history_size_)
+        flow_history.pop_back();
     }
 
-    cv::imshow("view", img_current_ptr_->image);
+    KeyPoints keypoints;
+    detectBlobs(total_flow, keypoints);
+
+    // generate image where the detected movement is encircled by a rectangle
+    cv::Mat img_detected;
+    img_next_col_ptr->image.copyTo(img_detected);
+    drawBlobs(img_detected, keypoints);
+
+#ifdef NDEBUG
+    cv::imshow("view", img_detected);
+#endif
+
     sensor_msgs::CameraInfo::Ptr info;
     info.reset(new sensor_msgs::CameraInfo());
-    info->header = img->header;
+    info->header = img_next_ptr->header;
 
-    if(image_motion_pub_.getNumSubscribers() > 0)
+    if (image_motion_pub_.getNumSubscribers() > 0)
     {
       cv_bridge::CvImage cvImg;
-      img_motion.copyTo(cvImg.image);
-      cvImg.header = img->header;
-      cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+      optical_flow_mag_img.copyTo(cvImg.image);
+      cvImg.header = img_next_ptr->header;
+      cvImg.encoding = sensor_msgs::image_encodings::BGR8;
       image_motion_pub_.publish(cvImg.toImageMsg(), info);
     }
 
-    if(image_detected_pub_.getNumSubscribers() > 0)
+    if (image_detected_pub_.getNumSubscribers() > 0)
     {
       cv_bridge::CvImage cvImg;
       img_detected.copyTo(cvImg.image);
-      cvImg.header = img->header;
+      cvImg.header = img_next_ptr->header;
       cvImg.encoding = sensor_msgs::image_encodings::BGR8;
       image_detected_pub_.publish(cvImg.toImageMsg(), info);
     }
   }
 
   // shift image buffers
-  img_prev_ptr_= img_current_ptr_;
-  img_current_ptr_ = img_next_ptr;
-
-  img_current_col_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::BGR8);
-
-
-  //  // calculate the standard deviation
-  //  Scalar mean, stddev;
-  //  meanStdDev(motion, mean, stddev);
-
-  //  // if not to much changes then the motion is real (neglect agressive snow, temporary sunlight)
-  //  if(stddev[0] < max_deviation)
-  //  {
-  //    int number_of_changes = 0;
-  //    int min_x = motion.cols, max_x = 0;
-  //    int min_y = motion.rows, max_y = 0;
-  //    // loop over image and detect changes
-  //    for(int j = y_start; j < y_stop; j+=2) { // height
-  //      for(int i = x_start; i < x_stop; i+=2) { // width
-  //        // check if at pixel (j,i) intensity is equal to 255
-  //        // this means that the pixel is different in the sequence
-  //        // of images (prev_frame, current_frame, next_frame)
-  //        if(static_cast<int>(motion.at<uchar>(j,i)) == 255) {
-  //          number_of_changes++;
-  //          if(min_x>i) min_x = i;
-  //          if(max_x<i) max_x = i;
-  //          if(min_y>j) min_y = j;
-  //          if(max_y<j) max_y = j;
-  //        }
-  //      }
-  //    }
-
-  //    if(number_of_changes) {
-  //      //check if not out of bounds
-  //      if(min_x-10 > 0) min_x -= 10;
-  //      if(min_y-10 > 0) min_y -= 10;
-  //      if(max_x+10 < result.cols-1) max_x += 10;
-  //      if(max_y+10 < result.rows-1) max_y += 10;
-  //      // draw rectangle round the changed pixel
-  //      Point x(min_x,min_y);
-  //      Point y(max_x,max_y);
-  //      Rect rect(x,y);
-  //      Mat cropped = result(rect);
-  //      cropped.copyTo(result_cropped);
-  //      rectangle(result,rect,color,1);
-  //    }
-  //    //return number_of_changes;
-  //  }
-  //return 0;
+  img_prev_ptr_= img_next_ptr;
+  img_prev_col_ptr_ = img_next_col_ptr;
 }
 
-//void MotionDetection::mappingCallback(const thermaleye_msgs::Mapping& mapping)
-//{
-//   mapping_ = mapping;
-//   mappingDefined_ = true;
-//   ROS_INFO("Mapping received");
-//}
-
-void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)
+void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
 {
+  last_img = img;
+}
+
+void MotionDetection::dynRecParamCallback(MotionDetectionConfig& config, uint32_t level)
+{
+  motion_detect_inv_sensivity_ = config.motion_detect_inv_sensivity;
+  motion_detect_use_initial_flow_ = config.motion_detect_use_initial_flow;
   motion_detect_threshold_ = config.motion_detect_threshold;
-  min_percept_size = config.motion_detect_min_percept_size;
-  max_percept_size = config.motion_detect_max_percept_size;
-  min_density = config.motion_detect_min_density;
+  motion_detect_min_area_ = config.motion_detect_min_area;
+  motion_detect_dilation_size_ = config.motion_detect_dilation_size;
+  motion_detect_flow_history_size_ = config.motion_detect_flow_history_size;
   percept_class_id_ = config.percept_class_id;
 }
 
 int main(int argc, char **argv)
 {
+#ifdef NDEBUG
   cv::namedWindow("view");
+  cv::namedWindow("flow");
+  cv::namedWindow("magnitude");
+  cv::namedWindow("blob_detector_input");
   cv::startWindowThread();
+#endif
 
   ros::init(argc, argv, "motion_detection");
   MotionDetection md;
   ros::spin();
 
+#ifdef NDEBUG
   cv::destroyWindow("view");
+  cv::destroyWindow("flow");
+  cv::destroyWindow("magnitude");
+  cv::destroyWindow("blob_detector_input");
+#endif
 
   return 0;
 }

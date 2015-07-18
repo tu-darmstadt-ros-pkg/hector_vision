@@ -21,7 +21,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <hector_motion_detection/MotionDetectionConfig.h>
 
-#define NDEBUG
+//#define NDEBUG
 
 using hector_motion_detection::MotionDetectionConfig;
 
@@ -40,7 +40,7 @@ private:
   void computeOpticalFlow(const cv::Mat& prev_img, const cv::Mat& cur_img, cv::Mat& optical_flow, bool use_initial_flow = false, bool filter = false) const;
   void computeOpticalFlowMagnitude(const cv::Mat& optical_flow, cv::Mat& optical_flow_mag) const;
 
-  void drawBlobs(cv::Mat& img, const KeyPoints& keypoints) const;
+  void drawBlobs(cv::Mat& img, const KeyPoints& keypoints, double scale = 1.0) const;
   void detectBlobs(const cv::Mat& img, KeyPoints& keypoints) const;
 
   void update(const ros::TimerEvent& event);
@@ -69,12 +69,15 @@ private:
   std::list<cv::Mat> flow_history;
 
   // dynamic reconfigure params
+  double motion_detect_downscale_factor_;
   double motion_detect_inv_sensivity_;
   bool motion_detect_use_initial_flow_;
+  bool motion_detect_image_flow_filter_;
   int motion_detect_threshold_;
-  int motion_detect_min_area_;
+  double motion_detect_min_area_;
+  double motion_detect_min_blob_dist_;
   int motion_detect_dilation_size_;
-  double motion_detect_flow_history_size_;
+  int motion_detect_flow_history_size_;
   std::string percept_class_id_;
 };
 

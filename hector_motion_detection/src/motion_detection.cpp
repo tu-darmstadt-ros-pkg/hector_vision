@@ -11,6 +11,7 @@ MotionDetection::MotionDetection()
 
   // subscribe topics
   image_sub_ = it.subscribe("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
+  //image_sub_ = it.subscribe("/openni/rgb/image_color", 1, &MotionDetection::imageCallback, this);
 
   // advertise topics
   image_percept_pub_ = nh.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 20);
@@ -20,7 +21,7 @@ MotionDetection::MotionDetection()
   // dynamic reconfigure
   dyn_rec_server_.setCallback(boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2));
 
-  update_timer = nh.createTimer(ros::Duration(0.2), &MotionDetection::update, this);
+  update_timer = nh.createTimer(ros::Duration(0.04), &MotionDetection::update, this);
 }
 
 MotionDetection::~MotionDetection()
@@ -98,7 +99,7 @@ void MotionDetection::computeOpticalFlow(const cv::Mat& prev_img, const cv::Mat&
   else
     optical_flow = cv::Mat(prev_img.rows, prev_img.cols, CV_32FC2);
 
-  calcOpticalFlowFarneback(prev_img, cur_img, optical_flow, 0.5, 3, 15, 3, 5, 1.2, flags);
+  calcOpticalFlowFarneback(prev_img, cur_img, optical_flow, 0.5, 2, 15, 3, 5, 1.2, flags);
 
   if (filter)
   {
@@ -146,12 +147,12 @@ void MotionDetection::computeOpticalFlowMagnitude(const cv::Mat& optical_flow, c
   }
 }
 
-void MotionDetection::drawBlobs(cv::Mat& img, const KeyPoints& keypoints) const
+void MotionDetection::drawBlobs(cv::Mat& img, const KeyPoints& keypoints, double scale) const
 {
   if (img.rows == 0 || img.cols == 0)
     return;
 
-  double line_width = 5.0;
+  double line_width = 2.0*scale;
   for (std::vector<cv::KeyPoint>::const_iterator itr = keypoints.begin(); itr != keypoints.end(); itr++)
   {
     const cv::KeyPoint& keypoint = *itr;
@@ -162,7 +163,7 @@ void MotionDetection::drawBlobs(cv::Mat& img, const KeyPoints& keypoints) const
       float height = keypoint.size;
 
       const cv::Point2f& p = keypoint.pt;
-      cv::rectangle(img, cv::Rect(cv::Point(static_cast<int>(p.x-0.5*width-line_width), static_cast<int>(p.y-0.5*height-line_width)), cv::Point(static_cast<int>(p.x+0.5*width+line_width), static_cast<int>(p.y+0.5*height+line_width))), CV_RGB(255,0,0), 5);
+      cv::rectangle(img, cv::Rect(cv::Point(static_cast<int>((p.x-0.5*width-line_width)*scale), static_cast<int>((p.y-0.5*height-line_width)*scale)), cv::Point(static_cast<int>((p.x+0.5*width+line_width)*scale), static_cast<int>((p.y+0.5*height+line_width)*scale))), CV_RGB(255,0,0), line_width);
     }
   }
 }
@@ -173,13 +174,13 @@ void MotionDetection::detectBlobs(const cv::Mat& img, KeyPoints& keypoints) cons
   cv::Mat img_thresh;
   cv::threshold(img, img_thresh, motion_detect_threshold_, 255, CV_THRESH_BINARY);
 
-  //
+  // Dilate detected area
   cv::Mat kernel_dil = getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(motion_detect_dilation_size_, motion_detect_dilation_size_));
   cv::dilate(img_thresh, img_thresh, kernel_dil);
 
   // Perform blob detection
   cv::SimpleBlobDetector::Params params;
-  params.minDistBetweenBlobs = 50;
+  params.minDistBetweenBlobs = motion_detect_min_blob_dist_;
   params.filterByArea = true;
   params.minArea = motion_detect_min_area_;
   params.maxArea = img_thresh.rows * img_thresh.cols;
@@ -207,30 +208,43 @@ void MotionDetection::update(const ros::TimerEvent& /*event*/)
   cv_bridge::CvImageConstPtr img_next_ptr(cv_bridge::toCvShare(last_img, sensor_msgs::image_encodings::MONO8));
   cv_bridge::CvImageConstPtr img_next_col_ptr(cv_bridge::toCvShare(last_img, sensor_msgs::image_encodings::BGR8));
 
+  last_img.reset();
+
   if (img_prev_ptr_ && img_prev_col_ptr_)
   {
-    computeOpticalFlow(img_prev_ptr_->image, img_next_ptr->image, optical_flow, motion_detect_use_initial_flow_);
+    cv::Mat img_prev;
+    cv::Mat img_next;
+    cv::Mat img_next_col;
+
+    cv::Size img_size(img_next_ptr->image.cols / motion_detect_downscale_factor_, img_next_ptr->image.rows / motion_detect_downscale_factor_);
+    cv::resize(img_prev_ptr_->image, img_prev, img_size);
+    cv::resize(img_next_ptr->image, img_next, img_size);
+    cv::resize(img_next_col_ptr->image, img_next_col, img_size);
+
+    computeOpticalFlow(img_prev, img_next, optical_flow, motion_detect_use_initial_flow_, motion_detect_image_flow_filter_);
 
     cv::Mat optical_flow_mag;
     computeOpticalFlowMagnitude(optical_flow, optical_flow_mag);
 
-    cv::Mat optical_flow_img;
-    img_next_col_ptr->image.copyTo(optical_flow_img);
-    drawOpticalFlowVectors(optical_flow_img, optical_flow);
 #ifdef NDEBUG
+    cv::Mat optical_flow_img;
+    img_next_col.copyTo(optical_flow_img);
+    drawOpticalFlowVectors(optical_flow_img, optical_flow);
+    cv::resize(optical_flow_img, optical_flow_img, img_prev_ptr_->image.size());
     cv::imshow("flow", optical_flow_img);
 #endif
 
+#ifdef NDEBUG
     cv::Mat optical_flow_mag_img;
     colorizeDepth(optical_flow_mag, optical_flow_mag_img);
-#ifdef NDEBUG
+    cv::resize(optical_flow_mag_img, optical_flow_mag_img, img_prev_ptr_->image.size());
     cv::imshow("magnitude", optical_flow_mag_img);
 #endif
 
     cv::Mat total_flow;
     optical_flow_mag.copyTo(total_flow);
 
-    if (flow_history.size() < motion_detect_flow_history_size_)
+    if (flow_history.size() < static_cast<size_t>(motion_detect_flow_history_size_))
     {
       flow_history.push_front(optical_flow_mag);
       return;
@@ -241,12 +255,12 @@ void MotionDetection::update(const ros::TimerEvent& /*event*/)
       {
         cv::Mat img_thresh;
         cv::threshold(*itr, img_thresh, motion_detect_threshold_, 255, CV_THRESH_BINARY);
-        cv::bitwise_and(total_flow, img_thresh, total_flow);
+        cv::bitwise_or(total_flow, img_thresh, total_flow);
       }
 
       flow_history.push_front(optical_flow_mag);
 
-      while (flow_history.size() > motion_detect_flow_history_size_)
+      while (flow_history.size() > static_cast<size_t>(motion_detect_flow_history_size_))
         flow_history.pop_back();
     }
 
@@ -256,7 +270,7 @@ void MotionDetection::update(const ros::TimerEvent& /*event*/)
     // generate image where the detected movement is encircled by a rectangle
     cv::Mat img_detected;
     img_next_col_ptr->image.copyTo(img_detected);
-    drawBlobs(img_detected, keypoints);
+    drawBlobs(img_detected, keypoints, motion_detect_downscale_factor_);
 
 #ifdef NDEBUG
     cv::imshow("view", img_detected);
@@ -297,13 +311,18 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
 
 void MotionDetection::dynRecParamCallback(MotionDetectionConfig& config, uint32_t level)
 {
+  motion_detect_downscale_factor_ = config.motion_detect_downscale_factor;
   motion_detect_inv_sensivity_ = config.motion_detect_inv_sensivity;
   motion_detect_use_initial_flow_ = config.motion_detect_use_initial_flow;
+  motion_detect_image_flow_filter_ = config.motion_detect_image_flow_filter;
   motion_detect_threshold_ = config.motion_detect_threshold;
   motion_detect_min_area_ = config.motion_detect_min_area;
+  motion_detect_min_blob_dist_ = config.motion_detect_min_blob_dist;
   motion_detect_dilation_size_ = config.motion_detect_dilation_size;
   motion_detect_flow_history_size_ = config.motion_detect_flow_history_size;
   percept_class_id_ = config.percept_class_id;
+
+  flow_history.clear();
 }
 
 int main(int argc, char **argv)

@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="dynamic_reconfigure" type="dynparam" name="hector_motion_detection_loader" output="screen" args="load motion_detection $(find hector_motion_detection)/cfg/motion_detection_default.yaml" />
+</launch>

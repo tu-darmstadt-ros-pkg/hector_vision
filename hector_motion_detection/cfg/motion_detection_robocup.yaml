@@ -1,0 +1,10 @@
+{motion_detect_downscale_factor: 2,
+motion_detect_inv_sensivity: 20,
+motion_detect_use_initial_flow: False,
+motion_detect_image_flow_filter: True,
+motion_detect_threshold: 10,
+motion_detect_min_area: 100,
+motion_detect_min_blob_dist: 50,
+motion_detect_dilation_size: 5,
+motion_detect_flow_history_size: 15,
+percept_class_id: victim}

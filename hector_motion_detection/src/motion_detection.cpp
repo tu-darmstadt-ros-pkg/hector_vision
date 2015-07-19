@@ -194,7 +194,7 @@ void MotionDetection::detectBlobs(const cv::Mat& img, KeyPoints& keypoints) cons
   keypoints.clear();
   blob_detector.detect(img_thresh, keypoints);
 
-#ifdef NDEBUG
+#ifdef DEBUG
   cv::imshow("blob_detector_input", img_thresh);
 #endif
 }
@@ -226,7 +226,7 @@ void MotionDetection::update(const ros::TimerEvent& /*event*/)
     cv::Mat optical_flow_mag;
     computeOpticalFlowMagnitude(optical_flow, optical_flow_mag);
 
-#ifdef NDEBUG
+#ifdef DEBUG
     cv::Mat optical_flow_img;
     img_next_col.copyTo(optical_flow_img);
     drawOpticalFlowVectors(optical_flow_img, optical_flow);
@@ -234,9 +234,10 @@ void MotionDetection::update(const ros::TimerEvent& /*event*/)
     cv::imshow("flow", optical_flow_img);
 #endif
 
-#ifdef NDEBUG
     cv::Mat optical_flow_mag_img;
     colorizeDepth(optical_flow_mag, optical_flow_mag_img);
+
+#ifdef DEBUG
     cv::resize(optical_flow_mag_img, optical_flow_mag_img, img_prev_ptr_->image.size());
     cv::imshow("magnitude", optical_flow_mag_img);
 #endif
@@ -272,7 +273,7 @@ void MotionDetection::update(const ros::TimerEvent& /*event*/)
     img_next_col_ptr->image.copyTo(img_detected);
     drawBlobs(img_detected, keypoints, motion_detect_downscale_factor_);
 
-#ifdef NDEBUG
+#ifdef DEBUG
     cv::imshow("view", img_detected);
 #endif
 
@@ -327,7 +328,7 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig& config, uint32_
 
 int main(int argc, char **argv)
 {
-#ifdef NDEBUG
+#ifdef DEBUG
   cv::namedWindow("view");
   cv::namedWindow("flow");
   cv::namedWindow("magnitude");
@@ -339,7 +340,7 @@ int main(int argc, char **argv)
   MotionDetection md;
   ros::spin();
 
-#ifdef NDEBUG
+#ifdef DEBUG
   cv::destroyWindow("view");
   cv::destroyWindow("flow");
   cv::destroyWindow("magnitude");

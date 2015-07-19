@@ -21,7 +21,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <hector_motion_detection/MotionDetectionConfig.h>
 
-//#define NDEBUG
+//#define DEBUG
 
 using hector_motion_detection::MotionDetectionConfig;
 

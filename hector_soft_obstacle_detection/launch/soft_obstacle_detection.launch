@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="hector_soft_obstacle_detection" type="soft_obstacle_detection" name="soft_obstacle_detection" output="screen" respawn="true" />
+</launch>

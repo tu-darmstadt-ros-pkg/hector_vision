@@ -57,6 +57,10 @@ public:
        res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
        return true;
     }
+    if (req.percept.info.class_id == "barrel"){
+       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
+       return true;
+    }
     if (belongsToRobot){
        res.response = hector_worldmodel_msgs::VerifyPerceptResponse::DISCARD;
     }else{

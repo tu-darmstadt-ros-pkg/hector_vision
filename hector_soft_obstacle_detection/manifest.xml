@@ -10,7 +10,8 @@
   <url>http://ros.org/wiki/hector_soft_obstacle_detection</url>
 
   <depend package="roscpp"/>
-  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="pcl_ros"/>
   <depend package="hector_worldmodel_msgs" />
   <depend package="sensor_msgs" />
   <depend package="cv_bridge" />

@@ -7,9 +7,26 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  Release        : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-set(ROS_BUILD_TYPE Release)
+set(ROS_BUILD_TYPE Debug)
 
 rosbuild_init()
+
+find_package(cmake_modules)
+
+find_package(OpenCV REQUIRED)
+find_package(Eigen REQUIRED)
+find_package(PCL REQUIRED)
+
+include_directories(include ${OpenCV_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+
+## Specify additional locations of header files
+set(HEADERS
+  include/${PROJECT_NAME}/soft_obstacle_detection.h
+)
+
+set(SOURCES
+  src/soft_obstacle_detection.cpp
+)
 
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -22,7 +39,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
+rosbuild_add_library(${PROJECT_NAME}  ${SOURCES} ${HEADERS})
 #target_link_libraries(${PROJECT_NAME} another_library)
 
 #rosbuild_add_boost_directories()
@@ -36,14 +53,5 @@ include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 gencfg()
 
 rosbuild_add_executable(soft_obstacle_detection src/soft_obstacle_detection.cpp)
-rosbuild_add_executable(soft_obstacle_detection src/soft_obstacle_detection.h)
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-find_package(OpenCV REQUIRED)
-target_link_libraries(soft_obstacle_detection ${OpenCV_LIBS})
 
-#TODO: Define non-absolute include path
-#Teporary includes of opencv with sse3 disabled
-#target_link_libraries(${PROJECT_NAME} /home/konstantin/opencv/opencv2.3_bin/lib/libopencv_highgui.so)
-#target_link_libraries(${PROJECT_NAME} /home/konstantin/opencv/opencv2.3_bin/lib/libopencv_imgproc.so)
-#target_link_libraries(${PROJECT_NAME} /home/konstantin/opencv/opencv2.3_bin/lib/libopencv_features2d.so)
+target_link_libraries(soft_obstacle_detection ${PROJECT_NAME} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} ${PCL_LIBRARIES})

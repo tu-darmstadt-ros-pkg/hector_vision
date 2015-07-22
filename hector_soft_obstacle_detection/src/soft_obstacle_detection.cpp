@@ -267,7 +267,9 @@ bool SoftObstacleDetection::checkSegmentsMatching(const std::vector<double>& edg
     dist_var += (*itr - dist_mean)*(*itr - dist_mean);
   dist_var /= static_cast<double>(seg_dists.size());
 
+#ifdef DEBUG
   ROS_INFO("MSE: %f, size_mean: %f, size_var: %f, dist_mean: %f, dist_var: %f", mse, size_mean, size_var, dist_mean, dist_var);
+#endif
 
   return mse < max_segment_size_mse_ && size_var < max_segment_size_var_ && dist_var < max_segment_dist_var_;
 }
@@ -532,7 +534,10 @@ void SoftObstacleDetection::update(const ros::TimerEvent& /*event*/)
     //if (checkFrequencyMatching(edges, centers, 2.0*veil_segment_size_, min_segments_, max_segments_))
     if (checkSegmentsMatching(edges, centers, veil_segment_size_, min_segments_, max_segments_))
     {
+#ifdef DEBUG
       ROS_INFO("Detected");
+#endif
+
       if (tf_listener.canTransform("/map", "/laser1_frame", header.stamp))
       {
         // generate pose of soft obstacle

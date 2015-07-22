@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <Eigen/Dense>
 
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -112,122 +113,233 @@ void SoftObstacleDetection::houghTransform(const cv::Mat& img, std::vector<cv::V
 #endif
 }
 
+uchar SoftObstacleDetection::getMaxAtLine(const cv::Mat& img, const cv::Point& p1, const cv::Point& p2) const
+{
+  uchar result = 0;
+
+  cv::LineIterator it(img, p1, p2, 8);
+  for(int i = 0; i < it.count; i++, ++it)
+  {
+    result = std::max(result, img.at<uchar>(it.pos()));
+
+    if (result == 255)
+      break;
+  }
+
+  return result;
+}
+
 void SoftObstacleDetection::getLine(const cv::Mat& img, const cv::Vec4i& line, cv::Mat& out) const
 {
-  int x1 = line[0];
-  int y1 = line[1];
-  int x2 = line[2];
-  int y2 = line[3];
-
-  // Bresenham's line algorithm
-  const bool steep = (std::abs(y2 - y1) > std::abs(x2 - x1));
-  if (steep)
-  {
-    std::swap(x1, y1);
-    std::swap(x2, y2);
-  }
-
-  if (x1 > x2)
-  {
-    std::swap(x1, x2);
-    std::swap(y1, y2);
-  }
-
-  const int dx = x2 - x1;
-  const int dy = std::abs(y2 - y1);
-
-  int error = dx / 2;
-  const int ystep = (y1 < y2) ? 1 : -1;
+  cv::Point p1(line[0], line[1]);
+  cv::Point p2(line[2], line[3]);
 
   std::vector<uchar> signal;
+  double r = 3.0;
 
-  int y = y1;
-  for (int x = x1; x < x2; x++)
+  cv::Vec2d orth_dir(static_cast<double>(p2.y-p1.y), static_cast<double>(-(p2.x-p1.x)));
+  orth_dir = cv::normalize(orth_dir) * r;
+  cv::Point o(std::floor(orth_dir(2)+0.5), std::floor(orth_dir(1)+0.5));
+
+  cv::LineIterator it(img, p1, p2, 8);
+  for(int i = 0; i < it.count; i++, ++it)
   {
-    if (steep)
-      signal.push_back(img.at<uchar>(x, y));
-    else
-      signal.push_back(img.at<uchar>(y, x));
-
-    error -= dy;
-    if (error < 0)
-    {
-      y += ystep;
-      error += dx;
-    }
+    uchar val1 = getMaxAtLine(img, it.pos()-o, it.pos()+o);
+    uchar val2 = getMaxAtLine(img, it.pos()-o-cv::Point(1, 1), it.pos()+o-cv::Point(1, 1));
+    signal.push_back(std::max(val1, val2));
   }
-
-  if (signal.empty())
-    return;
 
   out = cv::Mat(cv::Size(signal.size(), 1), CV_8UC1);
   for (size_t i = 0; i < signal.size(); i++)
     out.at<uchar>(i) = signal[i];
 }
 
-void SoftObstacleDetection::evalModel(const std::vector<double>& edges, const std::vector<double>& centers, double beta, double& r, double& dr, double& Hr) const
+void SoftObstacleDetection::edgeDetection(const cv::Mat& signal, std::vector<double>& edges, std::vector<double>& centers) const
 {
-  beta *= M_PI_2;
+  //std::vector<double> edges; // pos = abs(c), edge direction = sign(c)
+  //std::vector<double> centers; // pos = abs(c), val = sign(c)
 
-  r = 0;
-
-  for (std::vector<double>::const_iterator itr = edges.begin(); itr != edges.end(); itr++)
-    r += cos(beta * std::abs(*itr));
-
-  for (std::vector<double>::const_iterator itr = centers.begin(); itr != centers.end(); itr++)
-    r += 1.0 - std::abs(cos(beta * *itr));
-}
-
-double SoftObstacleDetection::computeFrequency(const cv::Mat& signal, double& mean, double& var) const
-{
-  if (signal.cols <= 0)
-    return 0.0;
+  cv::Mat sig(signal.size(), CV_8UC1);
+  signal.copyTo(sig);
 
   // detect edges
   unsigned int edge_dist = 0;
-  mean = 0.0;
   std::vector<unsigned int> edge_distances;
 
-  std::vector<double> edges; // pos = abs(c), edge direction = sign(c)
-  std::vector<double> centers; // pos = abs(c), val = sign(c)
-
+  // run edge detection
   unsigned int last_val = signal.at<uchar>(0);
   for (int i = 1; i < signal.cols; i++)
   {
     edge_dist++;
 
     unsigned int current_val = static_cast<int>(signal.at<uchar>(i));
-    int d = last_val - current_val;
+    int d = current_val - last_val;
 
     if (std::abs(d) > 150) // positiv distances edges
     {
-      int sign = d > 0 ? 1 : -1;
+      int sign = d < 0 ? -1 : 1;
 
-      edge_distances.push_back(edge_dist);
-      mean += static_cast<double>(edge_dist);
-      edge_dist = 0;
+      edges.push_back(static_cast<double>(sign * (i-0.5)));
 
-      edges.push_back(static_cast<double>(sign * i) - 0.5);
-      centers.push_back(static_cast<double>(sign) * (static_cast<double>(i) - 0.5*static_cast<double>(edge_dist)));
+      if (sign < 0 || edge_dist > min_hole_size_)
+      {
+        edge_distances.push_back(edge_dist);
+        centers.push_back(static_cast<double>(-sign) * (static_cast<double>(i-0.5) - 0.5*static_cast<double>(edge_dist)));
+
+        edge_dist = 0;
+      }
+      else // ignore small holes
+      {
+        for (int j = i - edge_dist; j < i; j++)
+          sig.at<uchar>(j) = 255;
+
+        if (!edge_distances.empty())
+        {
+          edge_dist += edge_distances[edge_distances.size()-1];
+          edge_distances.pop_back();
+          edges.pop_back();
+          centers.pop_back();
+        }
+        edges.pop_back();
+      }
     }
 
     last_val = current_val;
   }
 
-  // run gauss newton
-  //evalModel(edges, centers);
+  edge_distances.push_back(edge_dist);
+  centers.push_back((last_val == 0 ? -1.0 : 1.0) * (static_cast<double>(signal.cols-0.5) - 0.5*static_cast<double>(edge_dist)));
 
-  // get average frequency
-  mean /= static_cast<double>(edge_distances.size());
+  cv::resize(sig, sig, cv::Size(sig.cols*5, 30));
+  cv::imshow("test1", sig);
+}
 
-  // get variance
-  var = 0.0;
-  for (std::vector<unsigned int>::const_iterator itr = edge_distances.begin(); itr != edge_distances.end(); itr++)
+bool SoftObstacleDetection::checkSegmentsMatching(const std::vector<double>& edges, const std::vector<double>& centers, double veil_segment_size, double min_segments, double max_segments) const
+{
+  if (edges.empty() || centers.empty())
+    return false;
+
+  std::vector<double> seg_sizes;
+  std::vector<double> seg_dists;
+
+  double mse = 0.0;
+  double size_mean = 0.0;
+  double size_var = 0.0;
+  double dist_mean = 0.0;
+  double dist_var = 0.0;
+
+  double last_edge = std::abs(edges[0]);
+  for (size_t i = 1; i < edges.size()-1; i++)
   {
-    double d = (static_cast<double>(*itr) - mean);
-    var += d*d;
+    double size = std::abs(edges[i]) - last_edge;
+    if (edges[i] < 0)
+    {
+      double e = veil_segment_size - size;
+
+      mse += e*e;
+      size_mean += size;
+
+      seg_sizes.push_back(size);
+    }
+    else
+    {
+      dist_mean += size;
+      seg_dists.push_back(size);
+    }
+    last_edge = std::abs(edges[i]);
   }
-  var /= static_cast<double>(edge_distances.size());
+
+  if (min_segments > seg_sizes.size() || seg_sizes.size() > max_segments)
+    return false;
+
+  mse /= static_cast<double>(seg_sizes.size());
+  size_mean /= static_cast<double>(seg_sizes.size());
+  dist_mean /= static_cast<double>(seg_dists.size());
+
+  if (size_mean/dist_mean < size_dist_ratio_*0.9 || size_mean/dist_mean > size_dist_ratio_*1.1)
+    return false;
+
+  for (std::vector<double>::const_iterator itr = seg_sizes.begin(); itr != seg_sizes.end(); itr++)
+    size_var += (*itr - size_mean)*(*itr - size_mean);
+  size_var /= static_cast<double>(seg_sizes.size());
+
+  for (std::vector<double>::const_iterator itr = seg_dists.begin(); itr != seg_dists.end(); itr++)
+    dist_var += (*itr - dist_mean)*(*itr - dist_mean);
+  dist_var /= static_cast<double>(seg_dists.size());
+
+  ROS_INFO("MSE: %f, size_mean: %f, size_var: %f, dist_mean: %f, dist_var: %f", mse, size_mean, size_var, dist_mean, dist_var);
+
+  return mse < max_segment_size_mse_ && size_var < max_segment_size_var_ && dist_var < max_segment_dist_var_;
+}
+
+double SoftObstacleDetection::evalModel(const std::vector<double>& edges, const std::vector<double>& centers, double lambda) const
+{
+  if (centers.size() < 2)
+    return -1.0;
+
+  double f = (2.0*M_PI)/lambda;
+
+  double mse = 0.0;
+
+  double bias = std::abs(edges[0]) - (edges[0] > 0.0 ? 0.0 : 0.5*lambda);
+
+  double y = centers[0] < 0.0 ? 1.0 : -1.0;
+  for (size_t i = 0; i < centers.size(); i++)
+  {
+    y *= -1.0;
+    double x = f*(std::abs(centers[i])-bias);
+    double e = y - sin(x);
+    mse += e*e;
+  }
+
+  y = edges[0] < 0.0 ? 1.0 : -1.0;
+  for (size_t i = 0; i < edges.size(); i++)
+  {
+    y *= -1.0;
+    double x = f*(std::abs(edges[i])-bias);
+    double e = y - cos(x);
+    mse += e*e;
+  }
+
+  return mse/static_cast<double>(centers.size()+edges.size());
+}
+
+bool SoftObstacleDetection::checkFrequencyMatching(const std::vector<double>& edges, const std::vector<double>& centers, double lambda, double min_segments, double max_segments) const
+{
+  if (edges.empty() || centers.empty())
+    return false;
+
+  if (min_segments > centers.size()/2 || centers.size()/2 > max_segments)
+    return false;
+
+//  edges.clear();
+//  centers.clear();
+
+//  centers.push_back(-5);
+//  edges.push_back(10);
+//  centers.push_back(15);
+//  edges.push_back(-20);
+//  centers.push_back(-25);
+//  edges.push_back(30);
+//  centers.push_back(35);
+//  edges.push_back(-40);
+//  centers.push_back(-45);
+
+//  double mse = evalModel(edges, centers, 20.0);
+
+  double mse = evalModel(edges, centers, lambda);
+
+//  // get average frequency
+//  mean /= static_cast<double>(edge_distances.size());
+
+//  // get variance
+//  var = 0.0;
+//  for (std::vector<unsigned int>::const_iterator itr = edge_distances.begin(); itr != edge_distances.end(); itr++)
+//  {
+//    double d = (static_cast<double>(*itr) - mean);
+//    var += d*d;
+//  }
+//  var /= static_cast<double>(edge_distances.size());
 
 
 //  std::string out;
@@ -235,21 +347,21 @@ double SoftObstacleDetection::computeFrequency(const cv::Mat& signal, double& me
 //    out += boost::lexical_cast<std::string>(static_cast<int>(edges.at<char>(i))) + std::string(" ");
 //  ROS_INFO("%s", out.c_str());
 
-  std::string out;
+#ifdef DEBUG
+  std::string out("MSE: ");
+  out += boost::lexical_cast<std::string>(mse);
+  out += "\nCenters: ";
   for (size_t i = 0; i < centers.size(); i++)
     out += boost::lexical_cast<std::string>(centers[i]) + std::string(" ");
+  out += "\nEdges: ";
+  for (size_t i = 0; i < edges.size(); i++)
+    out += boost::lexical_cast<std::string>(edges[i]) + std::string(" ");
 
-#ifdef DEBUG
   ROS_INFO("%s", out.c_str());
-  ROS_WARN("Mean: %f, Var: %f (Std: %f)", mean, var, sqrt(var));
+  //ROS_WARN("Mean: %f, Var: %f (Std: %f)", mean, var, sqrt(var));
 #endif
 
-  cv::Mat sig;
-  signal.copyTo(sig);
-  cv::resize(sig, sig, cv::Size(sig.cols*5, 30));
-  cv::imshow("test1", sig);
-
-  return 0.5*mean;
+  return mse < max_frequency_mse_;
 
 
 
@@ -377,11 +489,18 @@ void SoftObstacleDetection::update(const ros::TimerEvent& /*event*/)
 
   last_scan.reset();
 
+  cv::Mat img_scan_filtered;
   cv::Mat kernel_dil = getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3.0, 3.0));
   cv::dilate(img_scan, img_scan, kernel_dil);
 
   std::vector<cv::Vec4i> lines;
   houghTransform(img_scan, lines);
+
+
+  //cv::erode(img_scan, img_scan, kernel_dil);
+
+  //cv::dilate(img_scan, img_scan, kernel_dil);
+  //cv::imshow("test2", img_scan);
 
   if (lines.empty())
     return;
@@ -403,12 +522,17 @@ void SoftObstacleDetection::update(const ros::TimerEvent& /*event*/)
     getLine(img_scan, line, signal);
     signals_.push_back(signal);
 
-    double mean, var;
-    double f = computeFrequency(signal, mean, var);
+    std::vector<double> edges; // pos = abs(c), edge direction = sign(c)
+    std::vector<double> centers; // pos = abs(c), val = sign(c)
+
+    edgeDetection(signal, edges, centers);
 
     // detect based on thresholds
-    if (min_frequency_ <= f && f <= max_frequency_ &&  var <= max_var_)
+    //if (min_frequency_ <= f && f <= max_frequency_ && var <= max_var_ /*&&  mse <= max_mse_*/)
+    //if (checkFrequencyMatching(edges, centers, 2.0*veil_segment_size_, min_segments_, max_segments_))
+    if (checkSegmentsMatching(edges, centers, veil_segment_size_, min_segments_, max_segments_))
     {
+      ROS_INFO("Detected");
       if (tf_listener.canTransform("/map", "/laser1_frame", header.stamp))
       {
         // generate pose of soft obstacle
@@ -430,8 +554,6 @@ void SoftObstacleDetection::update(const ros::TimerEvent& /*event*/)
         veil_percept.pose.pose = veil_pose.pose;
         veil_percept.info.class_id = "soft_obstacle";
         veil_percept.info.class_support = 1.0;
-        veil_percept.info.object_id = "veil";
-        veil_percept.info.object_support = 1.0;
 
         veil_percept_pub_.publish(veil_percept);
         veil_percept_pose_pub_.publish(veil_pose);
@@ -458,13 +580,15 @@ void SoftObstacleDetection::update(const ros::TimerEvent& /*event*/)
 
 #ifdef DEBUG
       cv::line(result, p1, p2, cv::Scalar(0, 255, 0), 2, CV_AA);
+      cv::imshow("result", result);
+      //cv::waitKey();
 #endif
     }
   }
 
 #ifdef DEBUG
   cv::imshow("result", result);
-  ROS_INFO("--------------------------------------------------------------");
+  //ROS_INFO("--------------------------------------------------------------");
 #endif
 }
 
@@ -475,10 +599,18 @@ void SoftObstacleDetection::laserScanCallback(const sensor_msgs::LaserScanConstP
 
 void SoftObstacleDetection::dynRecParamCallback(SoftObstacleDetectionConfig& config, uint32_t /*level*/)
 {
+  min_hole_size_ = config.min_hole_size;
   max_curtain_length_sq_ = config.max_curtain_length*config.max_curtain_length*unit_scale*unit_scale;
   min_frequency_ = config.min_frequency;
   max_frequency_ = config.max_frequency;
-  max_var_ = config.max_std*config.max_std;
+  veil_segment_size_ = config.veil_segment_size*unit_scale;
+  min_segments_ = config.min_segments;
+  max_segments_ = config.max_segments;
+  max_segment_size_mse_ = config.max_segment_size_mse;
+  max_segment_size_var_ = config.max_segment_size_std*config.max_segment_size_std;
+  max_segment_dist_var_ = config.max_segment_dist_std*config.max_segment_dist_std;
+  size_dist_ratio_ = config.size_dist_ratio;
+  max_frequency_mse_ = config.max_frequency_mse;
   percept_class_id_ = config.percept_class_id;
 }
 

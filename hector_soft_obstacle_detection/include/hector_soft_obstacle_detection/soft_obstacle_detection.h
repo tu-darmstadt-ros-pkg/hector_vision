@@ -5,6 +5,9 @@
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <opencv/cv.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
@@ -28,9 +31,14 @@ public:
 private:
   void transformScanToImage(const sensor_msgs::LaserScanConstPtr scan, cv::Mat& img, cv::Point2i& scan_center) const;
   void houghTransform(const cv::Mat& img, std::vector<cv::Vec4i>& lines) const;
+  uchar getMaxAtLine(const cv::Mat& img, const cv::Point& p1, const cv::Point& p2) const;
   void getLine(const cv::Mat& img, const cv::Vec4i& line, cv::Mat& out) const;
-  void evalModel(const std::vector<double>& edges, const std::vector<double>& centers, double beta, double& r, double& dr, double& Hr) const;
-  double computeFrequency(const cv::Mat& signal, double& mean, double& var) const;
+  void edgeDetection(const cv::Mat& signal, std::vector<double>& edges, std::vector<double>& centers) const;
+
+  bool checkSegmentsMatching(const std::vector<double>& edges, const std::vector<double>& centers, double veil_segment_size, double min_segments, double max_segments) const;
+
+  double evalModel(const std::vector<double>& edges, const std::vector<double>& centers, double lambda) const;
+  bool checkFrequencyMatching(const std::vector<double>& edges, const std::vector<double>& centers, double lambda, double min_segments, double max_segments) const;
 
   void lineToPointCloud(const cv::Vec4i& line, const cv::Point2i& scan_center, pcl::PointCloud<pcl::PointXYZ>& out) const;
 
@@ -60,10 +68,18 @@ private:
   dynamic_reconfigure::Server<SoftObstacleDetectionConfig> dyn_rec_server_;
 
   // dynamic reconfigure params
+  unsigned int min_hole_size_;
   double max_curtain_length_sq_;
   double min_frequency_;
   double max_frequency_;
-  double max_var_;
+  double veil_segment_size_;
+  int min_segments_;
+  int max_segments_;
+  double max_segment_size_mse_;
+  double max_segment_size_var_;
+  double max_segment_dist_var_;
+  double size_dist_ratio_;
+  double max_frequency_mse_;
   std::string percept_class_id_;
 };
 

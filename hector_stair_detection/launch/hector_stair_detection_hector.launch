@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+<node name="hector_stair_detection_node" pkg="hector_stair_detection" type="hector_stair_detection_node" respawn="true" output="screen"/>
+<rosparam file="$(find hector_stair_detection)/config/hector.yaml" />
+</launch>

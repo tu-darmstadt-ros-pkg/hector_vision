@@ -36,8 +36,6 @@ private:
     boost::shared_ptr<ReconfigureServer> dyn_rec_server_;
     boost::recursive_mutex config_mutex_;
 
-    //dynamic_reconfigure::Server<HeatDetectionConfig> dyn_rec_server_;
-
     bool mappingDefined_;
     bool perform_measurement_;
 

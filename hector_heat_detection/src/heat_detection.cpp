@@ -1,11 +1,11 @@
 #include "heat_detection.h"
 
 
-HeatDetection::HeatDetection(){
+HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
     image_count_ = 0;
 
-    ros::NodeHandle n;
-    ros::NodeHandle p_n("~");//private nh
+    //ros::NodeHandle n;
+    //ros::NodeHandle p_n("~");//private nh
     image_transport::ImageTransport it(n);
     image_transport::ImageTransport p_it(p_n);
 
@@ -20,7 +20,9 @@ HeatDetection::HeatDetection(){
 
     //sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);
 
-    dyn_rec_server_.setCallback(boost::bind(&HeatDetection::dynRecParamCallback, this, _1, _2));
+    dyn_rec_server_.reset(new ReconfigureServer(config_mutex_, p_n));
+    dyn_rec_server_->setCallback(boost::bind(&HeatDetection::dynRecParamCallback, this, _1, _2));
+
 
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
@@ -49,7 +51,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
     } else {
         return;
     }*/
-    std::cout << "Processing image..." << std::endl;
+    //std::cout << "Processing image..." << std::endl;
 
 
     if (!mappingDefined_){
@@ -125,7 +127,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        float max_value = 0;
        for(int j=0; j<histSize; j++) {
            float h = hist.at<float>(j);
-           std::cout << "value: " << h << std::endl;
+           //std::cout << "value: " << h << std::endl;
            if (max_value <= h) {
                max_value = h;
                if (j > blob_temperature_) {
@@ -133,11 +135,11 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
                }
            }
        }
-       std::cout << hist << std::endl;
-       std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;
+       //std::cout << hist << std::endl;
+       //std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;
    }
    if (keypoints.size() == 0) {
-       std::cout << "No blob detected" << std::endl;
+       //std::cout << "No blob detected" << std::endl;
    }
 
 
@@ -214,19 +216,5 @@ void HeatDetection::dynRecParamCallback(HeatDetectionConfig &config, uint32_t le
   minAreaVictim_ = config.min_area_detection;
   minDistBetweenBlobs_ = config.min_dist_between_blobs;
   perceptClassId_ = config.percept_class_id;
-}
-
-int main(int argc, char **argv)
-{
-
- // cv::namedWindow("Converted Image");
-
-  ros::init(argc, argv, "heat_detection");
-
-  HeatDetection hd;
-
-  ros::spin();
-
-  return 0;
 }
 

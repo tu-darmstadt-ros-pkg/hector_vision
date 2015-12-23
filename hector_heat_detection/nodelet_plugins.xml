@@ -1,0 +1,11 @@
+<library path="lib/libheat_detection_nodelet">
+
+  <class name="hector_image_proc/heat_detection_nodelet"
+         type="hector_image_proc::HeatDetectionNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      Dial gauge processing nodelet
+    </description>
+  </class>
+
+</library>

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(hector_heat_detection)
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
-find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure argo_vision_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure argo_vision_msgs nodelet)
 
 #find_package(OpenCV REQUIRED)
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
@@ -62,12 +62,16 @@ find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info
 
 generate_dynamic_reconfigure_options(cfg/HeatDetection.cfg)
 
-add_executable(heat_detection src/heat_detection.cpp)
+add_library(heat_detection src/heat_detection.cpp)
 add_dependencies(heat_detection ${${PROJECT_NAME}_EXPORTED_TARGETS})
-#add_executable(heat_detection src/heat_detection.h)
-#add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
 target_link_libraries(heat_detection ${catkin_LIBRARIES})
+
+add_executable(heat_detection_node src/heat_detection_node.cpp)
+target_link_libraries(heat_detection_node heat_detection)
+
+add_library(heat_detection_nodelet src/heat_detection_nodelet.cpp)
+target_link_libraries(heat_detection_nodelet heat_detection)
+
 
 #TODO: Define non-absolute include path
 #Teporary includes of opencv with sse3 disabled

@@ -117,7 +117,19 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        ip.y = k.pt.y;
        pub_.publish(ip);
        ROS_DEBUG("Heat blob found at image coord: (%f, %f)", ip.x, ip.y);
-       const cv::Mat roi = img_filtered(cv::Rect(k.pt.x - (k.size - 1)/2, k.pt.y - (k.size - 1)/2, k.size - 1, k.size - 1));
+
+       cv::Rect rect_image(0, 0, img_filtered.cols, img_filtered.rows);
+       cv::Rect rect_roi(k.pt.x - (k.size - 1)/2, k.pt.y - (k.size - 1)/2, k.size - 1, k.size - 1);
+
+       //See http://stackoverflow.com/questions/29120231/how-to-verify-if-rect-is-inside-cvmat-in-opencv
+       bool is_inside = (rect_roi & rect_image) == rect_roi;
+
+       if (!is_inside){
+         ROS_ERROR("ROI image would be partly outside image border, aborting further processing!");
+         continue;
+       }
+
+       const cv::Mat roi = img_filtered(rect_roi);
        int histSize = 256;
        float range[] = { 0, 256 };
        const float* histRange = { range };

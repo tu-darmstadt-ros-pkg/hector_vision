@@ -18,7 +18,7 @@
     <param name="max_temp_detection" value="150" />
     <param name="min_area_detection" value="40" />
     <param name="min_dist_between_blobs" value="20" />
-    <param name="percept_class_id" value="victim" />
+    <param name="percept_class_id" value="heat_source" />
   </node>  
 
 </launch>

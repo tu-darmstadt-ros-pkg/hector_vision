@@ -115,7 +115,6 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        cv::KeyPoint k = keypoints.at(i);
        ip.x = k.pt.x;
        ip.y = k.pt.y;
-       pub_.publish(ip);
        ROS_DEBUG("Heat blob found at image coord: (%f, %f)", ip.x, ip.y);
 
        cv::Rect rect_image(0, 0, img_filtered.cols, img_filtered.rows);
@@ -147,6 +146,9 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
                }
            }
        }
+       
+       ip.info.data.push_back(blob_temperature_);
+       pub_.publish(ip);
        //std::cout << hist << std::endl;
        //std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;
    }

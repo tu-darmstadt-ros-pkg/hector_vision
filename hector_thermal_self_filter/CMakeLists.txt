@@ -53,7 +53,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 include_directories(include ${Boost_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 #target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 add_executable(thermal_self_filter_node src/thermal_self_filter_node.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+target_link_libraries(thermal_self_filter_node ${catkin_LIBRARIES})
 ## Generate added messages and services with any dependencies listed here
 #generate_messages(
     #TODO DEPENDENCIES geometry_msgs std_msgs

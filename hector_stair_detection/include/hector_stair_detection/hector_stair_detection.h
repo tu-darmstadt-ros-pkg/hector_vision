@@ -49,8 +49,8 @@
 
 #include <hector_stair_detection/hector_stair_detection.h>
 
-#include <hector_stair_detection/BorderAndOrientationOfStairs.h>
-#include <hector_stair_detection/PositionAndOrientaion.h>
+#include <hector_stair_detection_msgs/BorderAndOrientationOfStairs.h>
+#include <hector_stair_detection_msgs/PositionAndOrientaion.h>
 
 namespace hector_stair_detection{
 
@@ -70,6 +70,13 @@ protected:
     ros::Publisher stairs_position_and_orientaion_pub_;
     ros::Publisher border_and_orientation_stairs_combined_pub_;
     ros::Publisher stairs_position_and_orientaion_with_direction_pub_;
+    ros::Publisher cloud_after_plane_detection_debug_pub_;
+    ros::Publisher line_marker_pub_;
+
+    ros::Publisher temp_orginal_pub_;
+    ros::Publisher temp_after_pass_trough_pub_;
+    ros::Publisher temp_after_voxel_grid_pub_;
+    ros::Publisher temp_after_mls_pub_;
 
     ros::Subscriber pcl_sub;
     tf::TransformListener listener_;
@@ -95,23 +102,24 @@ private:
     double distTrashSegmentation_;
     double maxDistBetweenStairsPoints_;
     double minHightDistBetweenAllStairsPoints_;
+    double planeSegDistTresh_;
+    double planeSegAngleEps_;
+    double hesseTresh_;
 
     void getPreprocessedCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, pcl::PointCloud<pcl::PointNormal>::Ptr &output_cloud);
     void refineOrientaion(Eigen::Vector2f directionStairs, Eigen::Vector2f minXminY, Eigen::Vector2f maxXminY, Eigen::Vector2f minXmaxY, geometry_msgs::PoseStamped &position_and_orientaion);
-//    void getFinalStairsCloud_and_position(std::string frameID, Eigen::Vector3f directionS, pcl::PointCloud<pcl::PointXYZ>::Ptr &allPlaneCloud, std::vector<pcl::PointIndices> cluster_indices, std::vector<int> final_cluster_idx,
-//                                          pcl::PointCloud<pcl::PointXYZ>::Ptr &final_stairsCloud, visualization_msgs::MarkerArray &stairs_boarder_marker);
-    void getFinalStairsCloud_and_position(std::string frameID, Eigen::Vector3f directionS, pcl::PointCloud<pcl::PointNormal>::Ptr &input_surface_cloud, pcl::IndicesClustersPtr cluster_indices, std::vector<int> final_cluster_idx,
-                                                                pcl::PointCloud<pcl::PointXYZ>::Ptr &final_stairsCloud, visualization_msgs::MarkerArray &stairs_boarder_marker);
-    void getStairsPositionAndOrientation(Eigen::Vector3f base, Eigen::Vector3f point, std::string frameID, Eigen::Vector3f &direction, geometry_msgs::PoseStamped &position_and_orientaion);
-    //          void publishResults(pcl::PointCloud<pcl::PointXYZ>::Ptr &input_surface_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &allPlaneCloud,
-    //                              std::vector<pcl::PointIndices> cluster_indices, std::vector<int> cluster_idx_corresponding_to_avg_point, Eigen::Vector3f base, Eigen::Vector3f point);
-    void publishResults(pcl::PointCloud<pcl::PointNormal>::Ptr &input_surface_cloud,
+    void getFinalStairsCloud_and_position(std::string frameID, Eigen::Vector3f directionS, pcl::PointCloud<pcl::PointNormal>::Ptr &input_surface_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &planeCloud, pcl::IndicesClustersPtr cluster_indices, std::vector<int> final_cluster_idx,
+                                                                pcl::PointCloud<pcl::PointXYZ>::Ptr &final_stairsCloud, visualization_msgs::MarkerArray &stairs_boarder_marker, Eigen::Vector3f base);
+    void getStairsPositionAndOrientation(Eigen::Vector3f& base, Eigen::Vector3f point, std::string frameID, Eigen::Vector3f &direction, geometry_msgs::PoseStamped &position_and_orientaion);
+    void publishResults(pcl::PointCloud<pcl::PointNormal>::Ptr &input_surface_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &planeCloud,
                                               pcl::IndicesClustersPtr cluster_indices, std::vector<int> final_cluster_idx, Eigen::Vector3f base, Eigen::Vector3f point);
     int getZComponent(Eigen::Vector2f directionStairs, Eigen::Vector2f minXminY, Eigen::Vector2f maxXminY, Eigen::Vector2f minXmaxY);
     float maxDistBetweenPoints(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud);
     bool pointInCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, pcl::PointXYZ point);
     float minHightDistBetweenPoints(pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud);
-    //          void HectorStairDetection::getPointCloudBoundary(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, geometry_msgs::Vector3& min, geometry_msgs::Vector3& max);
+    void stairsSreachPlaneDetection(pcl::PointCloud<pcl::PointNormal>::Ptr &input_surface_cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr points_on_line, Eigen::Vector3f base, Eigen::Vector3f dir, pcl::PointCloud<pcl::PointXYZ>::Ptr &planeCloud);
+    bool checkExtentionDirection(Eigen::Vector2f directionStairs, Eigen::Vector2f directionExtend);
+    void projectStairsToFloor(Eigen::Vector3f direction, visualization_msgs::MarkerArray &stairs_boarder_marker);
 };
 }
 

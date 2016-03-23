@@ -1,4 +1,4 @@
-# hector_stair_detection
+# hector_stair_detection_msgs
 # This message contains, <visualization_msgs::MarkerArray> representing the border of the staris, and <geometry_msgs::PoseStamped> representing the orientation of the stairs corrosponign to the border
 
 #Header information
@@ -13,3 +13,4 @@ int32 number_of_points
 float32 directionX
 float32 directionY
 float32 directionZ
+bool clearStairsInformation

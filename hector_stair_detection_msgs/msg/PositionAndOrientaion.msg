@@ -1,4 +1,4 @@
-# hector_stair_detection
+# hector_stair_detection_msgs
 # This message contains,<geometry_msgs::PoseStamped> representing the orientation of the stairs corrosponign to the border; and the direction as Vector
 
 #Header information

@@ -11,10 +11,7 @@ clusterHeightTresh: 0.4
 maxClusterXYDimension: 1.0
 clusterTolerance: 0.1;
 clusterMinSize: 50
-clusterMaxSize: 500
-angleDeviationToXYPlane: 0.3
+clusterMaxSize: 200
 setup: argo
-distTrashSegmentation: 0.05
 maxDistBetweenStairsPoints: 3.0
 minHightDistBetweenAllStairsPoints: 0.1
-maxPlaneDeviation: 0.5

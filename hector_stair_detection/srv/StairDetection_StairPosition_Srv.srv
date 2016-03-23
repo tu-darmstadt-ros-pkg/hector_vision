@@ -1,4 +1,0 @@
-sensor_msgs/PointCloud2 input_cloud
----
-geometry_msgs/PoseStamped stairs_position
-visualization_msgs/MarkerArray boarder_of_stairs

@@ -1,25 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(hector_stair_detection)
+project(hector_stair_detection_msgs)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  pcl_conversions
-  tf_conversions
   sensor_msgs
   geometry_msgs
   message_generation
   visualization_msgs
   std_msgs
-  hector_stair_detection_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(PCL REQUIRED)
-include_directories(${PCL_INCLUDE_DIRS})
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -51,11 +45,11 @@ include_directories(${PCL_INCLUDE_DIRS})
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   BorderAndOrientationOfStairs.msg
-#   PositionAndOrientaion.msg
-# )
+ add_message_files(
+   FILES
+   BorderAndOrientationOfStairs.msg
+   PositionAndOrientaion.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -72,13 +66,13 @@ include_directories(${PCL_INCLUDE_DIRS})
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-#   sensor_msgs
-#   geometry_msgs
-#   visualization_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+   sensor_msgs
+   geometry_msgs
+   visualization_msgs
+ )
 
 ###################################
 ## catkin specific configuration ##
@@ -90,10 +84,10 @@ include_directories(${PCL_INCLUDE_DIRS})
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
-  LIBRARIES hector_stair_detection
-  CATKIN_DEPENDS roscpp pcl_conversions tf_conversions sensor_msgs geometry_msgs std_msgs visualization_msgs hector_stair_detection_msgs
-  DEPENDS system_lib
+# INCLUDE_DIRS include
+#  LIBRARIES hector_stair_detection
+  CATKIN_DEPENDS sensor_msgs geometry_msgs std_msgs visualization_msgs
+#  DEPENDS system_lib
 )
 
 ###########
@@ -105,75 +99,3 @@ catkin_package(
 #include_directories(include)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-## Declare a cpp library
- add_library(hector_stair_detection
-   src/hector_stair_detection.cpp
-   src/hector_stair_detection_node.cpp
-   include/${PROJECT_NAME}/hector_stair_detection.h
- )
-
-add_dependencies(hector_stair_detection ${catkin_EXPORTED_TARGETS})
-
-## Declare a cpp executable
-add_executable(hector_stair_detection_node src/hector_stair_detection_node.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(hector_tutorial_node hector_tutorial_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
- target_link_libraries(hector_stair_detection_node
-   hector_stair_detection
-   ${catkin_LIBRARIES}
-   ${PCL_LIBRARY_DIRS}
-)
-
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${boost_LIBRARIES} ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so)
-
-#############
-## Install ##
-#############
-
-# all install targets should use catkin DESTINATION variables
-# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
-
-## Mark executable scripts (Python etc.) for installation
-## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark executables and/or libraries for installation
-# install(TARGETS hector_tutorial hector_tutorial_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
-
-## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
-
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_hector_tutorial.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)

@@ -39,7 +39,7 @@ public:
   HectorThermalSelfFilter(ros::NodeHandle& nh, tf::TransformListener* tfl_in)
     : tfL_(tfl_in)
   {
-    self_filter_ = new filters::SelfFilter<pcl::PointCloud<pcl::PointXYZ> > (nh);
+    self_filter_ = new filters::SelfFilter<pcl::PointCloud<pcl::PointXYZI> > (nh);
 
 
     self_filter_->getSelfMask()->getLinkNames(frames_);
@@ -60,11 +60,17 @@ public:
 
   bool pointBelongsToRobot(const geometry_msgs::Point& point_in, const std_msgs::Header& header)//Define argument types)
   {
-    pcl::PointCloud<pcl::PointXYZ> cloud_in;
+    pcl::PointCloud<pcl::PointXYZI> cloud_in;
     pcl_conversions::toPCL(header, cloud_in.header);
-    cloud_in.push_back(pcl::PointXYZ(point_in.x, point_in.y, point_in.z));
 
-    pcl::PointCloud<pcl::PointXYZ> cloud_filtered;
+    pcl::PointXYZI point;
+    point.x = point_in.x;
+    point.y = point_in.y;
+    point.z = point_in.z;
+
+    cloud_in.push_back(point);
+
+    pcl::PointCloud<pcl::PointXYZI> cloud_filtered;
 
     if (waitForRelevantTransforms(header)){
       self_filter_->updateWithSensorFrame (cloud_in, cloud_filtered, header.frame_id);
@@ -101,7 +107,7 @@ public:
 
 
 protected:
-  filters::SelfFilter<pcl::PointCloud<pcl::PointXYZ> > *self_filter_;
+  filters::SelfFilter<pcl::PointCloud<pcl::PointXYZI> > *self_filter_;
   std::vector<std::string> frames_;
 
   tf::TransformListener* tfL_;

@@ -3,7 +3,7 @@
 <launch>
 
   <node pkg="hector_heat_detection" type="heat_detection" name="heat_detection" output="screen">
-    <remap from="thermal/image" to="thermal/image" />
+    <remap from="thermal/image" to="/arm_thermal_cam/image_converted" /> 
   </node>
 
 </launch>

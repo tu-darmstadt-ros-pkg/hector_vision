@@ -1,11 +1,11 @@
 #include "heat_detection.h"
 
 
-HeatDetection::HeatDetection(){
+HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
     image_count_ = 0;
 
-    ros::NodeHandle n;
-    ros::NodeHandle p_n("~");//private nh
+    //ros::NodeHandle n;
+    //ros::NodeHandle p_n("~");//private nh
     image_transport::ImageTransport it(n);
     image_transport::ImageTransport p_it(p_n);
 
@@ -20,7 +20,9 @@ HeatDetection::HeatDetection(){
 
     //sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);
 
-    dyn_rec_server_.setCallback(boost::bind(&HeatDetection::dynRecParamCallback, this, _1, _2));
+    dyn_rec_server_.reset(new ReconfigureServer(config_mutex_, p_n));
+    dyn_rec_server_->setCallback(boost::bind(&HeatDetection::dynRecParamCallback, this, _1, _2));
+
 
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
@@ -49,7 +51,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
     } else {
         return;
     }*/
-    std::cout << "Processing image..." << std::endl;
+    //std::cout << "Processing image..." << std::endl;
 
 
     if (!mappingDefined_){
@@ -113,9 +115,20 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        cv::KeyPoint k = keypoints.at(i);
        ip.x = k.pt.x;
        ip.y = k.pt.y;
-       pub_.publish(ip);
        ROS_DEBUG("Heat blob found at image coord: (%f, %f)", ip.x, ip.y);
-       const cv::Mat roi = img_filtered(cv::Rect(k.pt.x - (k.size - 1)/2, k.pt.y - (k.size - 1)/2, k.size - 1, k.size - 1));
+
+       cv::Rect rect_image(0, 0, img_filtered.cols, img_filtered.rows);
+       cv::Rect rect_roi(k.pt.x - (k.size - 1)/2, k.pt.y - (k.size - 1)/2, k.size - 1, k.size - 1);
+
+       //See http://stackoverflow.com/questions/29120231/how-to-verify-if-rect-is-inside-cvmat-in-opencv
+       bool is_inside = (rect_roi & rect_image) == rect_roi;
+
+       if (!is_inside){
+         ROS_ERROR("ROI image would be partly outside image border, aborting further processing!");
+         continue;
+       }
+
+       const cv::Mat roi = img_filtered(rect_roi);
        int histSize = 256;
        float range[] = { 0, 256 };
        const float* histRange = { range };
@@ -125,7 +138,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        float max_value = 0;
        for(int j=0; j<histSize; j++) {
            float h = hist.at<float>(j);
-           std::cout << "value: " << h << std::endl;
+           //std::cout << "value: " << h << std::endl;
            if (max_value <= h) {
                max_value = h;
                if (j > blob_temperature_) {
@@ -133,11 +146,14 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
                }
            }
        }
-       std::cout << hist << std::endl;
-       std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;
+       
+       ip.info.data.push_back(blob_temperature_);
+       pub_.publish(ip);
+       //std::cout << hist << std::endl;
+       //std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;
    }
    if (keypoints.size() == 0) {
-       std::cout << "No blob detected" << std::endl;
+       //std::cout << "No blob detected" << std::endl;
    }
 
 
@@ -214,19 +230,5 @@ void HeatDetection::dynRecParamCallback(HeatDetectionConfig &config, uint32_t le
   minAreaVictim_ = config.min_area_detection;
   minDistBetweenBlobs_ = config.min_dist_between_blobs;
   perceptClassId_ = config.percept_class_id;
-}
-
-int main(int argc, char **argv)
-{
-
- // cv::namedWindow("Converted Image");
-
-  ros::init(argc, argv, "heat_detection");
-
-  HeatDetection hd;
-
-  ros::spin();
-
-  return 0;
 }
 

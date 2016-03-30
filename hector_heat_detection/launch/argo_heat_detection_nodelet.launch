@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<launch>
+
+<!--  <node pkg="hector_heat_detection" type="heat_detection" name="heat_detection" output="screen">
+    <remap from="thermal/image" to="/arm_thermal_cam/image_converted" /> 
+  </node>-->
+  
+  <arg name="camera_nodelet_manager_name" default="arm_thermal_cam_nodelet_manager" /> 
+  
+  <node pkg="nodelet" type="nodelet"
+    name="hector_heat_detection" 
+    args="load hector_image_proc/heat_detection_nodelet $(arg camera_nodelet_manager_name)" 
+    output="screen">
+    <remap from="thermal/image" to="/arm_thermal_cam/image_converted" />
+    <remap from="/image_percept" to="/worldmodel/image_percept" />
+    <param name="min_temp_detection" value="50" />
+    <param name="max_temp_detection" value="150" />
+    <param name="min_area_detection" value="40" />
+    <param name="min_dist_between_blobs" value="20" />
+    <param name="percept_class_id" value="heat_source" />
+  </node>  
+
+</launch>

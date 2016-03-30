@@ -19,7 +19,7 @@ using hector_heat_detection::HeatDetectionConfig;
 
 class HeatDetection{
 public:
-    HeatDetection();
+    HeatDetection(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
     ~HeatDetection();
 private:
     void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info);
@@ -32,7 +32,9 @@ private:
     image_transport::CameraPublisher pub_detection_;
     ros::Subscriber sub_mapping_;
 
-    dynamic_reconfigure::Server<HeatDetectionConfig> dyn_rec_server_;
+    typedef dynamic_reconfigure::Server<HeatDetectionConfig> ReconfigureServer;
+    boost::shared_ptr<ReconfigureServer> dyn_rec_server_;
+    boost::recursive_mutex config_mutex_;
 
     bool mappingDefined_;
     bool perform_measurement_;

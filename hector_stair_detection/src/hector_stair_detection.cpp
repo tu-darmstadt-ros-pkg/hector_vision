@@ -74,6 +74,9 @@ HectorStairDetection::HectorStairDetection(){
         pcl_sub = nh.subscribe("/hector_aggregate_cloud/aggregated_cloud", 1, &HectorStairDetection::PclCallback, this);
     }
 
+    dynamic_recf_type = boost::bind(&HectorStairDetection::dynamic_recf_cb, this, _1, _2);
+    dynamic_recf_server.setCallback(dynamic_recf_type);
+
 }
 
 HectorStairDetection::~HectorStairDetection()
@@ -943,6 +946,27 @@ float HectorStairDetection::minHightDistBetweenPoints(pcl::PointCloud<pcl::Point
         }
     }
     return min_dist;
+}
+
+void HectorStairDetection::dynamic_recf_cb(hector_stair_detection::HectorStairDetectionConfig &config, uint32_t level)
+{
+    ROS_INFO("Reconfigure Callback enterd");
+    passThroughZMin_= config.passThroughZMin;
+    passThroughZMax_= config.passThroughZMax;
+    voxelGridX_= config.voxelGridX;
+    voxelGridY_= config.voxelGridY;
+    voxelGridZ_= config.voxelGridZ;
+    minRequiredPointsOnLine_=config.minRequiredPointsOnLine;
+    distanceToLineTresh_= config.distanceToLineTresh;
+    clusterHeightTresh_= config.culsterHeightTresh;
+    clusterMinSize_= config.clusterMinSize;
+    clusterMaxSize_= config.clusterMaxSize;
+    maxClusterXYDimension_= config.maxClusterXYDimension;
+    maxDistBetweenStairsPoints_= config.maxDistBetweenStairsPoints;
+    planeSegDistTresh_= config.planeSegDistTresh;
+    planeSegAngleEps_= config.planeSegAngleEps;
+    hesseTresh_= config.hesseTresh;
+
 }
 
 }

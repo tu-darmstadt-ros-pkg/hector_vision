@@ -52,6 +52,9 @@
 #include <hector_stair_detection_msgs/BorderAndOrientationOfStairs.h>
 #include <hector_stair_detection_msgs/PositionAndOrientaion.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <hector_stair_detection/HectorStairDetectionConfig.h>
+
 namespace hector_stair_detection{
 
 class HectorStairDetection{
@@ -120,6 +123,11 @@ private:
     void stairsSreachPlaneDetection(pcl::PointCloud<pcl::PointNormal>::Ptr &input_surface_cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr points_on_line, Eigen::Vector3f base, Eigen::Vector3f dir, pcl::PointCloud<pcl::PointXYZ>::Ptr &planeCloud);
     bool checkExtentionDirection(Eigen::Vector2f directionStairs, Eigen::Vector2f directionExtend);
     void projectStairsToFloor(Eigen::Vector3f direction, visualization_msgs::MarkerArray &stairs_boarder_marker);
+
+    //Dynamic reconfigure
+    dynamic_reconfigure::Server<hector_stair_detection::HectorStairDetectionConfig> dynamic_recf_server;
+    dynamic_reconfigure::Server<hector_stair_detection::HectorStairDetectionConfig>::CallbackType dynamic_recf_type;
+    void dynamic_recf_cb(hector_stair_detection::HectorStairDetectionConfig &config, uint32_t level);
 };
 }
 

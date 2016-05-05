@@ -27,11 +27,12 @@ HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
 
-    get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
+    //get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
 }
 
 HeatDetection::~HeatDetection(){}
 
+/*
 bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
                     argo_vision_msgs::GetMeasurement::Response &res){
     blob_temperature_ = -1.0;
@@ -41,6 +42,7 @@ bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::
 
     return true;
 }
+*/
 
 void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info){
 //if(debug_){
@@ -147,7 +149,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
            }
        }
        
-       ip.info.data.push_back(blob_temperature_);
+       //ip.info.data.push_back(blob_temperature_);
        pub_.publish(ip);
        //std::cout << hist << std::endl;
        //std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;

@@ -1,0 +1,11 @@
+<library path="lib/libheat_image_translator_nodelet">
+
+  <class name="hector_image_proc/heat_image_translator_nodelet"
+         type="hector_image_proc::HeatImageTranslatorNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      Thermal image processing nodelet for image conversion
+    </description>
+  </class>
+
+</library>

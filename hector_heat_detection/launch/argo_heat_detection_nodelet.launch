@@ -8,6 +8,8 @@
   
   <arg name="camera_nodelet_manager_name" default="arm_thermal_cam_nodelet_manager" /> 
   
+  <arg name="percept_class_id" default="heat_source" /> 
+  
   <node pkg="nodelet" type="nodelet"
     name="hector_heat_detection" 
     args="load hector_image_proc/heat_detection_nodelet $(arg camera_nodelet_manager_name)" 
@@ -18,7 +20,7 @@
     <param name="max_temp_detection" value="150" />
     <param name="min_area_detection" value="40" />
     <param name="min_dist_between_blobs" value="20" />
-    <param name="percept_class_id" value="heat_source" />
+    <param name="percept_class_id" value="$(arg percept_class_id)" />
   </node>  
 
 </launch>

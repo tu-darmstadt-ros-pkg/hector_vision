@@ -62,7 +62,7 @@ add_dependencies(motion_detection ${${PROJECT_NAME}_EXPORTED_TARGETS})
 #add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
 find_package(OpenCV REQUIRED)
-target_link_libraries(motion_detection ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(motion_detection ${OpenCV_LIBS} ${Boost_LIBRARIES}  ${catkin_LIBRARIES})
 
 #TODO: Define non-absolute include path
 #Teporary includes of opencv with sse3 disabled

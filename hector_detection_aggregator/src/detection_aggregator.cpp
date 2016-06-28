@@ -7,13 +7,15 @@ DetectionAggregator::DetectionAggregator()
     ros::NodeHandle n;
     ros::NodeHandle p_n("~"); //private nh
 
+    double storage_duration;
+    n.param("storage_duration", storage_duration, 0.1);
+    storage_duration_ = ros::Duration(storage_duration);
+
     img_current_ptr_.reset();
     img_current_col_ptr_.reset();
 
     image_transport::ImageTransport it(n);
     image_transport::ImageTransport image_detected_it(p_n);
-
-    //camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &DetectionAggregator::imageCallback, this);
 
     image_sub_ = it.subscribe("gripper_cam/image_raw", 1 , &DetectionAggregator::imageCallback, this);
     image_percept_sub_ = n.subscribe("perception/image_percept", 1 , &DetectionAggregator::imagePerceptCallback, this);
@@ -68,13 +70,18 @@ void DetectionAggregator::createImage()
             for(hector_perception_msgs::PerceptionData& percept : percept_list.perceptionList)
             {
                 std::vector<cv::Point> polygon;
+
+
+                cv::Point cv_center_point;
                 for(geometry_msgs::Point32& ros_point: percept.polygon.points)
                 {
                     cv::Point cv_point;
                     cv_point.x = ros_point.x;
                     cv_point.y = ros_point.y;
                     polygon.push_back(cv_point);
+                    cv_center_point += cv_point;
                 }
+                cv_center_point = cv_center_point*(1./percept.polygon.points.size());
                 const cv::Point *pts = (const cv::Point*) cv::Mat(polygon).data;
                 int npts = cv::Mat(polygon).rows;
 
@@ -84,6 +91,7 @@ void DetectionAggregator::createImage()
                           color_map_[percept_pair.first.c_str()],// colour RGB ordering (here = green)
                         2, 		        // line thickness
                         CV_AA, 0);
+                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_PLAIN,1,color_map_[percept_pair.first.c_str()]);
             }
         }
 
@@ -154,6 +162,7 @@ void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) /
 
 void DetectionAggregator::dynRecParamCallback(HectorDetectionAggregatorConfig &config, uint32_t level)
 {
+        storage_duration_ = ros::Duration(config.storage_duration);
 
 }
 

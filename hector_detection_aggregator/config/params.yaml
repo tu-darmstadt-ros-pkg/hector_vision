@@ -1,10 +1,1 @@
-track_length: 2.4
-track_width: 0.5
-rail_width: 0.1
-n_rails: 2
-gradient_z_min: -0.2
-gradient_z_max: 0.15
-gradient_dif_min : -0.5
-gradient_dif_max : 0.2
-rail_support_feature_thresh : 4.1
-rail_support_feature_section_thresh : 0.3
+storage_duration: 3.0

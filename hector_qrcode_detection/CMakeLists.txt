@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(hector_qrcode_detection)
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
-find_package(catkin REQUIRED COMPONENTS image_transport hector_worldmodel_msgs cv_bridge tf nodelet)
+find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge image_transport hector_worldmodel_msgs cv_bridge tf nodelet)
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
@@ -64,7 +64,7 @@ add_custom_target(
   DEPENDS lib/libzbar.so
 )
 
-include_directories(include)
+include_directories(include  ${catkin_INCLUDE_DIRS})
 
 add_library(zbar SHARED IMPORTED)
 add_dependencies(zbar zbar_built)
@@ -80,8 +80,8 @@ add_subdirectory(src)
 # catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
 # TODO: fill in what other packages will need to use this package
 catkin_package(
-    DEPENDS image_transport hector_worldmodel_msgs cv_bridge tf nodelet
-    CATKIN_DEPENDS # TODO
+    DEPENDS
+    CATKIN_DEPENDS  roscpp cv_bridge image_transport hector_worldmodel_msgs cv_bridge tf nodelet
     INCLUDE_DIRS # TODO include
     LIBRARIES # TODO
 )

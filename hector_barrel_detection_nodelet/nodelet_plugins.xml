@@ -1,0 +1,7 @@
+<library path="lib/libhector_barrel_detection_nodelet">
+  <class name="hector_barrel_detection_nodelet/hector_barrel_detection_nodelet" type="hector_barrel_detection_nodelet::BarrelDetection" base_class_type="nodelet::Nodelet">
+    <description>
+      barrel_detection nodelet
+    </description>
+  </class>
+</library>

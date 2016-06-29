@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <node name="hector_image_rotate" pkg="image_rotate" type="image_rotate" respawn="true"  output="screen">
+      <remap from="image" to="/gripper_cam/image_raw" />
+      <remap from="rotated/image" to="/gripper_cam/image_raw_rotated" />     
+    </node>
+    
+    <node pkg="dynamic_reconfigure" type="dynparam" name="dynparam_hector_image_rotate_loader" output="screen" args="load hector_image_rotate $(find hector_image_rotate)/cfg/hector_image_rotate.yaml" />
+       
+</launch>

@@ -5,6 +5,9 @@
 #include <std_msgs/String.h>
 #include <opencv/cv.h>
 #include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/Polygon.h>
+#include <geometry_msgs/Point32.h>
+#include <hector_perception_msgs/PerceptionDataArray.h>
 
 #include <hector_worldmodel_msgs/ImagePercept.h>
 #include <image_transport/image_transport.h>
@@ -35,6 +38,7 @@ private:
     image_transport::Subscriber image_sub_;
 
     dynamic_reconfigure::Server<MotionDetectionConfig> dyn_rec_server_;
+    dynamic_reconfigure::Server<MotionDetectionConfig>::CallbackType dyn_rec_type_;
 
     cv_bridge::CvImageConstPtr img_prev_ptr_;
     cv_bridge::CvImageConstPtr img_current_ptr_;
@@ -44,6 +48,16 @@ private:
     double min_percept_size, max_percept_size;
     double min_density;
     std::string percept_class_id_;
+
+    cv::BackgroundSubtractorMOG2 bg; //with regards to shadows
+    int detectionLimit; //the maximal number of detections to make/objects to track
+    int min_area; //to filter smaller areas
+    int max_area; //to filter bigger areas
+
+    ros::Publisher image_perception_pub;
+    image_transport::CameraPublisher image_background_subtracted_pub_; //for publishing subtracted image
+    int erosion_iterations; //for controlling the iterations of erosion/deliation
+    int dilation_iterations;
 
 };
 

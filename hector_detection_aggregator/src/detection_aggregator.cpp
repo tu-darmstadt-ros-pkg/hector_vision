@@ -83,13 +83,13 @@ void DetectionAggregator::createImage()
                 const cv::Point *pts = (const cv::Point*) cv::Mat(polygon).data;
                 int npts = cv::Mat(polygon).rows;
 
-                ROS_INFO("Type: %s color %f %f %f ",percept_pair.first.c_str(),color_map_[percept_pair.first][0],color_map_[percept_pair.first][1],color_map_[percept_pair.first][2]);
+                //ROS_INFO("Type: %s color %f %f %f ",percept_pair.first.c_str(),color_map_[percept_pair.first][0],color_map_[percept_pair.first][1],color_map_[percept_pair.first][2]);
                 polylines(img_detected, &pts,&npts, 1,
                           true, 			// draw closed contour (i.e. joint end to start)
                           color_map_[percept_pair.first.c_str()],// colour RGB ordering (here = green)
-                        2, 		        // line thickness
+                        4, 		        // line thickness
                         CV_AA, 0);
-                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_PLAIN,2,color_map_[percept_pair.first.c_str()]);
+                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_PLAIN,3,color_map_[percept_pair.first.c_str()]);
             }
         }
 
@@ -109,7 +109,7 @@ void DetectionAggregator::createImage()
 void DetectionAggregator::imagePerceptCallback(const hector_perception_msgs::PerceptionDataArrayConstPtr& percept)
 {
     percept_storage_[percept->perceptionType]=(*percept);
-    ROS_INFO("Image Percept time %f",(float)(*percept).header.stamp.toSec());
+    //ROS_INFO("Image Percept time %f",(float)(*percept).header.stamp.toSec());
 }
 
 void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) //, const sensor_msgs::CameraInfoConstPtr& info)

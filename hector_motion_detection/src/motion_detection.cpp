@@ -26,7 +26,7 @@ MotionDetection::MotionDetection()
     image_detected_pub_ = image_detected_it.advertiseCamera("image_detected", 10);
 
     image_perception_pub = n.advertise<hector_perception_msgs::PerceptionDataArray>("perception/image_percept", 10);
-
+    ROS_INFO("Starting with Motion Detection with MOG2");
     ROS_INFO("max area: %d", max_area);
     ROS_INFO("min area: %d", min_area);
     ROS_INFO("detection limit: %d", detectionLimit);
@@ -49,14 +49,19 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
     img_filtered.copyTo(frame);
 
     bg.operator()(img_filtered, fgimg);
+
+    cv::morphologyEx(fgimg, fgimg, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)));
+
     fgimg.copyTo(fgimg_orig);   //for debugging/tuning purposes
     bg.getBackgroundImage (backgroundImage);
+
+
     //controlable iterations for morphological operations
     for(int i=0; i < erosion_iterations; i++){
         cv::erode (fgimg, fgimg, cv::Mat());
     }
     for(int i=0; i < dilation_iterations; i++){
-        cv::dilate (fgimg, fgimg, cv::Mat()); //alternatively (tuning): other kernels: e.g. cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10,10))
+        cv::dilate (fgimg, fgimg, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3))); //alternatively (tuning): other kernels: e.g. cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10,10))
     }
 
     cv::findContours (fgimg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);

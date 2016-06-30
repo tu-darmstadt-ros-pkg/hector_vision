@@ -3,7 +3,7 @@ motion_detect_max_percept_size: 300
 motion_detect_min_density: 1
 percept_class_id: victim
 motion_detect_detectionLimit: 3
-motion_detect_min_area: 500
-motion_detect_max_area: 100000
+motion_detect_min_area: 200
+motion_detect_max_area: 3000
 motion_detect_erosion: 1
-motion_detect_dilation: 1
+motion_detect_dilation: 3

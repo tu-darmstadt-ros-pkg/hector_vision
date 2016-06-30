@@ -5,7 +5,7 @@ int main(int argc, char **argv){
   ros::init(argc, argv, "hector_detection_aggregator_node");
   hector_detection_aggregator::DetectionAggregator detection_aggregator;
   ROS_INFO("Starting HectorDectionAggregator Node");
-  ros::Rate rate(5);
+  ros::Rate rate(10);
   while (ros::ok())
   {
       detection_aggregator.createImage();

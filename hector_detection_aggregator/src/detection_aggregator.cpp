@@ -8,7 +8,7 @@ DetectionAggregator::DetectionAggregator()
     ros::NodeHandle p_n("~"); //private nh
 
     double storage_duration;
-    n.param("storage_duration", storage_duration, 0.1);
+    n.param("storage_duration", storage_duration, 1.0);
     storage_duration_ = ros::Duration(storage_duration);
 
     img_current_ptr_.reset();
@@ -17,14 +17,12 @@ DetectionAggregator::DetectionAggregator()
     image_transport::ImageTransport it(n);
     image_transport::ImageTransport image_detected_it(p_n);
 
-    image_sub_ = it.subscribe("gripper_cam/image_raw", 1 , &DetectionAggregator::imageCallback, this);
+    image_sub_ = it.subscribe("arm_rgbd_cam/rgb/image_raw", 1 , &DetectionAggregator::imageCallback, this);
     image_percept_sub_ = n.subscribe("perception/image_percept", 1 , &DetectionAggregator::imagePerceptCallback, this);
-
-    dyn_rec_server_.setCallback(boost::bind(&DetectionAggregator::dynRecParamCallback, this, _1, _2));
+     dyn_rec_server_.setCallback(boost::bind(&DetectionAggregator::dynRecParamCallback, this, _1, _2));
 
     image_detected_pub_ = image_detected_it.advertiseCamera("image_aggregated_percepts", 10);
 
-    storage_duration_ = ros::Duration(3.);
     color_map_["motion"] = cv::Scalar(0,0,255);
     color_map_["qr"] = cv::Scalar(255,0,0);
     color_map_["heat"] = cv::Scalar(0,255,0);
@@ -91,7 +89,7 @@ void DetectionAggregator::createImage()
                           color_map_[percept_pair.first.c_str()],// colour RGB ordering (here = green)
                         2, 		        // line thickness
                         CV_AA, 0);
-                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_PLAIN,1,color_map_[percept_pair.first.c_str()]);
+                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_PLAIN,2,color_map_[percept_pair.first.c_str()]);
             }
         }
 
@@ -117,7 +115,6 @@ void DetectionAggregator::imagePerceptCallback(const hector_perception_msgs::Per
 void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) //, const sensor_msgs::CameraInfoConstPtr& info)
 {
     // get image
-    ROS_INFO("image callback");
     img_current_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::MONO8);
     img_current_col_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::BGR8);
 
@@ -162,7 +159,7 @@ void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) /
 
 void DetectionAggregator::dynRecParamCallback(HectorDetectionAggregatorConfig &config, uint32_t level)
 {
-        storage_duration_ = ros::Duration(config.storage_duration);
+    storage_duration_ = ros::Duration(config.storage_duration);
 
 }
 

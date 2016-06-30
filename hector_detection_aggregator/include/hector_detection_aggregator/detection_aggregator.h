@@ -35,6 +35,7 @@ private:
 
     image_transport::CameraPublisher image_detected_pub_;
 
+    ros::Subscriber worldmodel_percept_sub_;
     ros::Subscriber image_percept_sub_;
     image_transport::Subscriber image_sub_;
     image_transport::CameraSubscriber camera_sub_;

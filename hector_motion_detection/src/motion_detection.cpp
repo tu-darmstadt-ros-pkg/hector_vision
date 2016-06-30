@@ -15,7 +15,7 @@ MotionDetection::MotionDetection()
 
     //camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
 
-    image_sub_ = it.subscribe("opstation/rgb/image_color", 1 , &MotionDetection::imageCallback, this);
+    image_sub_ = it.subscribe("/arm_rgbd_cam/rgb/image_raw", 1 , &MotionDetection::imageCallback, this);
 
     boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
     dyn_rec_type_ = boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
@@ -27,7 +27,6 @@ MotionDetection::MotionDetection()
 
     image_perception_pub = n.advertise<hector_perception_msgs::PerceptionDataArray>("perception/image_percept", 10);
 
-    ROS_INFO("hi");
     ROS_INFO("max area: %d", max_area);
     ROS_INFO("min area: %d", min_area);
     ROS_INFO("detection limit: %d", detectionLimit);
@@ -77,16 +76,9 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
     for( int i = 0; i < contours.size(); i++ )
     {
         double area = cv::contourArea( contours[i] );  //  Find the area of contour
-//            std::cout << "area: " << area << std::endl;
-//            std::cout << "Area size and contours size: " << areas.size() << ' '  << contours.size();
         areas[i] = area;
     }
-    //std::cout << areas.size() << ' '  << contours.size();
-    //assert(areas.size() == contours.size());
 
-//    int g = 2; //number of boxes that are drawn, limit number of objects to detect
-//    int min_area = 500;//6000; //to filter small areas
-//    int max_area = 100000;//15000; //to filter big areas
     std::vector<cv::Rect> rectGroup(detectionLimit);
 
     std::vector<hector_perception_msgs::PerceptionData> polygonGroup;

@@ -19,6 +19,10 @@
 #include <dynamic_reconfigure/server.h>
 #include <hector_motion_detection/MotionDetectionConfig.h>
 
+#include <vector>
+#include <algorithm>
+
+
 using hector_motion_detection::MotionDetectionConfig;
 
 class MotionDetection{
@@ -49,6 +53,11 @@ private:
     double min_density;
     std::string percept_class_id_;
 
+    //Important Parameters
+    image_transport::CameraPublisher image_bg_pub_;
+    image_transport::CameraPublisher image_morph_pub_;
+    int euclidean_distance;
+
     cv::BackgroundSubtractorMOG2 bg; //with regards to shadows
     int detectionLimit; //the maximal number of detections to make/objects to track
     int min_area; //to filter smaller areas
@@ -58,7 +67,15 @@ private:
     image_transport::CameraPublisher image_background_subtracted_pub_; //for publishing subtracted image
     int erosion_iterations; //for controlling the iterations of erosion/deliation
     int dilation_iterations;
+    int closing_iterations;
 
+    cv::Mat m1, out, out_with_keypoints;
+    double reduction, weight;
+
+    cv::SimpleBlobDetector::Params params;
+    cv::Size kernelSize;
+    int blob_morph_iterations, ikernelSize, num_of_changes, tolerance, shake_count;
+    image_transport::CameraPublisher image_rects_pub_;
 };
 
 #endif

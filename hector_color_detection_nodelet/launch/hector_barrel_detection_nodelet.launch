@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+<!--<node name="hector_color_detection_node" pkg="hector_color_detection_nodelet" type="hector_color_detection_node" respawn="true" output="screen"> -->
+
+  <node pkg="nodelet" type="nodelet" name="hector_color_detection"  args="manager" output="screen" respawn="true"/>
+
+  <node pkg="nodelet" type="nodelet" name="hector_color_detection_nodelet" args="load hector_color_detection_nodelet/hector_color_detection_nodelet hector_color_detection" output="screen">
+
+<param name="h_min" type="int" value="100" />
+<param name="h_max" type="int" value="140" />
+<param name="s_min" type="int" value="100" />
+<param name="s_max" type="int" value="255" />
+<param name="v_min" type="int" value="50" />
+<param name="v_max" type="int" value="200" />
+<param name="percentage_blue" type="int" value="8" />
+
+</node>
+
+</launch>

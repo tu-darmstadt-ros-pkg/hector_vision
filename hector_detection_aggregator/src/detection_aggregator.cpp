@@ -34,12 +34,13 @@ DetectionAggregator::~DetectionAggregator() {}
 
 void DetectionAggregator::updatePercepts()
 {
+    ros::Time storage_threshold;
+    if((ros::Time::now().toSec()>storage_duration_.toSec()))
+        storage_threshold =ros::Time::now() - storage_duration_;
 
-    ros::Time storage_threshold = ros::Time::now() - storage_duration_;
     std::vector<std::string> keys;
     for(std::map<std::string, hector_perception_msgs::PerceptionDataArray>::iterator it = percept_storage_.begin(); it != percept_storage_.end(); ++it) {
         keys.push_back(it->first);
-        std::cout << it->first << "\n";
     }
     for(std::string& key : keys)
     {

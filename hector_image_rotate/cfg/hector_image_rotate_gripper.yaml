@@ -7,7 +7,7 @@ dictitems:
   source_frame_id: 'gripper_cam_link'
   source_x: 1.0
   source_y: 0.0
-  source_z: 1.0
+  source_z: 0.0
   target_frame_id: base_link
   target_x: 0.0
   target_y: 0.0

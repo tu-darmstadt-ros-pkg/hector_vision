@@ -8,7 +8,6 @@ DetectionAggregator::DetectionAggregator()
     ros::NodeHandle p_n("~"); //private nh
 
     double storage_duration;
-    n.param("storage_duration", storage_duration, 1.0);
     storage_duration_ = ros::Duration(storage_duration);
 
     img_current_ptr_.reset();

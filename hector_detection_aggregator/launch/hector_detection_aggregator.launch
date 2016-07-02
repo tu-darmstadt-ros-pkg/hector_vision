@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
 <launch>
 <node name="hector_detection_aggregator_node" pkg="hector_detection_aggregator" type="hector_detection_aggregator_node" respawn="true" output="screen"/>
-<rosparam file="$(find hector_detection_aggregator)/config/params.yaml" />
 </launch>

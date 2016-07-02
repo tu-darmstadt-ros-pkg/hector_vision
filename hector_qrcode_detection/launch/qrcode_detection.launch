@@ -1,15 +1,16 @@
 <launch>
   <remap from="image_percept" to="worldmodel/image_percept" />
 
-    <node name="qrcode_detection_real_sense" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection openni/openni_nodelet_manager">
-    <remap from="image" to="arm_rgbd_cam/rgb/image_raw" />
+  <node name="qrcode_detection_real_sense" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection arm_rgbd_cam/arm_rgbd_cam_nodelet_manager" respawn="true">
+    <remap from="arm_rgbd_cam/image" to="arm_rgbd_cam/rgb/image_raw" />
+    <remap from="arm_rgbd_cam/perception/image_percept" to="perception/image_percept" />
   </node>
-  
-  <node name="qrcode_detection_pseye_left" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection pseye_camera_left">
-    <remap from="image" to="left/image_mono" />
+ 
+  <node name="qrcode_detection_pseye_left" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection pseye_camera_left" respawn="true">
+    <remap from="image" to="pseye_camera_left/image_raw" />
   </node>
 
-  <node name="qrcode_detection_pseye_right" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection pseye_camera_right">
-    <remap from="image" to="right/image_mono" />
+  <node name="qrcode_detection_pseye_right" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection pseye_camera_right" respawn="true">
+    <remap from="image" to="pseye_camera_right/image_raw" />
   </node>
 </launch>

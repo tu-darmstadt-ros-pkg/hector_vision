@@ -83,33 +83,36 @@ namespace hector_color_detection_nodelet{
 
         cv::Mat mask = mask1 | mask2;
 
+        cv::morphologyEx(mask, mask, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(10,10)));
+        cv::erode (mask, mask, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(10,10)));
+        cv::dilate (mask, mask, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(20,20)));
 
-        if(black_white_image_pub_.getNumSubscribers()>0){
-            cv_bridge::CvImage cvImg;
-            cvImg.image = mask;
+//        if(black_white_image_pub_.getNumSubscribers()>0){
+//            cv_bridge::CvImage cvImg;
+//            cvImg.image = mask;
 
-            cvImg.header = img->header;
-            cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-            black_white_image_pub_.publish(cvImg.toImageMsg() ,info);
-        }
+//            cvImg.header = img->header;
+//            cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+//            black_white_image_pub_.publish(cvImg.toImageMsg() ,info);
+//        }
 
         //    cv::imshow("blau",mask);
         //    cv::waitKey(1000);
 
         //Perform blob detection
         cv::SimpleBlobDetector::Params params;
-        params.filterByColor = true;
-        params.blobColor = 255;
         params.minDistBetweenBlobs = 0.5;
         params.filterByArea = true;
         //TODO: tune parameter
-        params.minArea = (mask.rows * mask.cols) / 4;
+        params.minArea = (mask.rows * mask.cols) / 8;
         //    params.minArea = (mask.rows * mask.cols) / (0.5+distance);
-        params.maxArea = mask.rows * mask.cols;
+        params.maxArea = (mask.rows * mask.cols) / 4;
         params.filterByCircularity = false;
         params.filterByColor = false;
         params.filterByConvexity = false;
         params.filterByInertia = false;
+        params.minInertiaRatio = 0;
+        params.maxInertiaRatio = 0.8;
 
         cv::SimpleBlobDetector blob_detector(params);
         std::vector<cv::KeyPoint> keypoints;
@@ -120,6 +123,18 @@ namespace hector_color_detection_nodelet{
         //    {
         //        std::cout << keypoints.at(i).pt.x << std::endl;
         //    }
+
+        cv::Mat mask_k;
+        cv::drawKeypoints( mask, keypoints, mask_k, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+        if(black_white_image_pub_.getNumSubscribers()>0){
+            cv_bridge::CvImage cvImg;
+            cvImg.image = mask_k;
+
+            cvImg.header = img->header;
+            cvImg.encoding = sensor_msgs::image_encodings::BGR8;
+            black_white_image_pub_.publish(cvImg.toImageMsg() ,info);
+        }
+
         //Publish results
         hector_worldmodel_msgs::ImagePercept ip;
 

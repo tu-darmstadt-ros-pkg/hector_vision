@@ -27,6 +27,8 @@ MotionDetection::MotionDetection()
 
     image_perception_pub = n.advertise<hector_perception_msgs::PerceptionDataArray>("perception/image_percept", 10);
     ROS_INFO("Starting with Motion Detection with MOG2");
+    ROS_INFO("debug_contours: %i", debug_contours);
+    ROS_INFO("shadows: %i", shadows);
     ROS_INFO("max area: %d", max_area);
     ROS_INFO("min area: %d", min_area);
     ROS_INFO("detection limit: %d", detectionLimit);
@@ -66,7 +68,9 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
 
     cv::findContours (fgimg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
     //cv::imshow("Binary", fgimg);
-    //cv::drawContours (frame, contours, -1, cv::Scalar (0, 0, 255), 2);
+    if(debug_contours){
+        cv::drawContours (frame, contours, -1, cv::Scalar (0, 0, 255), 2);
+    }
 
     //========Detection of g largest contours=====
     int largest_area=0;
@@ -193,16 +197,19 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
 
 void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)
 {
-  motion_detect_threshold_ = config.motion_detect_threshold;
-  min_percept_size = config.motion_detect_min_percept_size;
-  max_percept_size = config.motion_detect_max_percept_size;
-  min_density = config.motion_detect_min_density;
-  percept_class_id_ = config.percept_class_id;
+//  motion_detect_threshold_ = config.motion_detect_threshold;
+//  min_percept_size = config.motion_detect_min_percept_size;
+//  max_percept_size = config.motion_detect_max_percept_size;
+//  min_density = config.motion_detect_min_density;
+//  percept_class_id_ = config.percept_class_id;
 
   bg.set ("nmixtures", 3);
+  shadows = config.motion_detect_shadows;
+  bg.set ("detectShadows", shadows);
   min_area = config.motion_detect_min_area;
   max_area = config.motion_detect_max_area;
   detectionLimit = config.motion_detect_detectionLimit;
+  debug_contours = config.motion_detect_debug_contours;
 
   erosion_iterations = config.motion_detect_erosion;
   dilation_iterations = config.motion_detect_dilation;

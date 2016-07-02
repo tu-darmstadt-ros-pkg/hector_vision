@@ -56,8 +56,9 @@ private:
 
     ros::Publisher image_perception_pub;
     image_transport::CameraPublisher image_background_subtracted_pub_; //for publishing subtracted image
-    int erosion_iterations; //for controlling the iterations of erosion/deliation
-    int dilation_iterations;
+    int erosion_iterations, dilation_iterations; //for controlling the iterations of erosion/deliation
+    bool shadows; //control if shadows should be tracked
+    bool debug_contours;
 
 };
 

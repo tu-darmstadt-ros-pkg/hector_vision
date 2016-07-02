@@ -2,8 +2,11 @@
 
   <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen" respawn="true">
     <remap from="image_percept" to="worldmodel/image_percept" />
+<<<<<<< HEAD
+=======
     <rosparam command="load" file="$(find hector_motion_detection)/cfg/motion_detection_gazebo.yaml" />
     <!--<param name="image_transport" value="compressed" />-->
+>>>>>>> d4c9179ffd2869240e91cc353a1e6bb94454af95
     <param name="image_transport" value="raw" />
   </node>
 

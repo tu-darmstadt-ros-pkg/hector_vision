@@ -1,16 +1,8 @@
 <launch>
   <remap from="image_percept" to="worldmodel/image_percept" />
 
-  <node name="qrcode_detection_kinect" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection openni/openni_nodelet_manager">
-    <remap from="openni/image"             to="openni/rgb/image_mono" />
-    <remap from="openni/image_percept"     to="worldmodel/image_percept" />
-    <remap from="openni/image/qrcode"      to="image/qrcode" />
-    <remap from="openni/image/camera_info" to="image/camera_info" />
-  </node>
-
-  <node name="qrcode_detection_pseye_left" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection pseye_camera_left">
+  <node name="qrcode_detection_real_sense" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection openni/openni_nodelet_manager">
     <remap from="image" to="arm_rgbd_cam/rgb/image_raw" />
   </node>
-
  
 </launch>

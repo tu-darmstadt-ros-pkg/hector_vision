@@ -530,7 +530,7 @@ void HectorStairDetection::PclCallback(const sensor_msgs::PointCloud2::ConstPtr&
     int clusterColor=0;
     int clusterCounter=0;
 
-    ROS_INFO("number cluster: %i", clusters->size ());
+    ROS_INFO("number cluster: %ld", clusters->size ());
     std::vector<int> cluster_idx_corresponding_to_avg_point;
     for (int i = 0; i < clusters->size (); ++i){
         clusterSize= (*clusters)[i].indices.size ();
@@ -608,7 +608,7 @@ void HectorStairDetection::PclCallback(const sensor_msgs::PointCloud2::ConstPtr&
     if(possible_stairs_cloud_pub_.getNumSubscribers()>0){
         possible_stairs_cloud_pub_.publish(possible_stairsCloud);
     }
-    ROS_INFO("number final cluster: %i", avg_point_per_cluster.size());
+    ROS_INFO("number final cluster: %ld", avg_point_per_cluster.size());
 
     if(avg_point_per_cluster.size()>=2){
 

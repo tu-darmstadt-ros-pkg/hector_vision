@@ -144,7 +144,7 @@ void HectorStairDetection::getStairsPositionAndOrientation(Eigen::Vector3f &base
     float stairs_yaw= atan2(direction(1), direction(0));
     float staris_pitch= atan2(direction(1)*sin(stairs_yaw)+direction(0)*cos(stairs_yaw), direction(2))+M_PI_2;
     tf::Quaternion temp;
-    temp.setEulerZYX(stairs_yaw,staris_pitch,0.0);
+    temp.setRPY(0.0, staris_pitch, stairs_yaw);
     position_and_orientaion.pose.orientation.x=temp.getX();
     position_and_orientaion.pose.orientation.y=temp.getY();
     position_and_orientaion.pose.orientation.z=temp.getZ();

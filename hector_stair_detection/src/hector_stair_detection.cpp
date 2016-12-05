@@ -453,7 +453,7 @@ void HectorStairDetection::getPreprocessedCloud(pcl::PointCloud<pcl::PointXYZ>::
 }
 
 bool customRegionGrowing (const pcl::PointNormal& point_a, const pcl::PointNormal& point_b, float squared_distance){
-    Eigen::Map<const Eigen::Vector3f> point_b_normal = point_b.normal;
+    Eigen::Map<const Eigen::Vector3f> point_b_normal (point_b.normal);
 
     Eigen::Vector3f d1(1,0,0);
     Eigen::Vector3f d2(0,1,0);

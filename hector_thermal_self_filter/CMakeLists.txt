@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS cmake_modules robot_self_filter pcl_ros 
 
 find_package(PCL REQUIRED)
 
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
 # cmake_minimum_required(VERSION 2.4.6)

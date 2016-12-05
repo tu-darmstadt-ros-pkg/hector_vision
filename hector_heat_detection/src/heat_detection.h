@@ -1,8 +1,9 @@
 #ifndef _HECTOR_HEAT_DETECTION_H_
 #define _HECTOR_HEAT_DETECTION_H_
 
-#include "ros/ros.h"
-#include "std_msgs/String.h"
+#include <ros/ros.h>
+
+#include <std_msgs/String.h>
 #include <hector_worldmodel_msgs/ImagePercept.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>

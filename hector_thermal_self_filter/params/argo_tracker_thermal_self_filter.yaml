@@ -1,0 +1,14 @@
+min_sensor_dist: .01
+self_see_default_padding: 0.02
+self_see_default_scale: 1.0
+self_see_links:
+  - name: chassis_link
+  - name: arm_link_0
+  - name: arm_link_1
+  - name: arm_link_2
+  - name: arm_link_3
+  - name: arm_link_4
+  - name: flipper_link_0
+  - name: flipper_link_1
+  - name: spin_lidar_mount_link
+  - name: structure_addons_link

@@ -6,8 +6,6 @@ self_see_links:
   - name: arm_link_0
   - name: arm_link_1
   - name: arm_link_2
-  - name: arm_link_3
-  - name: arm_link_4
   - name: flipper_link_0
   - name: flipper_link_1
   - name: spin_lidar_mount_link

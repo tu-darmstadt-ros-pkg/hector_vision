@@ -32,7 +32,7 @@ HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
 
-    get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
+    //get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
 
     this->publishProcessingEnabledState();
 }
@@ -52,6 +52,7 @@ void HeatDetection::publishProcessingEnabledState()
   processing_enabled_pub_.publish(msg);
 }
 
+/*
 bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
                     argo_vision_msgs::GetMeasurement::Response &res){
     blob_temperature_ = -1.0;
@@ -61,6 +62,7 @@ bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::
 
     return true;
 }
+*/
 
 void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info){
 //if(debug_){

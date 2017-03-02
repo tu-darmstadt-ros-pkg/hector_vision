@@ -1,7 +1,12 @@
 #include "heat_detection.h"
 
-
 HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
+
+    processing_enabled_ = true;
+
+    processing_enabled_pub_= p_n.advertise<std_msgs::Bool>("processing_enabled", 2, true);
+    processing_enabled_sub_ = p_n.subscribe("set_processing_enabled", 1, &HeatDetection::setProcessingEnabledCb, this);
+
     image_count_ = 0;
 
     //ros::NodeHandle n;
@@ -27,11 +32,27 @@ HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
     pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept",20);
     pub_detection_ = p_it.advertiseCamera("image", 10);
 
-    get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
+    //get_measurement_server_= p_n.advertiseService("get_heat_measurement", &HeatDetection::getMeasurementSrvCallback, this);
+
+    this->publishProcessingEnabledState();
 }
 
 HeatDetection::~HeatDetection(){}
 
+void HeatDetection::setProcessingEnabledCb(const std_msgs::Bool& msg)
+{
+  processing_enabled_ = msg.data;
+  this->publishProcessingEnabledState();
+}
+
+void HeatDetection::publishProcessingEnabledState()
+{
+  std_msgs::Bool msg;
+  msg.data = processing_enabled_;
+  processing_enabled_pub_.publish(msg);
+}
+
+/*
 bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
                     argo_vision_msgs::GetMeasurement::Response &res){
     blob_temperature_ = -1.0;
@@ -41,6 +62,7 @@ bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::
 
     return true;
 }
+*/
 
 void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info){
 //if(debug_){
@@ -52,6 +74,11 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
         return;
     }*/
     //std::cout << "Processing image..." << std::endl;
+
+    if (!processing_enabled_)
+    {
+      return;
+    }
 
 
     if (!mappingDefined_){

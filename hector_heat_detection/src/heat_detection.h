@@ -16,6 +16,8 @@
 #include <hector_heat_detection/HeatDetectionConfig.h>
 #include <argo_vision_msgs/GetMeasurement.h>
 
+#include <std_msgs/Bool.h>
+
 using hector_heat_detection::HeatDetectionConfig;
 
 class HeatDetection{
@@ -23,15 +25,23 @@ public:
     HeatDetection(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
     ~HeatDetection();
 private:
+
+    void setProcessingEnabledCb(const std_msgs::Bool& msg);
+    void publishProcessingEnabledState();
+
     void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info);
     //void mappingCallback(const thermaleye_msgs::Mapping& mapping);
     void dynRecParamCallback(HeatDetectionConfig &config, uint32_t level);
-    bool getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
-                        argo_vision_msgs::GetMeasurement::Response &res);
+    //bool getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
+    //                    argo_vision_msgs::GetMeasurement::Response &res);
     ros::Publisher pub_;
     image_transport::CameraSubscriber sub_;
     image_transport::CameraPublisher pub_detection_;
     ros::Subscriber sub_mapping_;
+
+    ros::Publisher processing_enabled_pub_;
+    ros::Subscriber processing_enabled_sub_;
+    bool processing_enabled_;
 
     typedef dynamic_reconfigure::Server<HeatDetectionConfig> ReconfigureServer;
     boost::shared_ptr<ReconfigureServer> dyn_rec_server_;
@@ -58,7 +68,7 @@ private:
     cv::Mat img_thres_max_;
     cv::Mat img_thres_;
 
-    ros::ServiceServer get_measurement_server_;
+    //ros::ServiceServer get_measurement_server_;
 
 
 };

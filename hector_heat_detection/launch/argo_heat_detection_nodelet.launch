@@ -13,7 +13,8 @@
   <node pkg="nodelet" type="nodelet"
     name="hector_heat_detection" 
     args="load hector_image_proc/heat_detection_nodelet $(arg camera_nodelet_manager_name)" 
-    output="screen">
+    output="screen"
+    respawn="true">
     <remap from="thermal/image" to="/$(arg thermal_camera_ns)/image_converted"/>    
     <remap from="/image_percept" to="/worldmodel/image_percept" />
     <param name="min_temp_detection" value="65" />

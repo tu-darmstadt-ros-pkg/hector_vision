@@ -1,0 +1,16 @@
+!!python/object/new:dynamic_reconfigure.encoding.Config
+dictitems:
+  input_frame_id: ''
+  max_angular_rate: 10.0
+  output_frame_id: ''
+  output_image_size: 2.0
+  source_frame_id: 'gripper_cam_link'
+  source_x: 1.0
+  source_y: 0.0
+  source_z: 0.0
+  target_frame_id: base_link
+  target_x: 0.0
+  target_y: 0.0
+  target_z: 1.0
+  use_camera_info: true
+state: []

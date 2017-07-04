@@ -1,0 +1,7 @@
+<library path="lib/libhector_color_detection_nodelet">
+  <class name="hector_color_detection_nodelet/hector_color_detection_nodelet" type="hector_color_detection_nodelet::ColorDetection" base_class_type="nodelet::Nodelet">
+    <description>
+      color_detection nodelet
+    </description>
+  </class>
+</library>

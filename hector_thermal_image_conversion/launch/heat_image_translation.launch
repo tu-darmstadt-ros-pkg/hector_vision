@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node pkg="hector_thermal_image_conversion" type="heat_image_translator_node" name="heat_image_translator_node" output="screen">
+    <remap from="~/image" to="/arm_thermal_cam/image_raw"/>
+    <remap from="~/image_converted" to="/arm_thermal_cam/image_converted"/>
+  </node>
+
+</launch>

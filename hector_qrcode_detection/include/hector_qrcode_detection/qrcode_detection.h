@@ -54,7 +54,8 @@ private:
   image_transport::CameraPublisher rotated_image_publisher_;
   image_transport::CameraPublisher qrcode_image_publisher_;
 
-  ros::Publisher percept_publisher_;
+  ros::Publisher worldmodel_percept_publisher_;
+  ros::Publisher aggregator_percept_publisher_;
 
   zbar::ImageScanner *scanner_;
 

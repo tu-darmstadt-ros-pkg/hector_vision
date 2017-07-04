@@ -177,7 +177,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
            }
        }
        
-       ip.info.data.push_back(blob_temperature_);
+       //ip.info.data.push_back(blob_temperature_);
        pub_.publish(ip);
        //std::cout << hist << std::endl;
        //std::cout << "Result: " << max_value << " --> " << blob_temperature_ << std::endl;

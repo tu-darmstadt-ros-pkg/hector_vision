@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <node pkg="nodelet" type="nodelet" name="hector_barrel_detection_nodelet" args="load hector_barrel_detection_nodelet/hector_barrel_detection_nodelet openni/openni_nodelet_manager" output="screen">
+    <param name="h_min" type="int" value="100" />
+    <param name="h_max" type="int" value="140" />
+    <param name="s_min" type="int" value="100" />
+    <param name="s_max" type="int" value="255" />
+    <param name="v_min" type="int" value="50" />
+    <param name="v_max" type="int" value="200" />
+    <param name="percentage_blue" type="int" value="8" />
+  </node>
+  
+</launch>

@@ -114,11 +114,11 @@ namespace hector_color_detection_nodelet{
         params.minInertiaRatio = 0;
         params.maxInertiaRatio = 0.8;
 
-        cv::SimpleBlobDetector blob_detector(params);
+        cv::Ptr<cv::SimpleBlobDetector> blob_detector = cv::SimpleBlobDetector::create(params);
         std::vector<cv::KeyPoint> keypoints;
         keypoints.clear();
 
-        blob_detector.detect(mask,keypoints);
+        blob_detector->detect(mask,keypoints);
         //    for(unsigned int i=0; i<keypoints.size();i++)
         //    {
         //        std::cout << keypoints.at(i).pt.x << std::endl;

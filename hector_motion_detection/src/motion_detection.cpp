@@ -34,6 +34,7 @@ MotionDetection::MotionDetection()
     ROS_INFO("detection limit: %d", detectionLimit);
     image_transport::ImageTransport image_bg_it(p_n);
     image_background_subtracted_pub_ = image_bg_it.advertiseCamera("image_background_subtracted", 10);
+    bg = cv::createBackgroundSubtractorMOG2();
 }
 
 MotionDetection::~MotionDetection() {}
@@ -50,12 +51,12 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
     img_filtered.copyTo(fgimg);
     img_filtered.copyTo(frame);
 
-    bg.operator()(img_filtered, fgimg);
+    bg->apply(img_filtered, fgimg);
 
     cv::morphologyEx(fgimg, fgimg, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)));
 
     fgimg.copyTo(fgimg_orig);   //for debugging/tuning purposes
-    bg.getBackgroundImage (backgroundImage);
+    bg->getBackgroundImage (backgroundImage);
 
 
     //controlable iterations for morphological operations
@@ -203,9 +204,9 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_
 //  min_density = config.motion_detect_min_density;
 //  percept_class_id_ = config.percept_class_id;
 
-  bg.set ("nmixtures", 3);
+  bg->setNMixtures(3);
   shadows = config.motion_detect_shadows;
-  bg.set ("detectShadows", shadows);
+  bg->setDetectShadows(shadows);
   min_area = config.motion_detect_min_area;
   max_area = config.motion_detect_max_area;
   detectionLimit = config.motion_detect_detectionLimit;

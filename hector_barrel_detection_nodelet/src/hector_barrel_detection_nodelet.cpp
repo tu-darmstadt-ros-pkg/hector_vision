@@ -103,12 +103,11 @@ namespace hector_barrel_detection_nodelet{
         params.filterByColor = false;
         params.filterByConvexity = false;
         params.filterByInertia = false;
-
-        cv::SimpleBlobDetector blob_detector(params);
+        cv::Ptr<cv::SimpleBlobDetector> blob_detector = cv::SimpleBlobDetector::create(params);
         std::vector<cv::KeyPoint> keypoints;
         keypoints.clear();
 
-        blob_detector.detect(blueOnly,keypoints);
+        blob_detector->detect(blueOnly,keypoints);
         //    for(unsigned int i=0; i<keypoints.size();i++)
         //    {
         //        std::cout << keypoints.at(i).pt.x << std::endl;

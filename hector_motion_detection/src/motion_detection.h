@@ -19,6 +19,11 @@
 #include <dynamic_reconfigure/server.h>
 #include <hector_motion_detection/MotionDetectionConfig.h>
 
+namespace cv
+{
+    using std::vector;
+}
+
 using hector_motion_detection::MotionDetectionConfig;
 
 class MotionDetection{
@@ -49,7 +54,7 @@ private:
     double min_density;
     std::string percept_class_id_;
 
-    cv::BackgroundSubtractorMOG2 bg; //with regards to shadows
+    cv::Ptr<cv::BackgroundSubtractorMOG2> bg; //with regards to shadows
     int detectionLimit; //the maximal number of detections to make/objects to track
     int min_area; //to filter smaller areas
     int max_area; //to filter bigger areas

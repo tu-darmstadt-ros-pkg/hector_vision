@@ -82,3 +82,7 @@ catkin_package(
     INCLUDE_DIRS # TODO include
     LIBRARIES # TODO
 )
+
+include_directories(${catkin_INCLUDE_DIRS})
+
+

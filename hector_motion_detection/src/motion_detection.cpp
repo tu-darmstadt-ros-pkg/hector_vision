@@ -3,6 +3,8 @@
 
 MotionDetection::MotionDetection()
 {
+    bg = cv::createBackgroundSubtractorMOG2();
+
     ros::NodeHandle n;
     ros::NodeHandle p_n("~"); //private nh
 
@@ -25,7 +27,7 @@ MotionDetection::MotionDetection()
     image_motion_pub_ = image_motion_it.advertiseCamera("image_motion", 10);
     image_detected_pub_ = image_detected_it.advertiseCamera("image_detected", 10);
 
-    image_perception_pub = n.advertise<hector_perception_msgs::PerceptionDataArray>("perception/image_percept", 10);
+    image_perception_pub = n.advertise<hector_perception_msgs::PerceptionDataArray>("detection/image_detection", 10);
     ROS_INFO("Starting with Motion Detection with MOG2");
     ROS_INFO("debug_contours: %i", debug_contours);
     ROS_INFO("shadows: %i", shadows);
@@ -34,7 +36,6 @@ MotionDetection::MotionDetection()
     ROS_INFO("detection limit: %d", detectionLimit);
     image_transport::ImageTransport image_bg_it(p_n);
     image_background_subtracted_pub_ = image_bg_it.advertiseCamera("image_background_subtracted", 10);
-    bg = cv::createBackgroundSubtractorMOG2();
 }
 
 MotionDetection::~MotionDetection() {}

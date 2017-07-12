@@ -28,24 +28,23 @@ public:
     void createImage();
 
 private:
-    void updatePercepts();
+    void updateDetections();
     void imageCallback(const sensor_msgs::ImageConstPtr& img);
-    void imagePerceptCallback(const hector_perception_msgs::PerceptionDataArrayConstPtr& percept);
+    void imageDetectionCallback(const hector_perception_msgs::PerceptionDataArrayConstPtr& percept);
     void dynRecParamCallback(HectorDetectionAggregatorConfig &config, uint32_t level);
 
     image_transport::CameraPublisher image_detected_pub_;
 
-    ros::Subscriber worldmodel_percept_sub_;
     ros::Subscriber image_percept_sub_;
     image_transport::Subscriber image_sub_;
     image_transport::CameraSubscriber camera_sub_;
 
     dynamic_reconfigure::Server<HectorDetectionAggregatorConfig> dyn_rec_server_;
 
-    cv_bridge::CvImageConstPtr img_current_ptr_;
+    cv_bridge::CvImageConstPtr img_current_grey_ptr_;
     cv_bridge::CvImageConstPtr img_current_col_ptr_;
 
-    std::map<std::string, hector_perception_msgs::PerceptionDataArray> percept_storage_;
+    std::map<std::string, hector_perception_msgs::PerceptionDataArray> detection_map_;
     std::map<std::string, cv::Scalar> color_map_;
 
      //params

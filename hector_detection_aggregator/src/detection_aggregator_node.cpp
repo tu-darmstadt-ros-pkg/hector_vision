@@ -4,7 +4,7 @@
 int main(int argc, char **argv){
   ros::init(argc, argv, "hector_detection_aggregator_node");
   hector_detection_aggregator::DetectionAggregator detection_aggregator;
-  ROS_INFO("Starting HectorDectionAggregator Node");
+  ROS_INFO("Starting HectorDectionAggregatorNode");
   ros::Rate rate(10);
   while (ros::ok())
   {

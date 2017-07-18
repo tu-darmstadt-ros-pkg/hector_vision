@@ -14,17 +14,22 @@
   <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>catkin</buildtool_depend>
 
+
   <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>hector_worldmodel_msgs</build_depend>
+  <build_depend>hector_perception_msgs</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>nodelet</build_depend>
   <build_depend>roscpp</build_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>hector_worldmodel_msgs</run_depend>
+  <run_depend>hector_perception_msgs</run_depend>
   <run_depend>cv_bridge</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>nodelet</run_depend>

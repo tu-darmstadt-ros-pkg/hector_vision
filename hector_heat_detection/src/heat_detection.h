@@ -14,7 +14,7 @@
 
 #include <dynamic_reconfigure/server.h>
 #include <hector_heat_detection/HeatDetectionConfig.h>
-#include <argo_vision_msgs/GetMeasurement.h>
+//#include <argo_vision_msgs/GetMeasurement.h>
 
 #include <std_msgs/Bool.h>
 

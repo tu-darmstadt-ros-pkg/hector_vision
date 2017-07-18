@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<launch>
+  
+  <arg name="camera_nodelet_manager_name" default="arm_thermal_cam_nodelet_manager" /> 
+  
+  <node pkg="nodelet" type="nodelet"
+    name="hector_thermal_image_conversion" 
+    args="load hector_image_proc/heat_image_translator_nodelet $(arg camera_nodelet_manager_name)" 
+    output="screen"
+    respawn="true">
+    <remap from="~/image" to="/arm_thermal_cam/image_raw"/>
+    <remap from="~/image_converted" to="/arm_thermal_cam/image_converted"/>
+  </node>  
+
+</launch>

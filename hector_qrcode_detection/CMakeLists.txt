@@ -4,7 +4,9 @@ cmake_minimum_required(VERSION 2.8.3)
 project(hector_qrcode_detection)
 # Load catkin and all dependencies required for this package
 # TODO: remove all from COMPONENTS that are not catkin packages.
-find_package(catkin REQUIRED COMPONENTS image_transport hector_worldmodel_msgs cv_bridge tf nodelet roscpp)
+
+find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge image_transport hector_worldmodel_msgs hector_perception_msgs cv_bridge tf nodelet)
+
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
@@ -80,8 +82,8 @@ add_subdirectory(src)
 # catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
 # TODO: fill in what other packages will need to use this package
 catkin_package(
-    DEPENDS image_transport hector_worldmodel_msgs cv_bridge tf nodelet roscpp
-    CATKIN_DEPENDS # TODO
+    DEPENDS
+    CATKIN_DEPENDS  roscpp cv_bridge image_transport hector_worldmodel_msgs hector_perception_msgs cv_bridge tf nodelet
     INCLUDE_DIRS # TODO include
     LIBRARIES # TODO
 )

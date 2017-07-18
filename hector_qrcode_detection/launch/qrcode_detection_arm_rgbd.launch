@@ -1,0 +1,8 @@
+<launch>
+  <remap from="image_percept" to="worldmodel/image_percept" />
+
+  <node name="qrcode_detection_real_sense" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection openni/openni_nodelet_manager">
+    <remap from="image" to="arm_rgbd_cam/rgb/image_raw" />
+  </node>
+ 
+</launch>

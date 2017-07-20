@@ -34,19 +34,21 @@ void DetectionAggregator::updateDetections()
 {
     ros::Time storage_threshold;
     if((ros::Time::now().toSec() > storage_duration_.toSec())){
-      storage_threshold =ros::Time::now() - storage_duration_;
+      storage_threshold = ros::Time::now() - storage_duration_;
     }
+
     std::vector<std::string> keys;
     for(std::map<std::string, hector_perception_msgs::PerceptionDataArray>::iterator it = detection_map_.begin(); it != detection_map_.end(); ++it) {
         keys.push_back(it->first);
     }
+
     for(std::string& key : keys)
     {
         const hector_perception_msgs::PerceptionDataArray& detection_array = detection_map_[key];
-        if(detection_array.header.stamp < storage_threshold)
+        if(detection_array.header.stamp.toSec() < storage_threshold.toSec())
         {
             auto it = detection_map_.find (key);
-            detection_map_.erase (it);
+            //detection_map_.erase (it);
         }
     }
 }
@@ -90,7 +92,7 @@ void DetectionAggregator::createImage()
                           color_map_[percept_pair.first.c_str()],// colour RGB ordering
                         2, 		        // line thickness
                         CV_AA, 0);
-                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_PLAIN,2,color_map_[percept_pair.first.c_str()]);
+                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_SIMPLEX, 0.75, color_map_[percept_pair.first.c_str()], 2);
             }
         }
 
@@ -112,8 +114,7 @@ void DetectionAggregator::imageDetectionCallback(const hector_perception_msgs::P
     if(image_detected_pub_.getNumSubscribers() == 0)
         return;
 
-    detection_map_[percept->perceptionType] = (*percept);
-    //ROS_INFO("Image Percept time %f",(float)(*percept).header.stamp.toSec());
+    detection_map_[percept->perceptionType] = *percept;
 }
 
 void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) //, const sensor_msgs::CameraInfoConstPtr& info)

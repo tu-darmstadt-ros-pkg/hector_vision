@@ -1,7 +1,9 @@
+<?xml version="1.0"?>
 <launch>
 
   <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen" respawn="true">
     <remap from="image_percept" to="worldmodel/image_percept" />
+    <remap from="image" to="/arm_rgbd_cam/rgb/image_raw" />
   </node>
 
 </launch>

@@ -53,6 +53,8 @@ private:
     double min_percept_size, max_percept_size;
     double min_density;
     std::string percept_class_id_;
+    double learning_rate_;
+    bool automatic_learning_rate_;
 
     cv::Ptr<cv::BackgroundSubtractorMOG2> bg; //with regards to shadows
     int detectionLimit; //the maximal number of detections to make/objects to track

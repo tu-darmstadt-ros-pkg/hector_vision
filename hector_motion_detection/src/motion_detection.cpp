@@ -12,20 +12,16 @@ MotionDetection::MotionDetection()
     img_current_ptr_.reset();
 
     image_transport::ImageTransport it(n);
-    image_transport::ImageTransport image_motion_it(p_n);
-    image_transport::ImageTransport image_detected_it(p_n);
 
-    //camera_sub_ = it.subscribeCamera("opstation/rgb/image_color", 1, &MotionDetection::imageCallback, this);
-
-    image_sub_ = it.subscribe("/arm_rgbd_cam/rgb/image_raw", 1 , &MotionDetection::imageCallback, this);
+    image_sub_ = it.subscribe("image", 1 , &MotionDetection::imageCallback, this);
 
     boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
     dyn_rec_type_ = boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
     dyn_rec_server_.setCallback(dyn_rec_type_);
 
     image_percept_pub_ = n.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 20);
-    image_motion_pub_ = image_motion_it.advertiseCamera("image_motion", 10);
-    image_detected_pub_ = image_detected_it.advertiseCamera("image_detected", 10);
+    image_motion_pub_ = it.advertiseCamera("image_motion", 10);
+    image_detected_pub_ = it.advertiseCamera("image_detected", 10);
 
     image_perception_pub = n.advertise<hector_perception_msgs::PerceptionDataArray>("detection/image_detection", 10);
     ROS_INFO("Starting with Motion Detection with MOG2");
@@ -40,24 +36,27 @@ MotionDetection::MotionDetection()
 
 MotionDetection::~MotionDetection() {}
 
-void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, const sensor_msgs::CameraInfoConstPtr& info)
+void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
 {
     cv_bridge::CvImageConstPtr cv_ptr;
     cv_ptr = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::BGR8);
     cv::Mat img_filtered(cv_ptr->image);
 
-    std::vector < std::vector < cv::Point > >contours;
-    cv::Mat frame, fgimg, backgroundImage, fgimg_orig;
+    std::vector<std::vector<cv::Point> > contours;
+    cv::Mat frame, fgimg, fgimg_orig;
 
     img_filtered.copyTo(fgimg);
     img_filtered.copyTo(frame);
 
-    bg->apply(img_filtered, fgimg);
+    if (automatic_learning_rate_) {
+      bg->apply(img_filtered, fgimg);
+    } else {
+      bg->apply(img_filtered, fgimg, learning_rate_);
+    }
 
     cv::morphologyEx(fgimg, fgimg, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)));
 
     fgimg.copyTo(fgimg_orig);   //for debugging/tuning purposes
-    bg->getBackgroundImage (backgroundImage);
 
 
     //controlable iterations for morphological operations
@@ -78,10 +77,6 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
     int largest_area=0;
     int largest_contour_index=0;
     cv::Rect bounding_rect;
-    std::vector<cv::Rect> boundRect( contours.size() );
-    std::vector<cv::vector<cv::Point> > contours_poly( contours.size() );
-    std::vector<cv::Point2f>center( contours.size() );
-    std::vector<float>radius( contours.size() );
     std::vector<double> areas( contours.size() );
 
     for( int i = 0; i < contours.size(); i++ )
@@ -90,10 +85,7 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
         areas[i] = area;
     }
 
-    std::vector<cv::Rect> rectGroup(detectionLimit);
-
     std::vector<hector_perception_msgs::PerceptionData> polygonGroup;
-
     if(contours.size() != 0){
         for(int k=0; k < detectionLimit; k++){
             for(int j=0; j < areas.size(); j++){
@@ -148,7 +140,6 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
             //std::cout << k << ": " << areas[largest_contour_index] << "  largest index:" << largest_contour_index << std::endl;
             areas[largest_contour_index] = -1;
             largest_area = 0;
-
         }
         if(image_perception_pub.getNumSubscribers() > 0)
         {
@@ -159,12 +150,6 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
             image_perception_pub.publish(polygonPerceptionArray);
         }
     }
-
-    //Show results
-//    cv::imshow("Binary Image", fgimg);
-//    cv::imshow("Motion detected Image", frame);
-//    cv::waitKey(0);
-
     sensor_msgs::CameraInfo::Ptr info;
     info.reset(new sensor_msgs::CameraInfo());
     info->header = img->header;
@@ -199,12 +184,6 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img) //, c
 
 void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)
 {
-//  motion_detect_threshold_ = config.motion_detect_threshold;
-//  min_percept_size = config.motion_detect_min_percept_size;
-//  max_percept_size = config.motion_detect_max_percept_size;
-//  min_density = config.motion_detect_min_density;
-//  percept_class_id_ = config.percept_class_id;
-
   bg->setNMixtures(3);
   shadows = config.motion_detect_shadows;
   bg->setDetectShadows(shadows);
@@ -212,19 +191,16 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_
   max_area = config.motion_detect_max_area;
   detectionLimit = config.motion_detect_detectionLimit;
   debug_contours = config.motion_detect_debug_contours;
-
   erosion_iterations = config.motion_detect_erosion;
   dilation_iterations = config.motion_detect_dilation;
+  learning_rate_ = config.learning_rate;
+  automatic_learning_rate_ = config.automatic_learning_rate;
 }
 
 int main(int argc, char **argv)
 {
-  //cv::namedWindow("view");
-  //cv::startWindowThread();
   ros::init(argc, argv, "motion_detection");
   MotionDetection md;
   ros::spin();
-
-  //cv::destroyWindow("view");
 }
 

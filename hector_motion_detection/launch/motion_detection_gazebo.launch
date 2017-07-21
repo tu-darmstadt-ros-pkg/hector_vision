@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 
   <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen">

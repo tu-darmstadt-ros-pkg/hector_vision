@@ -2,6 +2,7 @@
 #include "motion_detection.h"
 
 MotionDetection::MotionDetection()
+  : first_image_received_(false)
 {
     bg = cv::createBackgroundSubtractorMOG2();
 
@@ -45,7 +46,6 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
     std::vector<std::vector<cv::Point> > contours;
     cv::Mat frame, fgimg, fgimg_orig;
 
-    img_filtered.copyTo(fgimg);
     img_filtered.copyTo(frame);
 
     if (automatic_learning_rate_) {
@@ -58,19 +58,26 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
 
     fgimg.copyTo(fgimg_orig);   //for debugging/tuning purposes
 
-
     //controlable iterations for morphological operations
-    for(int i=0; i < erosion_iterations; i++){
-        cv::erode (fgimg, fgimg, cv::Mat());
+    for(int i=0; i < erosion_iterations; i++) {
+        cv::erode(fgimg, fgimg, cv::Mat());
     }
-    for(int i=0; i < dilation_iterations; i++){
-        cv::dilate (fgimg, fgimg, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3))); //alternatively (tuning): other kernels: e.g. cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10,10))
+    for(int i=0; i < dilation_iterations; i++) {
+        cv::dilate(fgimg, fgimg, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)));
+        //alternatively (tuning): other kernels: e.g. cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10,10))
     }
 
-    cv::findContours (fgimg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-    //cv::imshow("Binary", fgimg);
-    if(debug_contours){
-        cv::drawContours (frame, contours, -1, cv::Scalar (0, 0, 255), 2);
+    if (!first_image_received_) {
+      fgimg.copyTo(accumulated_image_);
+      first_image_received_ = true;
+    } else {
+      cv::addWeighted(accumulated_image_, 0.9, fgimg, 0.1, 0.0, accumulated_image_);
+    }
+    cv::Mat thres;
+    cv::threshold(accumulated_image_, thres, 100, 255, cv::THRESH_BINARY);
+    cv::findContours (thres, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+    if (debug_contours) {
+      cv::drawContours(frame, contours, -1, cv::Scalar (0, 0, 255), 2);
     }
 
     //========Detection of g largest contours=====
@@ -81,105 +88,93 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
 
     for( int i = 0; i < contours.size(); i++ )
     {
-        double area = cv::contourArea( contours[i] );  //  Find the area of contour
-        areas[i] = area;
+      double area = cv::contourArea( contours[i] );  //  Find the area of contour
+      areas[i] = area;
     }
 
     std::vector<hector_perception_msgs::PerceptionData> polygonGroup;
     if(contours.size() != 0){
-        for(int k=0; k < detectionLimit; k++){
-            for(int j=0; j < areas.size(); j++){
-                if( areas[j] > largest_area )
-                {
-                    largest_area = areas[j];
-                    largest_contour_index = j;               //Store the index of largest contour
-                    bounding_rect = cv::boundingRect( contours[j] ); // Find the bounding rectangle for biggest contour
-                }
-            }
-
-            //std::cout << "rectGroup after with " << k << " : " << rectGroup[0] << std::endl;
-            //std::cout << k << ": " << areas[largest_contour_index] << std::endl;
-            if(areas[largest_contour_index] >= min_area && areas[largest_contour_index] <= max_area){
-                cv::rectangle( frame, bounding_rect.tl(), bounding_rect.br(), cv::Scalar( 0, 0, 255 ), 2, 8, 0 );
-
-                //Create a Polygon consisting of Point32 points for publishing
-                //std::cout << "BR first: " << bounding_rect.tl() << "BR lasst: " << bounding_rect.br() << std::endl;
-                geometry_msgs::Point32 p1, p2, p3, p4;
-                p1.x = bounding_rect.tl().x;
-                p1.y = bounding_rect.tl().y;
-                p4.x = bounding_rect.br().x;
-                p4.y = bounding_rect.br().y;
-                p2.x = p4.x;
-                p2.y = p1.y;
-                p3.x = p1.x;
-                p3.y = p4.y;
-
-                std::vector<geometry_msgs::Point32> recPoints;
-                recPoints.push_back(p1);
-                recPoints.push_back(p2);
-                recPoints.push_back(p4);
-                recPoints.push_back(p3);
-                //std::cout << "recPoints: " << recPoints[0] << recPoints[1] << recPoints[2] << recPoints[3] << std::endl;
-
-                geometry_msgs::Polygon polygon;
-                polygon.points = recPoints;
-                //std::cout << "Polygon: " << polygon.points[0] << polygon.points[1] << polygon.points[2] << polygon.points[3] << std::endl;
-                hector_perception_msgs::PerceptionData perceptionData;
-                perceptionData.percept_name = "motion" + boost::lexical_cast<std::string>(k);
-                perceptionData.polygon = polygon;
-
-                polygonGroup.push_back(perceptionData);
-                //std::cout << "size: " << polygonGroup.size() << std::endl;
-//                std::cout << "PolygonGroup" << std::endl;
-//                for(int z=0; z < polygonGroup.size(); z++){
-//                    std::cout << "Polygon " << z << ": " << polygonGroup[z].polygon.points[z] << polygonGroup[z].polygon.points[1] << polygonGroup[z].polygon.points[2] << polygonGroup[z].polygon.points[3] << std::endl;
-//                }
-
-            }
-            //std::cout << areas.size() << std::endl;
-            //std::cout << k << ": " << areas[largest_contour_index] << "  largest index:" << largest_contour_index << std::endl;
-            areas[largest_contour_index] = -1;
-            largest_area = 0;
+      for(int k=0; k < detectionLimit; k++) {
+        for(int j=0; j < areas.size(); j++) {
+          if( areas[j] > largest_area ) {
+              largest_area = areas[j];
+              largest_contour_index = j;               //Store the index of largest contour
+              bounding_rect = cv::boundingRect( contours[j] ); // Find the bounding rectangle for biggest contour
+          }
         }
-        if(image_perception_pub.getNumSubscribers() > 0)
-        {
-            hector_perception_msgs::PerceptionDataArray polygonPerceptionArray;
-            polygonPerceptionArray.header.stamp = ros::Time::now();
-            polygonPerceptionArray.perceptionType = "motion";
-            polygonPerceptionArray.perceptionList = polygonGroup;
-            image_perception_pub.publish(polygonPerceptionArray);
+        if(areas[largest_contour_index] >= min_area && areas[largest_contour_index] <= max_area) {
+          cv::rectangle( frame, bounding_rect.tl(), bounding_rect.br(), cv::Scalar( 0, 0, 255 ), 2, 8, 0 );
+
+          //Create a Polygon consisting of Point32 points for publishing
+          //std::cout << "BR first: " << bounding_rect.tl() << "BR lasst: " << bounding_rect.br() << std::endl;
+          geometry_msgs::Point32 p1, p2, p3, p4;
+          p1.x = bounding_rect.tl().x;
+          p1.y = bounding_rect.tl().y;
+          p4.x = bounding_rect.br().x;
+          p4.y = bounding_rect.br().y;
+          p2.x = p4.x;
+          p2.y = p1.y;
+          p3.x = p1.x;
+          p3.y = p4.y;
+
+          std::vector<geometry_msgs::Point32> recPoints;
+          recPoints.push_back(p1);
+          recPoints.push_back(p2);
+          recPoints.push_back(p4);
+          recPoints.push_back(p3);
+          //std::cout << "recPoints: " << recPoints[0] << recPoints[1] << recPoints[2] << recPoints[3] << std::endl;
+
+          geometry_msgs::Polygon polygon;
+          polygon.points = recPoints;
+          //std::cout << "Polygon: " << polygon.points[0] << polygon.points[1] << polygon.points[2] << polygon.points[3] << std::endl;
+          hector_perception_msgs::PerceptionData perceptionData;
+          perceptionData.percept_name = "motion" + boost::lexical_cast<std::string>(k);
+          perceptionData.polygon = polygon;
+
+          polygonGroup.push_back(perceptionData);
         }
+        areas[largest_contour_index] = -1;
+        largest_area = 0;
     }
-    sensor_msgs::CameraInfo::Ptr info;
-    info.reset(new sensor_msgs::CameraInfo());
-    info->header = img->header;
-
-    if(image_background_subtracted_pub_.getNumSubscribers() > 0)
+    if(image_perception_pub.getNumSubscribers() > 0)
     {
-      cv_bridge::CvImage cvImg;
-      fgimg_orig.copyTo(cvImg.image);
-      cvImg.header = img->header;
-      cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-      image_background_subtracted_pub_.publish(cvImg.toImageMsg(), info);
+        hector_perception_msgs::PerceptionDataArray polygonPerceptionArray;
+        polygonPerceptionArray.header.stamp = ros::Time::now();
+        polygonPerceptionArray.perceptionType = "motion";
+        polygonPerceptionArray.perceptionList = polygonGroup;
+        image_perception_pub.publish(polygonPerceptionArray);
     }
+  }
+  sensor_msgs::CameraInfo::Ptr info;
+  info.reset(new sensor_msgs::CameraInfo());
+  info->header = img->header;
 
-    if(image_motion_pub_.getNumSubscribers() > 0)
-    {
-      cv_bridge::CvImage cvImg;
-      fgimg.copyTo(cvImg.image);
-      cvImg.header = img->header;
-      cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-      image_motion_pub_.publish(cvImg.toImageMsg(), info);
-    }
+  if(image_background_subtracted_pub_.getNumSubscribers() > 0)
+  {
+    cv_bridge::CvImage cvImg;
+    fgimg_orig.copyTo(cvImg.image);
+    cvImg.header = img->header;
+    cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+    image_background_subtracted_pub_.publish(cvImg.toImageMsg(), info);
+  }
 
-    if(image_detected_pub_.getNumSubscribers() > 0)
-    {
-      cv_bridge::CvImage cvImg;
-      frame.copyTo(cvImg.image);
-      cvImg.header = img->header;
-      cvImg.encoding = sensor_msgs::image_encodings::BGR8;
-      image_detected_pub_.publish(cvImg.toImageMsg(), info);
-    }
+  if(image_motion_pub_.getNumSubscribers() > 0)
+  {
+    cv_bridge::CvImage cvImg;
+    thres.copyTo(cvImg.image);
+    cvImg.header = img->header;
+    cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+    image_motion_pub_.publish(cvImg.toImageMsg(), info);
+  }
+
+  if(image_detected_pub_.getNumSubscribers() > 0)
+  {
+    cv_bridge::CvImage cvImg;
+    frame.copyTo(cvImg.image);
+    cvImg.header = img->header;
+    cvImg.encoding = sensor_msgs::image_encodings::BGR8;
+    image_detected_pub_.publish(cvImg.toImageMsg(), info);
+  }
 }
 
 void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)

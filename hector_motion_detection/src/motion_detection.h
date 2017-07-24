@@ -49,6 +49,9 @@ private:
     cv_bridge::CvImageConstPtr img_current_ptr_;
     cv_bridge::CvImageConstPtr img_current_col_ptr_;
 
+    bool first_image_received_;
+    cv::Mat accumulated_image_;
+
     int motion_detect_threshold_;
     double min_percept_size, max_percept_size;
     double min_density;

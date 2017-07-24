@@ -15,14 +15,10 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <sensor_msgs/image_encodings.h>
+#include <std_msgs/Bool.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <hector_motion_detection/MotionDetectionConfig.h>
-
-namespace cv
-{
-    using std::vector;
-}
 
 using hector_motion_detection::MotionDetectionConfig;
 
@@ -32,22 +28,22 @@ public:
     ~MotionDetection();
 private:
     void imageCallback(const sensor_msgs::ImageConstPtr& img); //, const sensor_msgs::CameraInfoConstPtr& info);
-    //void mappingCallback(const thermaleye_msgs::Mapping& mapping);
+    void enabledCallback(const std_msgs::BoolConstPtr& enabled);
     void dynRecParamCallback(MotionDetectionConfig &config, uint32_t level);
 
+    bool enabled_;
+
     ros::Publisher image_percept_pub_;
+    ros::Publisher image_perception_pub;
+    image_transport::Subscriber image_sub_;
+    ros::Subscriber enabled_sub_;
+
     image_transport::CameraSubscriber camera_sub_;
     image_transport::CameraPublisher image_motion_pub_;
     image_transport::CameraPublisher image_detected_pub_;
 
-    image_transport::Subscriber image_sub_;
-
     dynamic_reconfigure::Server<MotionDetectionConfig> dyn_rec_server_;
     dynamic_reconfigure::Server<MotionDetectionConfig>::CallbackType dyn_rec_type_;
-
-    cv_bridge::CvImageConstPtr img_prev_ptr_;
-    cv_bridge::CvImageConstPtr img_current_ptr_;
-    cv_bridge::CvImageConstPtr img_current_col_ptr_;
 
     bool first_image_received_;
     cv::Mat accumulated_image_;
@@ -64,7 +60,6 @@ private:
     int min_area; //to filter smaller areas
     int max_area; //to filter bigger areas
 
-    ros::Publisher image_perception_pub;
     image_transport::CameraPublisher image_background_subtracted_pub_; //for publishing subtracted image
     int erosion_iterations, dilation_iterations; //for controlling the iterations of erosion/deliation
     bool shadows; //control if shadows should be tracked

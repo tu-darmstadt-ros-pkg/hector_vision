@@ -4,6 +4,8 @@
   <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen" respawn="true">
     <remap from="detection/image_detection" to="/detection/visual_detection" />
     <remap from="image" to="/arm_rgbd_cam/rgb/image_raw" />
+    <remap from="enabled_status" to="/startup_check/motion_detection/enabled_status" />
+    <remap from="enabled" to="/startup_check/enabled" />
   </node>
 
 </launch>

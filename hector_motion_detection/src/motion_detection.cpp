@@ -14,7 +14,9 @@ MotionDetection::MotionDetection(ros::NodeHandle &nh)
 
     image_sub_ = it.subscribe("image", 1 , &MotionDetection::imageCallback, this);
     enabled_sub_ = nh.subscribe("enabled", 10, &MotionDetection::enabledCallback, this);
-    enabled_pub_ = nh.advertise<std_msgs::Bool>("enabled_status", 10);
+    enabled_pub_ = nh.advertise<std_msgs::Bool>("enabled_status", 10, true);
+
+    publishEnableStatus();
 
     dyn_rec_type_ = boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
     dyn_rec_server_.setCallback(dyn_rec_type_);
@@ -36,6 +38,7 @@ MotionDetection::MotionDetection(ros::NodeHandle &nh)
 
 void MotionDetection::enabledCallback(const std_msgs::BoolConstPtr& enabled) {
   enabled_ = enabled->data;
+  publishEnableStatus();
 }
 
 void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
@@ -199,17 +202,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "motion_detection");
   ros::NodeHandle nh;
-  ros::CallbackQueue fast_queue;
-  nh.setCallbackQueue(&fast_queue);
-  ros::AsyncSpinner async_spinner(1, &fast_queue);
-  async_spinner.start();
 
   MotionDetection md(nh);
   ros::spin();
-  ros::Rate rate(1.0);
-  while (ros::ok()) {
-    ros::spinOnce();
-    md.publishEnableStatus();
-    rate.sleep();
-  }
 }

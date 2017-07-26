@@ -2,7 +2,8 @@
 <launch>
 
   <node pkg="hector_pipe_detection" type="hector_pipe_detection_node.py" name="pipe_detection_node" output="screen" respawn="true">
-    <remap from="image" to="/arm_rgbd_cam/rgb/image_raw" />
+    <remap from="image" to="/gripper_cam/image_raw" />
+    <remap from="camera_info" to="/gripper_cam/camera_info" />
     <remap from="enabled_status" to="/startup_check/pipe_detection/enabled_status" />
     <remap from="enabled" to="/startup_check/enabled" />
     

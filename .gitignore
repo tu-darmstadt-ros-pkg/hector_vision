@@ -5,3 +5,5 @@ msg_gen/
 srv_gen/
 share/
 *.user
+.idea
+*.pyc

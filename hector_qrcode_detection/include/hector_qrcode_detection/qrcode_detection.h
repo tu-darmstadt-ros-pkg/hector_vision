@@ -41,7 +41,7 @@ namespace hector_qrcode_detection {
 
 class qrcode_detection_impl {
 public:
-  qrcode_detection_impl(ros::NodeHandle nh, ros::NodeHandle priv_nh);
+  qrcode_detection_impl(ros::NodeHandle& nh, ros::NodeHandle& priv_nh);
   ~qrcode_detection_impl();
 
 protected:

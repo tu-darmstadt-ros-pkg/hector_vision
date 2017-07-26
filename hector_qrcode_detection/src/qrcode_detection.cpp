@@ -38,7 +38,7 @@ using namespace zbar;
 
 namespace hector_qrcode_detection {
 
-qrcode_detection_impl::qrcode_detection_impl(ros::NodeHandle nh, ros::NodeHandle priv_nh)
+qrcode_detection_impl::qrcode_detection_impl(ros::NodeHandle& nh, ros::NodeHandle& priv_nh)
     : nh_(nh)
     , image_transport_(nh_)
     , listener_(0)

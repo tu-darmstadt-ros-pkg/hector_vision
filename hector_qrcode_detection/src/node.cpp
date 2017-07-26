@@ -33,7 +33,9 @@ using namespace hector_qrcode_detection;
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, ROS_PACKAGE_NAME);
-  qrcode_detection_impl detector(ros::NodeHandle(), ros::NodeHandle("~"));
+  ros::NodeHandle nh;
+  ros::NodeHandle priv_nh("~");
+  qrcode_detection_impl detector(nh, priv_nh);
   ros::spin();
   return 0;
 }

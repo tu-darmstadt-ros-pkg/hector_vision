@@ -6,6 +6,8 @@
     <remap from="image" to="/arm_rgbd_cam/rgb/image_raw" />
     <remap from="enabled_status" to="/startup_check/motion_detection/enabled_status" />
     <remap from="enabled" to="/startup_check/enabled" />
+    
+    <param name="enabled" value="false" />
   </node>
 
 </launch>

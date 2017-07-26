@@ -76,10 +76,10 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
     fgimg.copyTo(accumulated_image_);
     first_image_received_ = true;
   } else {
-    cv::addWeighted(accumulated_image_, 0.9, fgimg, 0.1, 0.0, accumulated_image_);
+    cv::addWeighted(accumulated_image_, (1 - moving_average_weight_), fgimg, moving_average_weight_, 0.0, accumulated_image_);
   }
   cv::Mat thresholded;
-  cv::threshold(accumulated_image_, thresholded, 100, 255, cv::THRESH_BINARY);
+  cv::threshold(accumulated_image_, thresholded, activation_threshold_, 255, cv::THRESH_BINARY);
 
   // Find contours
   std::vector<std::vector<cv::Point> > contours;
@@ -196,6 +196,8 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_
   dilation_iterations_ = config.motion_detect_dilation;
   learning_rate_ = config.learning_rate;
   automatic_learning_rate_ = config.automatic_learning_rate;
+  moving_average_weight_ = config.moving_average_weight;
+  activation_threshold_ = config.activation_threshold;
 }
 
 int main(int argc, char **argv)

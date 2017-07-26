@@ -62,6 +62,8 @@ private:
     int erosion_iterations_, dilation_iterations_; //for controlling the iterations of erosion/deliation
     bool shadows_; //control if shadows should be tracked
     bool debug_contours_;
+    double moving_average_weight_;
+    int activation_threshold_;
 
     image_transport::CameraPublisher image_background_subtracted_pub_; //for publishing subtracted image
 

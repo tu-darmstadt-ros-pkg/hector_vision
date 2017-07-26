@@ -48,7 +48,7 @@ void DetectionAggregator::updateDetections()
         if(detection_array.header.stamp.toSec() < storage_threshold.toSec())
         {
             auto it = detection_map_.find (key);
-            //detection_map_.erase (it);
+            detection_map_.erase (it);
         }
     }
 }

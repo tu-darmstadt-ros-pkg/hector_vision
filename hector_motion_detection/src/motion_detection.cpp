@@ -8,7 +8,7 @@ MotionDetection::MotionDetection(ros::NodeHandle &nh)
 
     ros::NodeHandle pnh("~"); //private nh
 
-    pnh.param("enabled", enabled_, true);
+    pnh.param("enabled", enabled_, false);
 
     image_transport::ImageTransport it(nh);
 
@@ -181,6 +181,14 @@ void MotionDetection::publishEnableStatus() {
   std_msgs::Bool bool_msg;
   bool_msg.data = enabled_;
   enabled_pub_.publish(bool_msg);
+
+  std::string enabled_string;
+  if (enabled_) {
+    enabled_string = "Enabled";
+  } else {
+    enabled_string = "Disabled";
+  }
+  ROS_INFO_STREAM(enabled_string << " hector_motion_detection.");
 }
 
 void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)

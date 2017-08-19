@@ -1,9 +1,12 @@
 <?xml version="1.0"?>
 <launch>
+    
+  <arg name="camera_ns" default="arm_rgbd_cam" />
+  <arg name="image_topic" default="rgb/image_raw" />   
 
   <node pkg="hector_motion_detection" type="motion_detection" name="motion_detection" output="screen" respawn="true">
     <remap from="detection/image_detection" to="/detection/visual_detection" />
-    <remap from="image" to="/arm_rgbd_cam/rgb/image_raw" />
+    <remap from="image" to="$(arg camera_ns)/$(arg image_topic)" />
     <remap from="enabled_status" to="/startup_check/motion_detection/enabled_status" />
     <remap from="enabled" to="/startup_check/enabled" />
     

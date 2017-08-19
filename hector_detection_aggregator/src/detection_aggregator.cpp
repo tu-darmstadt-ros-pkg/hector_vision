@@ -9,7 +9,7 @@ DetectionAggregator::DetectionAggregator()
     ros::NodeHandle n;
     ros::NodeHandle p_n("~"); //private nh
 
-    img_current_grey_ptr_.reset();
+    //img_current_grey_ptr_.reset();
     img_current_col_ptr_.reset();
 
     image_transport::ImageTransport it(n);
@@ -122,7 +122,7 @@ void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) /
     if(image_detected_pub_.getNumSubscribers() == 0)
         return;
 
-    img_current_grey_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::MONO8);
+    //img_current_grey_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::MONO8);
     img_current_col_ptr_ = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::BGR8);
 
 }

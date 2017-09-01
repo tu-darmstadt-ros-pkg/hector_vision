@@ -3,7 +3,7 @@ project(hector_detection_aggregator)
 
 if (NOT MSVC)
   # Enable the C++11 standard
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 ## Find catkin macros and libraries

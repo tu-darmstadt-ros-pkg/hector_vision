@@ -62,6 +62,8 @@ qrcode_detection_impl::qrcode_detection_impl(ros::NodeHandle nh, ros::NodeHandle
     
     enabled_sub_ = nh.subscribe("enabled", 10, &qrcode_detection_impl::enabledCallback, this);
     enabled_pub_ = nh.advertise<std_msgs::Bool>("enabled_status", 10, true);
+    
+    publishEnableStatus();
 
     if (!rotation_target_frame_id_.empty()) {
         listener_ = new tf::TransformListener();
@@ -269,7 +271,7 @@ void qrcode_detection_impl::publishEnableStatus() {
         enabled_string = "Disabled";
     }
     
-    ROS_INFO_STREAM(enabled_string << " hector_motion_detection.");
+    ROS_INFO_STREAM(enabled_string << " qrcode_detection.");
 }
 
 } // namespace hector_qrcode_detection

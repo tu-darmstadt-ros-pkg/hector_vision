@@ -22,6 +22,8 @@
 
 using hector_motion_detection::MotionDetectionConfig;
 
+namespace hector_motion_detection {
+
 class MotionDetection{
 public:
     MotionDetection(ros::NodeHandle& nh);
@@ -69,5 +71,7 @@ private:
 
 
 };
+
+}
 
 #endif

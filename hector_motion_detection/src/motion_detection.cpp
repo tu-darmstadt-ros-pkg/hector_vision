@@ -1,5 +1,7 @@
 //Author: Matej Zecevic
-#include "motion_detection.h"
+#include <hector_motion_detection/motion_detection.h>
+
+namespace hector_motion_detection {
 
 MotionDetection::MotionDetection(ros::NodeHandle &nh)
   : nh_(nh), first_image_received_(false)
@@ -26,7 +28,7 @@ MotionDetection::MotionDetection(ros::NodeHandle &nh)
     image_detected_pub_ = it.advertiseCamera("image_detected", 10);
 
     image_perception_pub = nh.advertise<hector_perception_msgs::PerceptionDataArray>("detection/image_detection", 10);
-    ROS_INFO("Starting with Motion Detection with MOG2");
+    ROS_INFO("Starting Motion Detection with MOG2");
     ROS_INFO("debug_contours: %i", debug_contours_);
     ROS_INFO("shadows: %i", shadows_);
     ROS_INFO("max area: %d", max_area_);
@@ -208,11 +210,4 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_
   activation_threshold_ = config.activation_threshold;
 }
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "motion_detection");
-  ros::NodeHandle nh;
-
-  MotionDetection md(nh);
-  ros::spin();
 }

@@ -9,7 +9,7 @@ class MotionDetectionNodelet : public nodelet::Nodelet {
   virtual void onInit() {
     ros::NodeHandle &nh = getNodeHandle();
     ros::NodeHandle &pnh = getPrivateNodeHandle();
-    motion_detection_.reset(new MotionDetection(nh));
+    motion_detection_.reset(new MotionDetection(nh, pnh));
   }
 
   boost::shared_ptr<MotionDetection> motion_detection_;

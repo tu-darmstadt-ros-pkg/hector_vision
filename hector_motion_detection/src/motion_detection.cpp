@@ -3,39 +3,37 @@
 
 namespace hector_motion_detection {
 
-MotionDetection::MotionDetection(ros::NodeHandle &nh)
-  : nh_(nh), first_image_received_(false)
+MotionDetection::MotionDetection(ros::NodeHandle &nh, ros::NodeHandle& pnh)
+  : nh_(nh), first_image_received_(false), it_(pnh)
 {
     bg_subtractor_ = cv::createBackgroundSubtractorMOG2();
 
-    ros::NodeHandle pnh("~"); //private nh
-
     pnh.param("enabled", enabled_, false);
 
-    image_transport::ImageTransport it(nh);
-
-    image_sub_ = it.subscribe("image", 1 , &MotionDetection::imageCallback, this);
-    enabled_sub_ = nh.subscribe("enabled", 10, &MotionDetection::enabledCallback, this);
-    enabled_pub_ = nh.advertise<std_msgs::Bool>("enabled_status", 10, true);
-
-    publishEnableStatus();
-
+    // Dynamic reconfigure
     dyn_rec_type_ = boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
     dyn_rec_server_.setCallback(dyn_rec_type_);
 
-    image_percept_pub_ = nh.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 20);
-    image_motion_pub_ = it.advertiseCamera("image_motion", 10);
-    image_detected_pub_ = it.advertiseCamera("image_detected", 10);
-
-    image_perception_pub = nh.advertise<hector_perception_msgs::PerceptionDataArray>("detection/image_detection", 10);
     ROS_INFO("Starting Motion Detection with MOG2");
     ROS_INFO("debug_contours: %i", debug_contours_);
     ROS_INFO("shadows: %i", shadows_);
     ROS_INFO("max area: %d", max_area_);
     ROS_INFO("min area: %d", min_area_);
     ROS_INFO("detection limit: %d", detectionLimit_);
-    image_transport::ImageTransport image_bg_it(pnh);
-    image_background_subtracted_pub_ = image_bg_it.advertiseCamera("image_background_subtracted", 10);
+
+    // Subscriber (always-on)
+    enabled_sub_ = pnh.subscribe("enabled", 10, &MotionDetection::enabledCallback, this);
+
+    // Publishers
+    enabled_pub_ = pnh.advertise<std_msgs::Bool>("enabled_status", 10, true);
+    publishEnableStatus();
+    image_percept_pub_ = pnh.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 20);
+    image_motion_pub_ = it_.advertiseCamera("image_motion", 10);
+    image_detected_pub_ = it_.advertiseCamera("image_detected", 10);
+    image_background_subtracted_pub_ = it_.advertiseCamera("image_background_subtracted", 10);
+    ros::SubscriberStatusCallback connect_cb = boost::bind(&MotionDetection::connectCb, this);
+    boost::lock_guard<boost::mutex> lock(connect_mutex_);
+    image_perception_pub = pnh.advertise<hector_perception_msgs::PerceptionDataArray>("detection/image_detection", 10, connect_cb, connect_cb, ros::VoidConstPtr(), false);
 }
 
 void MotionDetection::enabledCallback(const std_msgs::BoolConstPtr& enabled) {
@@ -208,6 +206,29 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_
   automatic_learning_rate_ = config.automatic_learning_rate;
   moving_average_weight_ = config.moving_average_weight;
   activation_threshold_ = config.activation_threshold;
+}
+
+void MotionDetection::connectCb()
+{
+  boost::lock_guard<boost::mutex> lock(connect_mutex_);
+
+  if (image_perception_pub.getNumSubscribers() == 0) {
+    shutdownSubscribers();
+    ROS_INFO_STREAM("Stopping subscribers..");
+  } else {
+    startSubscribers();
+    ROS_INFO_STREAM("Starting subscribers..");
+  }
+}
+
+void MotionDetection::startSubscribers()
+{
+  image_sub_ = it_.subscribe("image", 1 , &MotionDetection::imageCallback, this);
+}
+
+void MotionDetection::shutdownSubscribers()
+{
+  image_sub_.shutdown();
 }
 
 }

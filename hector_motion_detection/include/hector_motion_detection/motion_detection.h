@@ -26,14 +26,21 @@ namespace hector_motion_detection {
 
 class MotionDetection{
 public:
-    MotionDetection(ros::NodeHandle& nh);
+    MotionDetection(ros::NodeHandle& nh, ros::NodeHandle& pnh);
     void publishEnableStatus();
 private:
     void imageCallback(const sensor_msgs::ImageConstPtr& img); //, const sensor_msgs::CameraInfoConstPtr& info);
     void enabledCallback(const std_msgs::BoolConstPtr& enabled);
     void dynRecParamCallback(MotionDetectionConfig &config, uint32_t level);
 
+    void connectCb();
+    void startSubscribers();
+    void shutdownSubscribers();
+
+    boost::mutex connect_mutex_;
+
     ros::NodeHandle nh_;
+    image_transport::ImageTransport it_;
 
     bool enabled_;
 

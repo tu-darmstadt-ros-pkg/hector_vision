@@ -1,16 +1,14 @@
+#include <nodelet/loader.h>
 #include <ros/ros.h>
-#include <hector_detection_aggregator/detection_aggregator.h>
 
-int main(int argc, char **argv){
-  ros::init(argc, argv, "hector_detection_aggregator_node");
-  hector_detection_aggregator::DetectionAggregator detection_aggregator;
-  ROS_INFO("Starting HectorDectionAggregatorNode");
-  ros::Rate rate(10);
-  while (ros::ok())
-  {
-      detection_aggregator.createImage();
-      rate.sleep();
-      ros::spinOnce();
-  }
-  exit(0);
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "detection_aggregator_node");
+  nodelet::Loader nodelet;
+  nodelet::M_string remap(ros::names::getRemappings());
+  nodelet::V_string nargv;
+  std::string nodelet_name = ros::this_node::getName();
+  ROS_INFO_STREAM("Started " << nodelet_name << " nodelet.");
+  nodelet.load(nodelet_name, "hector_detection_aggregator/DetectionAggregatorNodelet", remap, nargv);
+  ros::spin();
+  return 0;
 }

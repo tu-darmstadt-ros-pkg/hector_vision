@@ -1,30 +1,27 @@
 #include <hector_detection_aggregator/detection_aggregator.h>
 
+#include <boost/thread/lock_guard.hpp>
+
 namespace hector_detection_aggregator
 {
-DetectionAggregator::DetectionAggregator()
-{
-    storage_duration_ = ros::Duration(10);
+DetectionAggregator::DetectionAggregator(ros::NodeHandle& nh, ros::NodeHandle& pnh)
+  : nh_(nh), pnh_(pnh), it_(pnh), storage_duration_(ros::Duration(10))
+{    
+    dyn_rec_server_.setCallback(boost::bind(&DetectionAggregator::dynRecParamCallback, this, _1, _2));
 
-    ros::NodeHandle n;
-    ros::NodeHandle p_n("~"); //private nh
 
-    //img_current_grey_ptr_.reset();
     img_current_col_ptr_.reset();
 
-    image_transport::ImageTransport it(n);
-    image_transport::ImageTransport image_detected_it(p_n);
-
-    image_sub_ = it.subscribe("/arm_rgbd_cam/rgb/image_raw", 1 , &DetectionAggregator::imageCallback, this);
-    image_percept_sub_ = n.subscribe("/detection/visual_detection", 1 , &DetectionAggregator::imageDetectionCallback, this);
-     dyn_rec_server_.setCallback(boost::bind(&DetectionAggregator::dynRecParamCallback, this, _1, _2));
-
-    image_detected_pub_ = image_detected_it.advertiseCamera("/detection/aggregated_detections_image", 10);
-
+    // Color mappings
     color_map_["motion"] = cv::Scalar(0,0,255);
     color_map_["qr"] = cv::Scalar(255,0,0);
     color_map_["heat"] = cv::Scalar(0,255,0);
     color_map_["hazmat"] = cv::Scalar(255,255,0);
+
+    // Publishers
+    image_transport::SubscriberStatusCallback connect_cb = boost::bind(&DetectionAggregator::connectCb, this);
+    boost::lock_guard<boost::mutex> lock(connect_mutex_);
+    image_detected_pub_ = it_.advertiseCamera("/detection/aggregated_detections_image", 10, connect_cb, connect_cb);
 }
 
 DetectionAggregator::~DetectionAggregator() {}
@@ -131,8 +128,32 @@ void DetectionAggregator::imageCallback(const sensor_msgs::ImageConstPtr& img) /
 
 void DetectionAggregator::dynRecParamCallback(HectorDetectionAggregatorConfig &config, uint32_t level)
 {
-    storage_duration_ = ros::Duration(config.storage_duration);
+  storage_duration_ = ros::Duration(config.storage_duration);
 }
 
+void DetectionAggregator::connectCb()
+{
+  boost::lock_guard<boost::mutex> lock(connect_mutex_);
+
+  if (image_detected_pub_.getNumSubscribers() == 0) {
+    stopSubscribers();
+    ROS_INFO_STREAM("Stopping subscribers..");
+  } else {
+    startSubscribers();
+    ROS_INFO_STREAM("Starting subscribers..");
+  }
+}
+
+void DetectionAggregator::startSubscribers()
+{
+  image_sub_ = it_.subscribe("/arm_rgbd_cam/rgb/image_raw", 1 , &DetectionAggregator::imageCallback, this);
+  image_percept_sub_ = nh_.subscribe("/detection/visual_detection", 1 , &DetectionAggregator::imageDetectionCallback, this);
+}
+
+void DetectionAggregator::stopSubscribers()
+{
+  image_sub_.shutdown();
+  image_percept_sub_.shutdown();
+}
 
 }

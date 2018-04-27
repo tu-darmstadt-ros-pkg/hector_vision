@@ -1,9 +1,5 @@
 import cv2
-import os
-import matplotlib.pyplot as plt
 import numpy as np
-
-from visualization import show_color, show_gray, gray_to_color
 
 
 class Detection:
@@ -18,8 +14,9 @@ class BarrelsDetection:
         self.bottom_cut_off = 150
         self.threshold = 0.05
         self.dilate_ksize = 5
+        self.min_area = 1500
 
-    def detect(self, img):
+    def preprocess(self, img):
         # cut off bottom
         img_cut = img[:img.shape[0] - self.bottom_cut_off, :, :]
         # to float
@@ -41,9 +38,53 @@ class BarrelsDetection:
 
         # dilate
         kernel = np.ones((self.dilate_ksize, self.dilate_ksize), np.uint8)
-        img_dilated = cv2.dilate(img_thresh, kernel, iterations=2)
+        img_dilated = cv2.dilate(img_thresh, kernel, iterations=3)
         # show_gray(img_dilated)
+        #img_closing = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel)
 
+        return img_dilated, img_cut
+
+    def contour_detection(self, img, detection_image):
+        # Find contours in binary image
+        im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Filter contours by area
+        contours_filtered = []
+        for c in contours:
+            if cv2.contourArea(c) > self.min_area:
+                contours_filtered.append(c)
+        # print "Filtered contour count", len(contours_filtered)
+        cv2.drawContours(detection_image, contours_filtered, -1, (0, 255, 0), 3)
+
+        # Approximate contours
+        approx_contours = []
+        for contour in contours_filtered:
+            peri = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
+            approx_contours.append(approx)
+
+        # Find contour centers
+        centers = []
+        for c in contours_filtered:
+            sum = [0, 0]
+            for p in c:
+                sum[0] += p[0][0]
+                sum[1] += p[0][1]
+            point = (sum[0] / len(c), sum[1] / len(c))
+            cv2.circle(detection_image, point, 4, (255, 255, 255), thickness=4)
+            centers.append(point)
+
+        detections = []
+        for contour, center in zip(approx_contours, centers):
+            points = [[p[0][0], p[0][1]] for p in contour]
+
+            # approximate circle with rectangle
+            d = Detection("barrel", center, points)
+            detections.append(d)
+
+        return detections, detection_image
+
+    def blob_detection(self, img, detection_image):
         # Setup SimpleBlobDetector parameters.
         params = cv2.SimpleBlobDetector_Params()
 
@@ -57,7 +98,7 @@ class BarrelsDetection:
 
         # Filter by Area.
         params.filterByArea = True
-        params.minArea = 1000
+        params.minArea = self.min_area
         params.maxArea = 13000
 
         params.filterByCircularity = False
@@ -67,22 +108,13 @@ class BarrelsDetection:
         detector = cv2.SimpleBlobDetector_create(params)
 
         # Detect blobs.
-        img_inv = 255 - img_dilated
+        img_inv = 255 - img
         keypoints = detector.detect(img_inv)
-        # print "Found blobs:", len(keypoints)
 
-        # img_blobs = gray_to_color(img_dilated)
-
-        # img_detect = \
-        #     cv2.drawKeypoints(img, keypoints, np.array([]), (255, 0, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        # img_blobs = \
-        #     cv2.drawKeypoints(img_blobs, keypoints, np.array([]), (255, 0, 0),
-        #                       cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-        # show_gray(img_blobs)
+        detection_image = \
+            cv2.drawKeypoints(img, keypoints, np.array([]), (255, 0, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         detections = list()
-        img_detect = img_cut.copy()
         for k in keypoints:
             # approximate circle with rectangle
             l = k.size / 2
@@ -96,8 +128,11 @@ class BarrelsDetection:
             d = Detection("barrel", [c1, c2], [pt1, pt2, pt3, pt4])
             detections.append(d)
 
-            cv2.rectangle(img_detect, pt1, pt3, (255, 0, 0), thickness=2)
+            cv2.rectangle(detection_image, pt1, pt3, (255, 0, 0), thickness=2)
 
-        show_color(img_detect)
+        return detections, detection_image
 
-        return detections, img_detect
+    def detect(self, img):
+        img_pre, detection_image = self.preprocess(img)
+        detections, detection_image = self.contour_detection(img_pre, detection_image)
+        return detections, detection_image

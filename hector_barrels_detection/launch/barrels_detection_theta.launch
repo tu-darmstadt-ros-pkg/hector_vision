@@ -6,6 +6,6 @@
     <remap from="image_percept" to="image_percept_trash" />
     
     <param name="detection_frequency" value="1.0" />
-    <param name="image_projection_raycast" value="false" />
+    <param name="image_projection_raycast" value="true" />
   </node>
 </launch>

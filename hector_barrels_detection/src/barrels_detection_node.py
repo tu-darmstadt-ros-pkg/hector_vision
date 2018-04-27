@@ -79,7 +79,6 @@ class BarrelsDetectionNode:
         array.header.stamp = self.last_image.header.stamp
         array.perceptionType = "barrel"
         for detection in detections:
-            # rospy.loginfo("Detected barrel")
             perception_msg = hector_perception_msgs.msg.PerceptionData()
             perception_msg.percept_name = detection.name
             for point in detection.points:

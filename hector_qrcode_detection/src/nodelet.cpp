@@ -34,9 +34,6 @@ namespace hector_qrcode_detection {
 
 class qrcode_detection : public nodelet::Nodelet
 {
-private:
-  qrcode_detection_impl *impl;
-
 public:
   qrcode_detection() : impl(0) {}
   virtual ~qrcode_detection() { delete impl; }
@@ -45,6 +42,8 @@ private:
   void onInit() {
     impl = new qrcode_detection_impl(getNodeHandle(), getPrivateNodeHandle());
   }
+
+  qrcode_detection_impl *impl;
 };
 
 } // namespace hector_qrcode_detection

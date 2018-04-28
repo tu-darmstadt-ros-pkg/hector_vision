@@ -2,7 +2,7 @@
 <launch>
   <node name="periodic_hazmat_detection" pkg="hector_fast_hazmat_detection" type="hazmat_detection_node.py" output="screen">
     <remap from="~image" to="/ricoh_theta/equirectangular_low_fov" />
-    <remap from="project_pixel_to_ray" to="/ricoh_theta_equirectangular_projection_low_fov/project_pixel_to_ray" />
+    <remap from="project_pixel_to_ray" to="/ricoh_theta_equirectangular_low_fov/project_pixel_to_ray" />
 <!--    <remap from="~enabled" to="/hazmat_detection/enabled" />
     <remap from="~enabled_status" to="/startup_check/hazmat_detection/enabled_status" />-->
     <remap from="image_percept" to="image_percept_trash" />

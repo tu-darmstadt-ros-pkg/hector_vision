@@ -160,7 +160,7 @@ class HazmatSignDetector:
         #resized = cv2.resize(resized,
         #                     (image_mem.shape[1] // self.resolution_divider,
         #                      image_mem.shape[0] // self.resolution_divider))
-        return cv2.Canny(resized, 60, 40)
+        return cv2.Canny(resized, 80, 40)
 
     @staticmethod
     def morph_image(image):
@@ -175,48 +175,32 @@ class HazmatSignDetector:
  #       _, contours, _ = cv2.findContours(edge_image, cv2.RET)
 
     def find_and_filter_regions_of_interest(self, morphed_image, image_mem, debug_info):
-        _, contours, _ = cv2.findContours(morphed_image, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours, hierarchy = cv2.findContours(morphed_image, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
         if debug_info is not None:
-            debug_info.contours = contours
+            debug_info.contours = [c * (2**self.downsample_passes) for c in contours]
         regions_of_interest = []
         margin = 15
 
-        # merge close contours
-        # bounding_boxes = []
-        # for c in contours:
-        #     bounding_boxes.append(cv2.boundingRect(c))
-        #
-        # i = len(bounding_boxes) - 1
-        # while i >= 0:
-        #     for j in range(len(bounding_boxes)-1, -1, -1):
-        #         if i == j:
-        #             continue
-        #         (x1, y1, w1, h1) = bounding_boxes[i]
-        #         (x2, y2, w2, h2) = bounding_boxes[j]
-        #         c1_x = x1 + w1 // 2
-        #         c2_x = x2 + w2 // 2
-        #         c1_y = y1 + h1 // 2
-        #         c2_y = y2 + h2 // 2
-        #         if (c1_x - c2_x)**2 + (c1_y - c2_y)**2 < 400:
-        #             merge = False
-        #             for pt1 in contours[i]:
-        #                 for pt2 in contours[j]:
-        #                     if (pt1[0, 0] - pt2[0, 0])**2 + (pt1[0, 1] - pt2[0, 1])**2 < 100:
-        #                         merge = True
-        #             if merge:
-        #                 contours[i] = np.vstack((contours[i], contours[j]))
-        #                 bounding_boxes[i] = cv2.boundingRect(contours[i])
-        #                 del contours[j]
-        #                 del bounding_boxes[j]
-        #                 if j < i:
-        #                     i -= 1
-        #     i -= 1
-
+        # filter open contours
+        filtered_contours = []
+        for i in range(len(contours)):
+            contour = contours[i] * (2**self.downsample_passes)
+            peri = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
+            if len(approx) < 4:
+                continue
+            if cv2.contourArea(approx) > len(approx)**2:
+                filtered_contours.append(approx)
+        #i = 0
+        #while i < len(contours):
+        #    if hierarchy[i][2] > 0 or hierarchy[i][3] > 0:
+        #        filtered_contours.append(contours[i])
+        #    i = hierarchy[i][0]
 
         # sort contours by size descending first
         sorted_contours = []
         sizes = []
-        for contour in contours:
+        for contour in filtered_contours:
             area = cv2.contourArea(contour)
             inserted = False
             for i in range(len(sizes)):
@@ -229,12 +213,7 @@ class HazmatSignDetector:
                 sizes.append(area)
                 sorted_contours.append(contour)
 
-        for contour in sorted_contours:
-            contour *= (2**self.downsample_passes)
-            peri = cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, 0.04 * peri, True)
-            if len(approx) < 4:
-                continue
+        for approx in sorted_contours:
             approx = cv2.convexHull(approx)
 
             reject = False
@@ -274,6 +253,28 @@ class HazmatSignDetector:
             regions_of_interest.append((x_offset, y_offset, w, h))
         return regions_of_interest
 
+    def get_contour(self, rectangle_edges, w , h, sub_image):
+        _, contours, _ = cv2.findContours(rectangle_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        filtered = []
+        for c in contours:
+            reject = False
+            c = cv2.convexHull(c)
+            if cv2.contourArea(c) < w * h * 0.01:
+                continue
+            for pt in c:
+                pt = pt[0, :]
+                if pt[0] < 4 or pt[0] > sub_image.shape[1] - 4 or pt[1] < 4 or pt[1] > sub_image.shape[0] - 4:
+                    reject = True
+                    break
+            if reject:
+                continue
+            filtered.append(c)
+        contours = np.vstack(c for c in filtered) if len(filtered) > 1 else filtered[0]
+        approx = cv2.convexHull(contours)
+        peri = cv2.arcLength(approx, True)
+        approx = cv2.approxPolyDP(approx, 0.04 * peri, True)
+
+
     def get_rectangles(self, regions_of_interest, image_mem, debug_info):
         filtered_sub_images = []
         rectangles = []
@@ -287,6 +288,7 @@ class HazmatSignDetector:
                                           edgedetect(test_blur[:, :, 2])]), axis=0)
             mean = np.mean(test_edges)
             test_edges[test_edges <= mean] = 0
+            #test_edges = cv2.erode(test_edges, None)
             _, test_edges = cv2.threshold(test_edges, 80, 255, cv2.THRESH_BINARY)
             test_edges = test_edges.astype(np.uint8)
 
@@ -367,6 +369,7 @@ class HazmatSignDetector:
         if self.gpu:
             image = cv2.UMat(image)
         edge_image = self.get_edge_image(image, image_mem)
+        edge_image = cv2.erode(cv2.dilate(edge_image, None), None)
         #morph = self.morph_image(edge_image)
         morph = edge_image
         if debug:
@@ -380,13 +383,12 @@ class HazmatSignDetector:
 
         for i in range(len(rectangles)):
             rectangle = rectangles[i]
-            rectangle_is_color = is_color(rectangle)
+            #rectangle_is_color = is_color(rectangle)
             corr_soft_threshold = 0.3
-            corr_threshold = 0.7 if rectangle_is_color is None or rectangle_is_color else 0.7
+            corr_threshold = 0.75  # if rectangle_is_color is None or rectangle_is_color else 0.75
             match_soft_threshold = 1
-            min_sift_matches = 6 if rectangle_is_color is not None or rectangle_is_color else 8
+            min_sift_matches = 6  # if rectangle_is_color is not None or rectangle_is_color else 8
 
-            start = timer()
             target_keypoints, target_descriptors = self.sift.detectAndCompute(sub_images[i], None)
             rectangle = cv2.GaussianBlur(rectangle, (5, 5), 0)
 
@@ -399,8 +401,8 @@ class HazmatSignDetector:
             if debug:
                 sign_values = []
             for sign in self.signs:
-                if (rectangle_is_color and sign.is_color) is not None and sign.is_color != rectangle_is_color:
-                    continue
+                #if (rectangle_is_color and sign.is_color) is not None and sign.is_color != rectangle_is_color:
+                #    continue
                 template = cv2.resize(sign.image, (rectangle.shape[1], rectangle.shape[0]))
                 matches = get_sift_matches(target_keypoints, target_descriptors, sign)
 
@@ -439,14 +441,14 @@ class HazmatSignDetector:
             if debug:
                 result.debug_information.matches.append((sub_images[i], rectangle, sign_values))
                 result.debug_information.best_matches.append((sub_images[i], rectangle, best_template,
-                                                              (best_correlation, best_matches, rectangle_is_color)))
+                                                              (best_correlation, best_matches, False)))
             if (0.7 * best_effective_weight <= second_best_effective_weight or best_correlation < corr_soft_threshold
                 or best_matches < match_soft_threshold) and\
                     best_correlation < corr_threshold and best_matches < min_sift_matches:
                 continue
             if debug:
                 result.debug_information.detections.append((sub_images[i], rectangle, best_template,
-                                                            (best_correlation, best_matches, rectangle_is_color)))
+                                                            (best_correlation, best_matches, False)))
             result.detections.append(Detection(best_sign, contours[i]))
         return result
 

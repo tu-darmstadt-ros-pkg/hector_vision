@@ -6,7 +6,6 @@ import cv_bridge
 import actionlib
 
 import sensor_msgs.msg
-import std_msgs.msg
 import geometry_msgs.msg
 import hector_perception_msgs.msg
 import hector_perception_msgs.srv

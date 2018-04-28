@@ -29,8 +29,6 @@
   <depend>hector_perception_msgs</depend>
   <depend>nodelet</depend>
 
-
-  
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>

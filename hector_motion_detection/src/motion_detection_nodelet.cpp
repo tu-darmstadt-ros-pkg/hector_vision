@@ -16,6 +16,4 @@ class MotionDetectionNodelet : public nodelet::Nodelet {
 };
 }
 
-PLUGINLIB_DECLARE_CLASS(hector_motion_detection, MotionDetectionNodelet,
-                        hector_motion_detection::MotionDetectionNodelet,
-                        nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(hector_motion_detection::MotionDetectionNodelet, nodelet::Nodelet)

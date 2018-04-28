@@ -160,7 +160,7 @@ class HazmatSignDetector:
         #resized = cv2.resize(resized,
         #                     (image_mem.shape[1] // self.resolution_divider,
         #                      image_mem.shape[0] // self.resolution_divider))
-        return cv2.Canny(resized, 80, 40)
+        return cv2.Canny(resized, 60, 30)
 
     @staticmethod
     def morph_image(image):
@@ -383,11 +383,11 @@ class HazmatSignDetector:
 
         for i in range(len(rectangles)):
             rectangle = rectangles[i]
-            #rectangle_is_color = is_color(rectangle)
+            rectangle_is_color = is_color(rectangle)
             corr_soft_threshold = 0.3
-            corr_threshold = 0.75  # if rectangle_is_color is None or rectangle_is_color else 0.75
+            corr_threshold = 0.75 if rectangle_is_color is None or rectangle_is_color else 0.75
             match_soft_threshold = 1
-            min_sift_matches = 6  # if rectangle_is_color is not None or rectangle_is_color else 8
+            min_sift_matches = 6 if rectangle_is_color is not None or rectangle_is_color else 8
 
             target_keypoints, target_descriptors = self.sift.detectAndCompute(sub_images[i], None)
             rectangle = cv2.GaussianBlur(rectangle, (5, 5), 0)
@@ -401,8 +401,8 @@ class HazmatSignDetector:
             if debug:
                 sign_values = []
             for sign in self.signs:
-                #if (rectangle_is_color and sign.is_color) is not None and sign.is_color != rectangle_is_color:
-                #    continue
+                if (rectangle_is_color and sign.is_color) is not None and sign.is_color != rectangle_is_color:
+                    continue
                 template = cv2.resize(sign.image, (rectangle.shape[1], rectangle.shape[0]))
                 matches = get_sift_matches(target_keypoints, target_descriptors, sign)
 

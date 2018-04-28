@@ -98,16 +98,18 @@ class BarrelsDetectionNode:
                     resp_project = self.project_pixel_to_ray(point_msg)
                 except rospy.ServiceException as e:
                     rospy.logerr("ProjectPixelTo3DRay Service Exception: " + str(e))
-                    return
+                    continue
 
                 try:
                     resp_raycast = self.get_distance_to_obstacle(resp_project.ray)
                 except rospy.ServiceException as e:
                     rospy.logerr("GetDistanceToObstacle Service Exception: " + str(e))
-                    return
-
+                    continue
+                
+                # reject, if raycast failed
+                if resp_raycast.end_point.point.x == 0 and resp_raycast.end_point.point.y == 0 and resp_raycast.end_point.point.z == 0:
+                    continue
                 pose_msg = geometry_msgs.msg.PoseWithCovariance()
-
                 pose_msg.pose.position = resp_raycast.end_point.point
                 pose_msg.pose.orientation.w = 1
 

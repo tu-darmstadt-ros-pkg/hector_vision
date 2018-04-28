@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+    
+  <arg name="camera_ns" default="arm_rgbd_cam" />
+  <arg name="image_topic" default="rgb/image_raw" />
+  
+  <node name="hazmat_detection" pkg="hector_fast_hazmat_detection" type="hazmat_detection_node.py" output="screen">
+    <remap from="~image" to="$(arg camera_ns)/$(arg image_topic)" />
+    <remap from="image_percept" to="/detection/visual_detection" />
+    <remap from="~enabled" to="/startup_check/enabled" />
+    <remap from="~enabled_status" to="/startup_check/hazmat_detection/enabled_status" />
+    <param name="detection_frequency" value="1.0" />
+    <param name="periodic_detection" value="false" />
+    <param name="min_match_count" value="5" />
+    <param name="image_projection_raycast" value="false" />
+    
+    <param name="model_folder" value="$(find hector_fast_hazmat_detection)/templates/rgb" />
+  </node>
+</launch>

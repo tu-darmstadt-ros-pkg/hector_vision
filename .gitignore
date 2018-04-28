@@ -7,3 +7,4 @@ share/
 *.user
 .idea
 *.pyc
+.ipynb_checkpoints/

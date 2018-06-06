@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="bar_detection" pkg="hector_bar_detection" type="bar_detection_node.py" output="screen" respawn="true">
+    <remap from="~image" to="/ricoh_theta/pinhole_front" />
+    <remap from="project_pixel_to_ray" to="/ricoh_theta_pinhole_front/project_pixel_to_ray" />
+    <remap from="image_percept" to="image_percept_trash" />
+    
+    <param name="detection_frequency" value="1.0" />
+    <param name="image_projection_raycast" value="true" />
+  </node>
+</launch>

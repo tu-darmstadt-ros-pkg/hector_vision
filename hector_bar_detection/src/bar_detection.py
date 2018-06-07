@@ -3,8 +3,9 @@ import numpy as np
 
 
 class Detection:
-    def __init__(self, center):
-        self.center = center
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
 
 
 class BarDetection:
@@ -51,7 +52,31 @@ class BarDetection:
             lefty = int((-x * vy / vx) + y)
             righty = int(((cols - x) * vy / vx) + y)
             detection_image = cv2.line(detection_image, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
-            d = Detection([x, y + self.top_cut_off])
+
+            robot_center = np.array([rows, cols / 2.0])
+            rect = cv2.minAreaRect(cnt)
+            max_dimension = max(rect[1])
+            normalized_dir = np.array([vx[0], vy[0]])
+            base_vec = np.array([x[0], y[0]])
+            plus_vec = base_vec + max_dimension / 2.0 * normalized_dir
+            minus_vec = base_vec - max_dimension / 2.0 * normalized_dir
+
+            plus_norm = np.linalg.norm(plus_vec - robot_center)
+            minus_norm = np.linalg.norm(minus_vec - robot_center)
+
+            start_vec = plus_vec if plus_norm < minus_norm else minus_vec
+            end_vec = minus_vec if plus_norm < minus_norm else plus_vec
+
+            detection_image = cv2.drawMarker(detection_image, (start_vec[0], start_vec[1]), (0, 255, 255),
+                                             markerType=cv2.MARKER_TILTED_CROSS, markerSize=20, thickness=1,
+                                             line_type=cv2.LINE_AA)
+            detection_image = cv2.drawMarker(detection_image, (end_vec[0], end_vec[1]), (0, 255, 255),
+                                             markerType=cv2.MARKER_TILTED_CROSS, markerSize=20, thickness=1,
+                                             line_type=cv2.LINE_AA)
+
+            start_global_vec = start_vec + np.array([0, self.top_cut_off])
+            end_global_vec = end_vec + np.array([0, self.top_cut_off])
+            d = Detection(start_global_vec, end_global_vec)
             detections.append(d)
         return detection_image, detections
 

@@ -24,8 +24,9 @@ class BarDetectionNode:
         self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
                                               queue_size=10)
         self.image_sub = rospy.Subscriber("~image", sensor_msgs.msg.Image, self.image_cb)
-        self.debug_maker_pub = rospy.Publisher("bar_detection/debug_marker", MarkerArray)
+        self.debug_maker_pub = rospy.Publisher("bar_detection/debug_marker", MarkerArray, queue_size=10)
         self.marker_array = MarkerArray()
+        self.max_marker_count = 2
 
         project_pixel_to_ray_srv = "project_pixel_to_ray"
         rospy.loginfo("Waiting for service " + project_pixel_to_ray_srv)
@@ -49,26 +50,26 @@ class BarDetectionNode:
             detected_img, detections = self.detector.detect(image_cv)
 
             for detection in detections:
-                point_msg = geometry_msgs.msg.PointStamped()
-                point_msg.point.x = detection.center[0]
-                point_msg.point.y = detection.center[1]
+                start_point_msg = geometry_msgs.msg.PointStamped()
+                start_point_msg.point.x = detection.start[0]
+                start_point_msg.point.y = detection.start[1]
 
                 try:
-                    resp_project = self.project_pixel_to_ray(point_msg)
+                    start_resp_project = self.project_pixel_to_ray(start_point_msg)
                 except rospy.ServiceException as e:
                     rospy.logerr("ProjectPixelTo3DRay Service Exception: " + str(e))
                     continue
 
                 try:
-                    resp_raycast = self.get_distance_to_obstacle(resp_project.ray)
+                    start_resp_raycast = self.get_distance_to_obstacle(start_resp_project.ray)
                 except rospy.ServiceException as e:
                     rospy.logerr("GetDistanceToObstacle Service Exception: " + str(e))
                     continue
 
-                if resp_raycast.end_point.point.x == 0 and resp_raycast.end_point.point.y == 0 and resp_raycast.end_point.point.z == 0:
+                if start_resp_raycast.end_point.point.x == 0 and start_resp_raycast.end_point.point.y == 0 and start_resp_raycast.end_point.point.z == 0:
                     rospy.loginfo("No intersection point found")
                 else:
-                    self.debug_add_marker(resp_raycast.end_point.point)
+                    self.debug_add_marker(start_resp_raycast.end_point.point)
 
             detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="bgr8")
             self.detection_image_pub.publish(detection_image_msg)
@@ -77,6 +78,12 @@ class BarDetectionNode:
 
     def debug_add_marker(self, position):
         marker_id = len(self.marker_array.markers)
+        if len(self.marker_array.markers) == self.max_marker_count:
+            old_marker = self.marker_array.markers.pop(0)
+            marker_id = old_marker.id
+
+        rospy.logwarn("New ID: " + str(marker_id))
+
         marker = Marker()
         marker.header.frame_id = "world"
         marker.id = marker_id

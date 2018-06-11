@@ -5,14 +5,28 @@ import cv_bridge
 
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
+from enum import Enum
 
 import sensor_msgs.msg
 import geometry_msgs.msg
 import hector_perception_msgs.msg
 import hector_perception_msgs.srv
 import hector_nav_msgs.srv
-
 import bar_detection
+
+
+class BarDetectionErrorType(Enum):
+    ProjectPixelTo3DRayError = 1
+    GetDistanceToObstacleError = 2
+    NoIntersectionPointError = 3
+
+
+class BarDetectionError(Exception):
+    def __init__(self, message, error):
+        super(BarDetectionError, self).__init__(message)
+        if not isinstance(error, BarDetectionErrorType):
+            raise TypeError("Error must be set to a BarDetectionErrorType.")
+        self.error = error
 
 
 class BarDetectionNode:
@@ -23,9 +37,9 @@ class BarDetectionNode:
         self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
         self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
                                               queue_size=10)
+        self.debugging = True
         self.image_sub = rospy.Subscriber("~image", sensor_msgs.msg.Image, self.image_cb)
         self.debug_maker_pub = rospy.Publisher("bar_detection/debug_marker", MarkerArray, queue_size=10)
-        self.marker_array = MarkerArray()
         self.max_marker_count = 2
 
         project_pixel_to_ray_srv = "project_pixel_to_ray"
@@ -49,62 +63,76 @@ class BarDetectionNode:
             image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="rgb8")
             detected_img, detections = self.detector.detect(image_cv)
 
-            for detection in detections:
-                start_point_msg = geometry_msgs.msg.PointStamped()
-                start_point_msg.point.x = detection.start[0]
-                start_point_msg.point.y = detection.start[1]
-
+            if len(detections) != 0:
                 try:
-                    start_resp_project = self.project_pixel_to_ray(start_point_msg)
-                except rospy.ServiceException as e:
-                    rospy.logerr("ProjectPixelTo3DRay Service Exception: " + str(e))
-                    continue
+                    first_bar_start_point, first_bar_center_point = self.estimate_global_points(detections[0])
+                    second_bar_start_point, second_bar_center_point = self.estimate_global_points(detections[1])
+                    if self.debugging:
+                        self.debug_add_marker([first_bar_start_point, first_bar_center_point, second_bar_start_point,
+                                              second_bar_center_point])
 
-                try:
-                    start_resp_raycast = self.get_distance_to_obstacle(start_resp_project.ray)
-                except rospy.ServiceException as e:
-                    rospy.logerr("GetDistanceToObstacle Service Exception: " + str(e))
-                    continue
+                except BarDetectionError as e:
+                    rospy.logerr(str(e))
 
-                if start_resp_raycast.end_point.point.x == 0 and start_resp_raycast.end_point.point.y == 0 and start_resp_raycast.end_point.point.z == 0:
-                    rospy.loginfo("No intersection point found")
-                else:
-                    self.debug_add_marker(start_resp_raycast.end_point.point)
+                rospy.loginfo("Succsessful detect bars!")
 
             detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="bgr8")
             self.detection_image_pub.publish(detection_image_msg)
         else:
             rospy.logwarn("Detection skipped, because no image has been received yet.")
 
-    def debug_add_marker(self, position):
-        marker_id = len(self.marker_array.markers)
-        if len(self.marker_array.markers) == self.max_marker_count:
-            old_marker = self.marker_array.markers.pop(0)
-            marker_id = old_marker.id
+    def estimate_global_points(self, detection):
+        start_point_msg = geometry_msgs.msg.PointStamped()
+        start_point_msg.point.x = detection.start[0]
+        start_point_msg.point.y = detection.start[1]
 
-        rospy.logwarn("New ID: " + str(marker_id))
+        center_point_msg = geometry_msgs.msg.PointStamped()
+        center_point_msg.point.x = detection.center[0]
+        center_point_msg.point.y = detection.center[1]
 
-        marker = Marker()
-        marker.header.frame_id = "world"
-        marker.id = marker_id
-        marker.type = marker.SPHERE
-        marker.action = marker.ADD
-        marker.scale.x = 0.1
-        marker.scale.y = 0.1
-        marker.scale.z = 0.1
+        try:
+            start_resp_project = self.project_pixel_to_ray(start_point_msg)
+            center_resp_project = self.project_pixel_to_ray(center_point_msg)
+        except rospy.ServiceException as e:
+            raise BarDetectionError("ProjectPixelTo3DRay Service Exception",
+                                    BarDetectionErrorType.ProjectPixelTo3DRayError)
+        try:
+            start_resp_raycast = self.get_distance_to_obstacle(start_resp_project.ray)
+            center_resp_raycast = self.get_distance_to_obstacle(center_resp_project.ray)
+        except rospy.ServiceException as e:
+            raise BarDetectionError("GetDistanceToObstacle Service Exception",
+                                    BarDetectionErrorType.GetDistanceToObstacleError)
 
-        marker.color.a = 1.0
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 0.0
+        if start_resp_raycast.distance == -1 or center_resp_raycast.distance == -1:
+            raise BarDetectionError("No intersection point found",
+                                    BarDetectionErrorType.NoIntersectionPointError)
 
-        marker.pose.orientation.w = 1.0
-        marker.pose.position.x = position.x
-        marker.pose.position.y = position.y
-        marker.pose.position.z = position.z
+        return start_resp_raycast.end_point.point, center_resp_raycast.end_point.point
 
-        self.marker_array.markers.append(marker)
-        self.debug_maker_pub.publish(self.marker_array)
+    def debug_add_marker(self, points):
+        marker_array = MarkerArray()
+        for n in range(len(points)):
+            marker = Marker()
+            marker.header.frame_id = "world"
+            marker.id = n
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.scale.x = 0.1
+            marker.scale.y = 0.1
+            marker.scale.z = 0.1
+
+            marker.color.a = 1.0
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+
+            marker.pose.orientation.w = 1.0
+            marker.pose.position.x = points[n].x
+            marker.pose.position.y = points[n].y
+            marker.pose.position.z = points[n].z
+
+            marker_array.markers.append(marker)
+        self.debug_maker_pub.publish(marker_array)
 
 
 if __name__ == "__main__":

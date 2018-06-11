@@ -3,9 +3,10 @@ import numpy as np
 
 
 class Detection:
-    def __init__(self, start, end):
+    def __init__(self, start, end, center):
         self.start = start
         self.end = end
+        self.center = center
 
 
 class BarDetection:
@@ -76,7 +77,8 @@ class BarDetection:
 
             start_global_vec = start_vec + np.array([0, self.top_cut_off])
             end_global_vec = end_vec + np.array([0, self.top_cut_off])
-            d = Detection(start_global_vec, end_global_vec)
+            center_global = base_vec + np.array([0, self.top_cut_off])
+            d = Detection(start_global_vec, end_global_vec, center_global)
             detections.append(d)
         return detection_image, detections
 

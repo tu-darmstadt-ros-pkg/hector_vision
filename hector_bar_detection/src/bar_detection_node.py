@@ -164,8 +164,8 @@ class BarDetectionNode:
     def execute_action(self, goal):
         bar_localization, error, error_msg = self.run_detection(goal.front_cam)
         result = LocalizeBarsResult()
-        result.success = error == BarDetectionErrorType.NoImageError
-        result.error = error
+        result.success = error == BarDetectionErrorType.NoError
+        result.error = error.value
         result.error_msg = error_msg
         result.pos = bar_localization
 

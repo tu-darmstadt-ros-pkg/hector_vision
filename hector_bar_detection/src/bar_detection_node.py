@@ -44,7 +44,7 @@ class BarDetectionNode:
         self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
         self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
                                               queue_size=10)
-        self.debugging = True
+        self.debug = rospy.get_param("~debug", False)
         self.front_image_sub = rospy.Subscriber("~front_image", sensor_msgs.msg.Image, self.front_image_cb)
         self.back_image_sub = rospy.Subscriber("~back_image", sensor_msgs.msg.Image, self.back_image_cb)
         self.debug_maker_pub = rospy.Publisher("bar_detection/debug_marker", MarkerArray, queue_size=10)
@@ -85,7 +85,7 @@ class BarDetectionNode:
                 try:
                     first_bar_start_point, first_bar_center_point = self.estimate_global_points(detections[0])
                     second_bar_start_point, second_bar_center_point = self.estimate_global_points(detections[1])
-                    if self.debugging:
+                    if self.debug:
                         self.debug_add_marker([first_bar_start_point, first_bar_center_point, second_bar_start_point,
                                               second_bar_center_point])
 
@@ -157,7 +157,9 @@ class BarDetectionNode:
             marker.pose.position.z = points[n].z
 
             marker_array.markers.append(marker)
-        self.debug_maker_pub.publish(marker_array)
+
+        if self.debug:
+            self.debug_maker_pub.publish(marker_array)
 
     def execute_action(self, goal):
         bar_localization, error, error_msg = self.run_detection(goal.front_cam)
@@ -173,12 +175,4 @@ class BarDetectionNode:
 if __name__ == "__main__":
     rospy.init_node("bar_detection")
     bar_detection = BarDetectionNode()
-
-    hz = rospy.get_param("~detection_frequency", 0.2)
-    rate = rospy.Rate(hz)
-    while not rospy.is_shutdown():
-        #bar_detection.run_detection()
-        try:
-            rate.sleep()
-        except rospy.exceptions.ROSTimeMovedBackwardsException as e:
-            pass
+    rospy.spin()

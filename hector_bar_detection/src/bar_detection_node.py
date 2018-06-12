@@ -5,6 +5,9 @@ import cv_bridge
 
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
+from hector_perception_msgs.msg import LocalizeBarsAction
+from hector_perception_msgs.msg import LocalizeBarsResult
+
 from enum import Enum
 
 import sensor_msgs.msg
@@ -13,12 +16,15 @@ import hector_perception_msgs.msg
 import hector_perception_msgs.srv
 import hector_nav_msgs.srv
 import bar_detection
+import actionlib
 
 
 class BarDetectionErrorType(Enum):
-    ProjectPixelTo3DRayError = 1
-    GetDistanceToObstacleError = 2
-    NoIntersectionPointError = 3
+    NoError = 0
+    NoImageError = 1
+    ProjectPixelTo3DRayError = 2
+    GetDistanceToObstacleError = 3
+    NoIntersectionPointError = 4
 
 
 class BarDetectionError(Exception):
@@ -31,16 +37,21 @@ class BarDetectionError(Exception):
 
 class BarDetectionNode:
     def __init__(self):
-        self.last_image = None
+        self.last_front_image = None
+        self.last_back_image = None
         self.bridge = cv_bridge.CvBridge()
         self.detector = bar_detection.BarDetection()
         self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
         self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
                                               queue_size=10)
         self.debugging = True
-        self.image_sub = rospy.Subscriber("~image", sensor_msgs.msg.Image, self.image_cb)
+        self.front_image_sub = rospy.Subscriber("~front_image", sensor_msgs.msg.Image, self.front_image_cb)
+        self.back_image_sub = rospy.Subscriber("~back_image", sensor_msgs.msg.Image, self.back_image_cb)
         self.debug_maker_pub = rospy.Publisher("bar_detection/debug_marker", MarkerArray, queue_size=10)
         self.max_marker_count = 2
+
+        self.server = actionlib.SimpleActionServer("bar_detection/run_detector", LocalizeBarsAction, self.execute_action, False)
+        self.server.start()
 
         project_pixel_to_ray_srv = "project_pixel_to_ray"
         rospy.loginfo("Waiting for service " + project_pixel_to_ray_srv)
@@ -54,13 +65,20 @@ class BarDetectionNode:
                                                            hector_nav_msgs.srv.GetDistanceToObstacle)
         rospy.loginfo("Found all services.")
 
-    def image_cb(self, image):
-        self.last_image = image
+    def front_image_cb(self, image):
+        self.last_front_image = image
 
-    def run_detection(self):
+    def back_image_cb(self, image):
+        self.last_back_image = image
+
+    def run_detection(self, detect_forward):
+        last_image = self.last_front_image if detect_forward else self.last_back_image
         rospy.logdebug(" ### Starting detection")
-        if self.last_image is not None:
-            image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="rgb8")
+        error = BarDetectionErrorType.NoError
+        error_msg = ""
+        bar_location = geometry_msgs.msg.PoseStamped()
+        if last_image is not None:
+            image_cv = self.bridge.imgmsg_to_cv2(last_image, desired_encoding="rgb8")
             detected_img, detections = self.detector.detect(image_cv)
 
             if len(detections) != 0:
@@ -73,13 +91,20 @@ class BarDetectionNode:
 
                 except BarDetectionError as e:
                     rospy.logerr(str(e))
+                    return bar_location, error, error_msg
 
-                rospy.loginfo("Succsessful detect bars!")
+                rospy.loginfo("Successful detect bars!")
 
-            detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="bgr8")
+            detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="rgb8")
             self.detection_image_pub.publish(detection_image_msg)
+            # TODO Calc position and orientation
+
         else:
-            rospy.logwarn("Detection skipped, because no image has been received yet.")
+            error_msg = "Detection skipped, because no image has been received yet."
+            error = BarDetectionErrorType.NoImageError
+            rospy.logwarn(error_msg)
+
+        return bar_location, error, error_msg
 
     def estimate_global_points(self, detection):
         start_point_msg = geometry_msgs.msg.PointStamped()
@@ -134,6 +159,16 @@ class BarDetectionNode:
             marker_array.markers.append(marker)
         self.debug_maker_pub.publish(marker_array)
 
+    def execute_action(self, goal):
+        bar_localization, error, error_msg = self.run_detection(goal.front_cam)
+        result = LocalizeBarsResult()
+        result.success = error == BarDetectionErrorType.NoImageError
+        result.error = error
+        result.error_msg = error_msg
+        result.pos = bar_localization
+
+        self.server.set_succeeded(result)
+
 
 if __name__ == "__main__":
     rospy.init_node("bar_detection")
@@ -142,7 +177,7 @@ if __name__ == "__main__":
     hz = rospy.get_param("~detection_frequency", 0.2)
     rate = rospy.Rate(hz)
     while not rospy.is_shutdown():
-        bar_detection.run_detection()
+        #bar_detection.run_detection()
         try:
             rate.sleep()
         except rospy.exceptions.ROSTimeMovedBackwardsException as e:

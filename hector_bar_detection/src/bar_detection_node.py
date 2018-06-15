@@ -41,7 +41,7 @@ class BarDetectionError(Exception):
 class BarDetectionNode:
     def __init__(self):
         # Localization Parameters
-        self.number_line_points = 30
+        self.number_line_points = 10
 
         # end of Localization Parameters
 
@@ -106,22 +106,20 @@ class BarDetectionNode:
             image_cv = self.bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
             detected_img, detections = self.detector.detect(image_cv)
             if len(detections) != 0:
-                stepsize_1 = detections[0].length / self.number_line_points
-                stepsize_2 = detections[1].length / self.number_line_points
+                step_size_1 = detections[0].length / self.number_line_points
+                step_size_2 = detections[1].length / self.number_line_points
 
-                image_point_smaples1 = [detections[0].start + n * stepsize_1 * detections[0].dir for n in
-                                        range(self.number_line_points)]
-                image_point_smaples2 = [detections[1].start + n * stepsize_2 * detections[1].dir for n in
-                                        range(self.number_line_points)]
-
+                global_points1 = np.zeros((self.number_line_points, 3))
+                global_points2 = np.zeros((self.number_line_points, 3))
                 try:
-                    global_points1 = map(self.get_global_point, image_point_smaples1)
-                    global_points2 = map(self.get_global_point, image_point_smaples2)
+                    for n in range(self.number_line_points):
+                        global_points1[n, :] = self.get_global_point(detections[0].start + n * step_size_1 * detections[0].dir)
+                        global_points2[n:, :] = self.get_global_point(detections[1].start + n * step_size_2 * detections[1].dir)
                 except BarDetectionError as e:
                     return bar_location, e.error, e.message
 
-                base1 , dir1 = self.fit_line(global_points1)
-                base2 , dir2 = self.fit_line(global_points2)
+                base1, dir1 = self.fit_line(global_points1)
+                base2, dir2 = self.fit_line(global_points2)
 
                 if self.debug:
                     detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="rgb8")
@@ -157,16 +155,17 @@ class BarDetectionNode:
             raise BarDetectionError("No intersection point found",
                                     BarDetectionErrorType.NoIntersectionPointError)
 
-        return point_resp_raycast.end_point.point
+        global_point = point_resp_raycast.end_point.point
+        return np.array([global_point.x, global_point.y, global_point.z])
 
     def fit_line(self, points):
-        vx, vy, _, x, y, _ = cv2.fitLine(points, cv2.DIST_L2, 0, 0.01, 0.01)
+        vx, vy, _, x, y, _ = cv2.fitLine(np.array(points), cv2.DIST_L2, 0, 0.01, 0.01)
         return np.array([x[0], y[0]]), np.array([vx[0], vy[0]])
 
     def debug_add_marker(self, base1, dir1, base2, dir2):
 
-        points = [base1 + n * 0.1 * dir1 for n in range(self.number_line_points)]
-        points = points.extend([base2 + n * 0.1 * dir2 for n in range(self.number_line_points)])
+        points = [base1 + n * 0.1 * dir1 for n in range(20)]
+        points.extend([base2 + n * 0.1 * dir2 for n in range(20)])
         marker_array = MarkerArray()
         for point, n in zip(points, range(len(points))):
             marker = Marker()
@@ -184,9 +183,9 @@ class BarDetectionNode:
             marker.color.b = 0.0
 
             marker.pose.orientation.w = 1.0
-            marker.pose.position.x = points[n].x
-            marker.pose.position.y = points[n].y
-            marker.pose.position.z = points[n].z
+            marker.pose.position.x = point[0]
+            marker.pose.position.y = point[1]
+            marker.pose.position.z = 0
 
             marker_array.markers.append(marker)
             self.debug_maker_pub.publish(marker_array)

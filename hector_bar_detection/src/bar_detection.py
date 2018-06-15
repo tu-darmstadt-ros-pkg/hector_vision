@@ -11,8 +11,8 @@ class Detection:
 
 class BarDetection:
     def __init__(self):
-        self.bottom_cut_off = 140 #70
-        self.top_cut_off = 120 #60
+        self.bottom_cut_off = 70
+        self.top_cut_off = 60
         self.lower_color_bound = np.array([10, 100, 0])  # hsv space
         self.upper_color_bound = np.array([50, 255, 255])  # hsv space
         self.min_contour_area = 150

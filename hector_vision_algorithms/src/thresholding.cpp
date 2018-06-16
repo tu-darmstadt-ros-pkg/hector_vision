@@ -13,18 +13,18 @@ void internalCalculateThresholds( const cv::Mat &mat, double &upper, double &low
   double old_upper = 0;
   double old_lower = 0;
   double max = 0;
-  for (int r = 0; r < mat.rows; ++r)
+  for ( int r = 0; r < mat.rows; ++r )
   {
-    for (int c = 0; c < mat.cols; ++c)
+    for ( int c = 0; c < mat.cols; ++c )
     {
-      if (mat.at<T>(r, c) > max)
+      if ( mat.at<T>( r, c ) > max )
       {
-        max = mat.at<T>(r, c);
+        max = mat.at<T>( r, c );
       }
     }
-      }
-        upper = max * 0.66;
-  lower = upper / 2;
+  }
+  upper = max * 0.5;
+  lower = upper / 4;
   while ( cv::abs( upper - old_upper ) > stop_val || cv::abs( lower - old_lower ) > stop_val )
   {
     old_upper = upper;

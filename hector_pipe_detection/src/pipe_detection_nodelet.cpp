@@ -104,7 +104,10 @@ void PipeDetectionNodelet::detectCallback( const sensor_msgs::ImageConstPtr &msg
   cv::Point2d center;
   double radius;
 
-  findOuterCircle( image->image, 1, center, radius, debug_info_ );
+  if (!findOuterCircle( image->image, 1, center, radius, debug_info_ ))
+  {
+    return;
+  }
 
   geometry_msgs::PoseStamped pose_2d;
   pose_2d.header.frame_id = image->header.frame_id;

@@ -3,9 +3,10 @@ import numpy as np
 
 
 class Detection:
-    def __init__(self, start, end):
+    def __init__(self, start, dir, length):
         self.start = start
-        self.end = end
+        self.dir = dir
+        self.length = length
 
 
 class BarDetection:
@@ -74,9 +75,8 @@ class BarDetection:
                                              markerType=cv2.MARKER_TILTED_CROSS, markerSize=20, thickness=1,
                                              line_type=cv2.LINE_AA)
 
-            start_global_vec = start_vec + np.array([0, self.top_cut_off])
-            end_global_vec = end_vec + np.array([0, self.top_cut_off])
-            d = Detection(start_global_vec, end_global_vec)
+            start_global = start_vec + np.array([0, self.top_cut_off])
+            d = Detection(start_global, normalized_dir, max_dimension)
             detections.append(d)
         return detection_image, detections
 

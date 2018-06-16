@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   nodelet
   geometry_msgs
+  hector_vision_algorithms
   image_geometry
   image_transport
   sensor_msgs

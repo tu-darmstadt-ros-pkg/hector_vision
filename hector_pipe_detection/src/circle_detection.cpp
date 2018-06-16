@@ -4,7 +4,7 @@
 
 #include "hector_pipe_detection/circle_detection.h"
 
-#include "hector_pipe_detection/edge_detection.h"
+#include <hector_vision_algorithms/color_edges.h>
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -245,8 +245,7 @@ bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &
   int passes = downsample_passes;
   while ( passes-- > 0 ) cv::pyrDown( image_downsampled, image_downsampled );
 
-  cv::Mat edges;
-  color_edges( image_downsampled, edges );
+  cv::Mat edges = hector_vision_algorithms::color_edges( image_downsampled );
   cv::dilate(edges, edges, cv::Mat());
   if (debug_info != nullptr)
   {
@@ -264,31 +263,37 @@ bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &
     debug_info->publishFilteredContours(image_downsampled, filtered_contours);
   }
 
-  /*cv::Rect rect = cv::boundingRect( filtered_contours[largest] );
-  rect.x *= (1 << downsample_passes);
-  rect.y *= (1 << downsample_passes);
-  rect.width *= (1 << downsample_passes);
-  rect.height *= (1 << downsample_passes);
-  const int margin = 10;
-  rect.x -= margin;
-  rect.y -= margin;
-  rect.width += 2 * margin;
-  rect.height += 2 * margin;
-  if (rect.x < 0) rect.x = 0;
-  if (rect.y < 0) rect.y = 0;
-  if (rect.x + rect.width > image.cols) rect.width = image.cols - rect.x;
-  if (rect.y + rect.height > image.rows) rect.height = image.rows - rect.y;
-  cv::Mat sub_image = image( rect );
-
-  color_edges( sub_image, edges );
-  contours.clear();
-  cv::findContours( edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point( rect.x, rect.y ));
-  if (debug_info != nullptr)
+  if (downsample_passes != 0)
   {
-    debug_info->publishSubEdgeImage(edges);
-    debug_info->publishSubImageContours(sub_image, contours, cv::Point(-rect.x, -rect.y));
-  }*/
-  contours = filtered_contours;
+    cv::Rect rect = cv::boundingRect( filtered_contours[largest] );
+    rect.x *= (1 << downsample_passes);
+    rect.y *= (1 << downsample_passes);
+    rect.width *= (1 << downsample_passes);
+    rect.height *= (1 << downsample_passes);
+    const int margin = 10;
+    rect.x -= margin;
+    rect.y -= margin;
+    rect.width += 2 * margin;
+    rect.height += 2 * margin;
+    if (rect.x < 0) rect.x = 0;
+    if (rect.y < 0) rect.y = 0;
+    if (rect.x + rect.width > image.cols) rect.width = image.cols - rect.x;
+    if (rect.y + rect.height > image.rows) rect.height = image.rows - rect.y;
+    cv::Mat sub_image = image( rect );
+
+    edges = hector_vision_algorithms::color_edges( sub_image );
+    contours.clear();
+    cv::findContours( edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point( rect.x, rect.y ));
+    if (debug_info != nullptr)
+    {
+      debug_info->publishSubEdgeImage(edges);
+      debug_info->publishSubImageContours(sub_image, contours, cv::Point(-rect.x, -rect.y));
+    }
+  }
+  else
+  {
+    contours = filtered_contours;
+  }
   double largest_arc = 0;
   largest = 0;
   for ( int i = 0; i < contours.size(); ++i )

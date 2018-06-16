@@ -77,15 +77,17 @@ bool findCircles( const std::vector<std::vector<cv::Point>> &contours, int downs
 {
   std::vector<double> areas;
   std::vector<cv::Point2d> centers;
-  int multiplier = 1 << downsample_passes;
+  unsigned int multiplier = 1U << downsample_passes;
   for ( int i = 0; i < contours.size(); ++i )
   {
     std::vector<cv::Point> approx;
     cv::convexHull( contours[i], approx );
     cv::approxPolyDP( approx, approx, 0.005 * cv::arcLength( approx, true ), true );
-    double area = cv::contourArea( approx ) * multiplier;
-    if ( area < 500 || cv::abs( square( cv::arcLength( contours[i], true )) / (4 * M_PI * area) - 1 ) > 0.4 )
+    double area = cv::contourArea( approx ) * square(multiplier);
+    if ( area < 500 || cv::abs( square( multiplier * cv::arcLength( contours[i], true )) / (4 * M_PI * area) - 1 ) > 0.2 )
+    {
       continue;
+    }
 
     cv::Moments moments = cv::moments( approx );
     cv::Point2d center( moments.m10 / moments.m00, moments.m01 / moments.m00 );
@@ -117,12 +119,14 @@ bool findCircles( const std::vector<std::vector<cv::Point>> &contours, int downs
   int start = 0;
   for ( int i = 1; i < centers.size(); ++i )
   {
-    if ( areas[i] > group_area )
-    {
-      group_area = areas[i];
-    }
     if ( square( centers[i].x - centers[i - 1].x ) + square( centers[i].y - centers[i - 1].y ) < 400 )
+    {
+      if ( areas[i] > group_area )
+      {
+        group_area = areas[i];
+      }
       continue;
+    }
     if ( i - start > largest_group_length || (i - start == largest_group_length && group_area > largest_group_area))
     {
       largest_group_start = start;
@@ -130,7 +134,13 @@ bool findCircles( const std::vector<std::vector<cv::Point>> &contours, int downs
       largest_group_area = group_area;
     }
     start = i;
-    group_area = 0;
+    group_area = areas[i];
+  }
+  if ( centers.size() - start > largest_group_length ||
+       (centers.size() - start == largest_group_length && group_area > largest_group_area))
+  {
+    largest_group_start = start;
+    largest_group_length = centers.size() - start;
   }
 
   // Store indices of largest group and remove octagon if found.
@@ -253,7 +263,6 @@ bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &
   double upper, lower;
   hector_vision_algorithms::calculateThresholds( edges, upper, lower );
   edges = hector_vision_algorithms::threshold( edges, lower );
-  cv::dilate( edges, edges, cv::Mat());
   if ( debug_info != nullptr )
   {
     debug_info->publishEdgeImage( edges );

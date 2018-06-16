@@ -1,0 +1,9 @@
+<library path="lib/libhector_pipe_detection">
+  <class name="hector_pipe_detection/PipeDetectionNodelet"
+         type="hector_pipe_detection::PipeDetectionNodelet"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      This is my nodelet.
+    </description>
+  </class>
+</library>

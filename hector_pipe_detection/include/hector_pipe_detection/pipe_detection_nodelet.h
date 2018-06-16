@@ -1,0 +1,13 @@
+//
+// Created by Stefan Fabian on 11.06.18.
+//
+
+#ifndef HECTOR_PIPE_DETECTION_HECTOR_PIPE_DETECTION_NODELET_H
+#define HECTOR_PIPE_DETECTION_HECTOR_PIPE_DETECTION_NODELET_H
+
+
+namespace hector_pipe_detection {
+
+}
+
+#endif //HECTOR_PIPE_DETECTION_HECTOR_PIPE_DETECTION_NODELET_H

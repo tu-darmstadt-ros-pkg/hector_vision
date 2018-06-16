@@ -11,6 +11,9 @@ import cv2
 import cv_bridge
 import numpy as np
 
+from circle_detection import find_outer_circle, DebugInfo
+
+DEBUG = True
 
 def low_pass_filter(old, new, factor):
     return (1 - factor) * old + factor * new
@@ -45,11 +48,14 @@ class PipeDetectionNode:
         self.publish_enabled_status()
 
         # Debug publishers
-        self.debug_blurred_pub = rospy.Publisher("~blurred_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
-        self.debug_canny_pub = rospy.Publisher("~canny_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
-        self.circle_image_pub = rospy.Publisher("~circle_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
-        self.detection_image_pub = rospy.Publisher("~detected_circle", sensor_msgs.msg.Image, queue_size=100, latch=False)
-        self.detected_pose_pub = rospy.Publisher("~detected_pose", geometry_msgs.msg.PoseStamped, queue_size=100, latch=False)
+        if DEBUG:
+            self.edge_image_pub = rospy.Publisher("~edge_image", sensor_msgs.msg.Image, queue_size=1, latch=True)
+            self.contours_image_pub = rospy.Publisher("~contours", sensor_msgs.msg.Image, queue_size=1, latch=True)
+            self.filtered_contours_image_pub = rospy.Publisher("~filtered_contours", sensor_msgs.msg.Image, queue_size=1, latch=True)
+            self.sub_edge_image_pub = rospy.Publisher("~sub_image_edges", sensor_msgs.msg.Image, queue_size=1, latch=True)
+            self.sub_contours_image_pub = rospy.Publisher("~sub_image_contours", sensor_msgs.msg.Image, queue_size=1, latch=True)
+            self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=1, latch=True)
+        self.detected_pose_pub = rospy.Publisher("~detected_pose", geometry_msgs.msg.PoseStamped, queue_size=1, latch=False)
 
     def wait_for_camera_info(self, timeout):
         rospy.loginfo("Waiting for camera_info")
@@ -90,52 +96,43 @@ class PipeDetectionNode:
 
     def draw_circle(self, image, circle):
         circle_image = image.copy()
-        cv2.circle(circle_image, (circle[0], circle[1]), circle[2], (255, 0, 0), 4)  # draw circle
-        cv2.circle(circle_image, (circle[0], circle[1]), 2, (0, 0, 255), 6)  # draw circle center
+        cv2.circle(circle_image, (int(circle[0]), int(circle[1])), int(circle[2]), (255, 0, 0), 4)  # draw circle
+        cv2.circle(circle_image, (int(circle[0]), int(circle[1])), 2, (0, 0, 255), 6)  # draw circle center
         return circle_image
 
     def detect_pipe(self, image):
         if image is None:
             return False
-        ksize = 11
-        accu_thres = 50
-        canny_higher = 100
-        cv_image = self.cv_bridge.imgmsg_to_cv2(image)
-        image_gray = cv2.cvtColor(cv_image, cv2.COLOR_RGB2GRAY)
-
-        blurred = cv2.GaussianBlur(image_gray, (ksize, ksize), 0)
-        self.debug_blurred_pub.publish(self.cv_bridge.cv2_to_imgmsg(blurred, encoding="8UC1"))
-
-        # canny edge detection for debug output
-        canny = cv2.Canny(blurred, canny_higher / 2, canny_higher)
-        self.debug_canny_pub.publish(self.cv_bridge.cv2_to_imgmsg(canny, encoding="8UC1"))
-
-        circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1, 1, param1=canny_higher, param2=accu_thres, minRadius=0,
-                                   maxRadius=0)
-        if circles is None:
+        cv_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="rgb8")
+        #cv2.imwrite("pipe_image.png", cv_image)
+        rospy.loginfo("Received image")
+        debug_info = None
+        if DEBUG:
+            debug_info = DebugInfo()
+        center, radius = find_outer_circle(cv_image, debug_info)
+        if DEBUG:
+            self.edge_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(debug_info.edge_image, encoding="8UC1"))
+            self.contours_image_pub.publish(
+                self.cv_bridge.cv2_to_imgmsg(debug_info.get_contours_image(), encoding="rgb8"))
+            self.filtered_contours_image_pub.publish(
+                self.cv_bridge.cv2_to_imgmsg(debug_info.get_filtered_contours_image(), encoding="rgb8"))
+            if debug_info.sub_edge_image is not None:
+                self.sub_edge_image_pub.publish(
+                    self.cv_bridge.cv2_to_imgmsg(debug_info.sub_edge_image, encoding="8UC1"))
+                self.sub_contours_image_pub.publish(
+                    self.cv_bridge.cv2_to_imgmsg(debug_info.get_sub_contours_image(), encoding="rgb8"))
+        if center is None:
             return False
-        circles = np.array(circles[0])
+        circle = np.array([int(center[0]), int(center[1]), int(radius)])
 
-        # sort by radius
-        max_radius = 0
-        max_idx = -1
-        for i, c in enumerate(circles):
-            if c[2] > max_radius:
-                max_idx = i
-                max_radius = c[2]
-
-        # draw biggest circle into debug image
-        circle_image = self.draw_circle(cv_image, circles[max_idx])
-        self.circle_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(circle_image, encoding="rgb8"))
-
-        # low pass filter
         if self.circle_pos is None:
-            self.circle_pos = circles[max_idx]
+            self.circle_pos = circle
         else:
-            self.circle_pos = low_pass_filter(self.circle_pos, circles[max_idx], 0.9)
+            self.circle_pos = low_pass_filter(self.circle_pos, circle, 0.9)  # TODO: Is this really necessary?
 
-        detection_image = self.draw_circle(cv_image, self.circle_pos)
-        self.detection_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(detection_image, encoding="rgb8"))
+        if DEBUG:
+            detection_image = self.draw_circle(cv_image, self.circle_pos)
+            self.detection_image_pub.publish(self.cv_bridge.cv2_to_imgmsg(detection_image, encoding="rgb8"))
 
         if self.model is None:
             rospy.logwarn("No camera info received. Can't use model.")
@@ -160,7 +157,7 @@ class PipeDetectionNode:
         p1 = np.array(model.project3dToPixel(x1))
         p2 = np.array(model.project3dToPixel(x2))
 
-        self.meter_to_pixel_ratio = np.linalg.norm(p1 - p2)
+        self.meter_to_pixel_ratio = np.linalg.norm(p1 - p2) # Or simply camera_info.K[0, 0]
 
     def meter_to_pixel(self, meter):
         if self.meter_to_pixel_ratio is not None:

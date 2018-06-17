@@ -214,10 +214,10 @@ void MotionDetection::connectCb()
 
   if (image_perception_pub.getNumSubscribers() == 0) {
     shutdownSubscribers();
-    ROS_INFO_STREAM("Stopping subscribers..");
+//    ROS_INFO_STREAM("Stopping subscribers..");
   } else {
     startSubscribers();
-    ROS_INFO_STREAM("Starting subscribers..");
+//    ROS_INFO_STREAM("Starting subscribers..");
   }
 }
 

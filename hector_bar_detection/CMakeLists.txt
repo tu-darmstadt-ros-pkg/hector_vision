@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   actionlib
+  image_geometry
 )
 
 ## System dependencies are found with CMake's conventions

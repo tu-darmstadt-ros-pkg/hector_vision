@@ -3,16 +3,17 @@ import numpy as np
 
 
 class Detection:
-    def __init__(self, start, dir, length):
+    def __init__(self, start, dir, length, contour):
         self.start = start
         self.dir = dir
         self.length = length
+        self.contour = contour
 
 
 class BarDetection:
     def __init__(self):
-        self.bottom_cut_off = 70
-        self.top_cut_off = 60
+        self.bottom_cut_off = 10 #70
+        self.top_cut_off = 40 #60
         self.lower_color_bound = np.array([10, 100, 0])  # hsv space
         self.upper_color_bound = np.array([50, 255, 255])  # hsv space
         self.min_contour_area = 150
@@ -76,7 +77,7 @@ class BarDetection:
                                              line_type=cv2.LINE_AA)
 
             start_global = start_vec + np.array([0, self.top_cut_off])
-            d = Detection(start_global, normalized_dir, max_dimension)
+            d = Detection(start_global, normalized_dir, max_dimension, cnt[:, 0, :])
             detections.append(d)
         return detection_image, detections
 

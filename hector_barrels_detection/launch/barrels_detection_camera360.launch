@@ -4,6 +4,7 @@
     <remap from="~image" to="/camera360/equirectangular" />
     <remap from="project_pixel_to_ray" to="/camera360_equirectangular_projection/project_pixel_to_ray" />
     <remap from="image_percept" to="image_percept_trash" />
+    <remap from="/move_group/get_distance_to_obstacle" to="/worldmodel_main/get_distance_to_obstacle" />
     
     <param name="detection_frequency" value="1.0" />
     <param name="image_projection_raycast" value="true" />

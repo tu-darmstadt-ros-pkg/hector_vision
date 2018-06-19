@@ -16,7 +16,32 @@ class BarrelsDetection:
         self.dilate_ksize = 5
         self.min_area = 1500
 
-    def preprocess(self, img):
+    def find_white_barrels(self, img):
+        # cut off bottom
+        img_cut = img[:img.shape[0] - self.bottom_cut_off, :, :]
+
+        # downscale
+        img_lr = cv2.pyrDown(img)
+        img_lr = cv2.pyrDown(img_lr)
+        img_lr = cv2.pyrDown(img_lr)
+
+        # LAB
+        img_lab = cv2.cvtColor(img_lr, cv2.COLOR_RGB2Lab)
+
+        lower = (150, 0, 0)
+        upper = (256, 131, 130)
+        mask = cv2.inRange(img_lab, lower, upper)
+        img_lab_masked = cv2.bitwise_and(img_lab, img_lab, mask=mask)
+        img_lab_gray = cv2.cvtColor(img_lab_masked, cv2.COLOR_LAB2RGB)
+        th, img_lab_thresh = cv2.threshold(img_lab_gray[:, :, 0], 100, 255, cv2.THRESH_BINARY)
+
+        # dilate
+        ksize = 3
+        kernel = np.ones((ksize, ksize), np.uint8)
+        img_dilated = cv2.dilate(img_lab_thresh, kernel, iterations=1)
+        return img_dilated, img_cut, 8
+
+    def find_blue_barrels(self, img):
         # cut off bottom
         img_cut = img[:img.shape[0] - self.bottom_cut_off, :, :]
         # to float
@@ -42,9 +67,9 @@ class BarrelsDetection:
         # show_gray(img_dilated)
         #img_closing = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel)
 
-        return img_dilated, img_cut
+        return img_dilated, img_cut, 1
 
-    def contour_detection(self, img, detection_image):
+    def contour_detection(self, img, detection_image, scaling):
         # Find contours in binary image
         im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -52,8 +77,10 @@ class BarrelsDetection:
         contours_filtered = []
         for c in contours:
             if cv2.contourArea(c) > self.min_area:
+                for p in c:
+                    p[0] *= scaling
                 contours_filtered.append(c)
-        # print "Filtered contour count", len(contours_filtered)
+        print "Filtered contour count", len(contours_filtered)
         cv2.drawContours(detection_image, contours_filtered, -1, (0, 255, 0), 3)
 
         # Approximate contours
@@ -132,7 +159,13 @@ class BarrelsDetection:
 
         return detections, detection_image
 
-    def detect(self, img):
-        img_pre, detection_image = self.preprocess(img)
-        detections, detection_image = self.contour_detection(img_pre, detection_image)
+    def detect(self, img, barrel_type):
+        if barrel_type == "blue":
+            img_pre, detection_image, scaling = self.find_blue_barrels(img)
+        elif barrel_type == "white":
+            img_pre, detection_image, scaling = self.find_white_barrels(img)
+        else:
+            print "Unknown barrel type '{}'".format(barrel_type)
+            return [], img
+        detections, detection_image = self.contour_detection(img_pre, detection_image, scaling)
         return detections, detection_image

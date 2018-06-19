@@ -20,6 +20,7 @@ class BarrelsDetectionNode:
         self.last_image = None
         self.bridge = cv_bridge.CvBridge()
         self.detector = barrels_detection.BarrelsDetection()
+        self.barrel_type = rospy.get_param("~barrel_type", "blue")
 
         self.image_projection_raycast_enabled = rospy.get_param("~image_projection_raycast", False)
         if self.image_projection_raycast_enabled:
@@ -54,7 +55,7 @@ class BarrelsDetectionNode:
         rospy.logdebug(" ### Starting detection")
         if self.last_image is not None:
             image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="rgb8")
-            detections, detect_image = self.detector.detect(image_cv)
+            detections, detect_image = self.detector.detect(image_cv, self.barrel_type)
             detect_image = cv2.cvtColor(detect_image, cv2.COLOR_BGR2RGB)
             detection_image_msg = self.bridge.cv2_to_imgmsg(detect_image, encoding="bgr8")
             self.detection_image_pub.publish(detection_image_msg)

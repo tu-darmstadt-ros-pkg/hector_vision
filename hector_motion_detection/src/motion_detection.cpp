@@ -4,7 +4,7 @@
 namespace hector_motion_detection {
 
 MotionDetection::MotionDetection(ros::NodeHandle &nh, ros::NodeHandle& pnh)
-  : nh_(nh), first_image_received_(false), it_(pnh)
+  : nh_(nh), first_image_received_(false), it_(pnh), dyn_rec_server_(pnh)
 {
     bg_subtractor_ = cv::createBackgroundSubtractorMOG2();
 

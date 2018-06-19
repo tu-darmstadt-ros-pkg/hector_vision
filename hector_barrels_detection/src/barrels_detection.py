@@ -80,7 +80,7 @@ class BarrelsDetection:
                 for p in c:
                     p[0] *= scaling
                 contours_filtered.append(c)
-        print "Filtered contour count", len(contours_filtered)
+        # print "Filtered contour count", len(contours_filtered)
         cv2.drawContours(detection_image, contours_filtered, -1, (0, 255, 0), 3)
 
         # Approximate contours

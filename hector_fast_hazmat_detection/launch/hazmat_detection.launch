@@ -14,6 +14,6 @@
     <param name="min_match_count" value="5" />
     <param name="image_projection_raycast" value="false" />
     
-    <param name="model_folder" value="$(find hector_fast_hazmat_detection)/templates/rgb" />
+    <param name="model_folder" value="$(find hector_fast_hazmat_detection)/templates/rc18" />
   </node>
 </launch>

@@ -120,7 +120,10 @@ class HazmatDetectionNode:
         array.header.stamp = self.last_stamp
         array.perceptionType = "hazmat"
         for detection in detections:
-            rospy.loginfo("Detected hazmat: " + detection.name)
+            if detection.type == detection.HAZMAT_SIGN:
+                rospy.loginfo("Detected hazmat: " + detection.name)
+            else:
+                rospy.loginfo("Detected qrcode: " + detection.name)
             perception_msg = hector_perception_msgs.msg.PerceptionData()
             perception_msg.percept_name = detection.name
             for point in detection.contour:

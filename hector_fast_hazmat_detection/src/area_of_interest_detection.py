@@ -22,7 +22,7 @@ def is_square(contour):
     return (longest_side - shortest_side) / float(longest_side) > 0.8
 
 
-def detect_areas_of_interest(image, downsample_passes=2, debug_info=None):
+def detect_areas_of_interest(image, downsample_passes=3, debug_info=None):
     image_mem = image.get() if isinstance(image, cv2.UMat) else image
     width = image_mem.shape[1]
     height = image_mem.shape[0]
@@ -33,21 +33,21 @@ def detect_areas_of_interest(image, downsample_passes=2, debug_info=None):
         height //= 2
         image = cv2.pyrDown(image, dstsize=(width, height))
 
-#    #img_edges = lab_edge_detection(image)
-#    img_edges, _ = color_edges(image)
-##    upper, lower = calculate_thresholds(img_edges)
-#    thresh = calculate_threshold(img_edges)
-##    img_edges = threshold(img_edges, upper, lower)
-#    img_edges[img_edges < thresh] = 0
-#    img_edges[img_edges > 0] = 255
     img_edges = hector_vision.color_edges(image)
     upper, lower = hector_vision.calculateThresholds(img_edges)
     img_edges = hector_vision.threshold(img_edges, upper, lower)
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    img_edges = cv2.erode(cv2.dilate(img_edges, None), kernel, iterations=1)
-    #img_edges = cv2.erode(cv2.dilate(img_edges, None), None, iterations=2)
-    img, contours, hierarchy = cv2.findContours(img_edges, cv2.RETR_CCOMP,
-                                                cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for c in contours:
+        connected_to_wall = False
+        for pt in c[:, 0, :]:
+            if pt[0] < 2 or pt[1] < 2 or pt[0] + 2 >= img_edges.shape[1] or pt[1] + 2 >= img_edges.shape[0]:
+                connected_to_wall = True
+                break
+        if not connected_to_wall:
+            continue
+        cv2.fillConvexPoly(img_edges, c, 0)
+
+    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
     for c in contours:
         c *= 2**downsample_passes
@@ -80,6 +80,12 @@ def detect_areas_of_interest(image, downsample_passes=2, debug_info=None):
                 w = right - x
                 h = bottom - y
         regions_of_interest.append((x, y, w, h))
+    for i in range(len(regions_of_interest)-1, -1, -1):
+        roi = regions_of_interest[i]
+        if roi[0] < 5 or roi[1] < 5:
+            del regions_of_interest[i]
+        elif roi[0] + roi[2] + 5 > original_width or roi[1] + roi[3] + 5 > original_height:
+            del regions_of_interest[i]
     if debug_info is not None:
         debug_info.filtered_contours = filtered_contours
         debug_info.regions_of_interest = regions_of_interest

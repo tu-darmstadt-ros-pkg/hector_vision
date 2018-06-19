@@ -6,7 +6,7 @@ from distance_measures import euclidean_distance
 def approximate_contour(contour):
     peri = cv2.arcLength(contour, True)
     approx = cv2.approxPolyDP(contour, 0.08 * peri, True)
-    return approx
+    return approx, peri
 
 
 def is_square(contour):
@@ -43,9 +43,9 @@ def filter_large_contours(contours):
     for c in contours:
         hull = cv2.convexHull(c)
         area = cv2.contourArea(hull)
-        if area < 10 or area > 140 ** 2:
+        if area < 1000 or area > 300 ** 2:
             continue
-        filtered_contours.append(hull)
+        filtered_contours.append(c)
         filtered_areas.append(area)
     return filtered_contours, filtered_areas
 
@@ -53,11 +53,12 @@ def filter_large_contours(contours):
 def filter_contours(contours):
     filtered_contours = []
     for c in contours:
-        approx = approximate_contour(c)
+        approx, peri = approximate_contour(c)
         # if not is_square(approx):
-        if len(approx) < 4:
-            continue
+        #if len(approx) < 4:
+        #    continue
         area = cv2.contourArea(approx)
-        if 900 < area:
+        if ((len(approx) == 3 and 600 < area and 0.2 < area / (peri / 4)**2) or
+            (900 < area and 0.4 < area / (peri / 4)**2)):
             filtered_contours.append(approx)
     return filtered_contours

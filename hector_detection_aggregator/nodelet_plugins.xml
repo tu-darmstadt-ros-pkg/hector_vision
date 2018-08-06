@@ -1,0 +1,7 @@
+<library path="lib/libhector_detection_aggregator">
+  <class name="hector_detection_aggregator/DetectionAggregatorNodelet" type="hector_detection_aggregator::DetectionAggregatorNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Detection aggregator nodelet
+    </description>
+  </class>
+</library>

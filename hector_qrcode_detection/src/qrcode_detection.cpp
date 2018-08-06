@@ -57,6 +57,13 @@ qrcode_detection_impl::qrcode_detection_impl(ros::NodeHandle& nh, ros::NodeHandl
     qrcode_image_publisher_ = image_transport_.advertiseCamera("image/qrcode", 10);
     aggregator_percept_publisher_ = nh_.advertise<hector_perception_msgs::PerceptionDataArray>("perception/image_percept", 10);
     camera_subscriber_ = image_transport_.subscribeCamera("image", 10, &qrcode_detection_impl::imageCallback, this);
+    
+    priv_nh.param("enabled", enabled_, true);
+    
+    enabled_sub_ = nh.subscribe("enabled", 10, &qrcode_detection_impl::enabledCallback, this);
+    enabled_pub_ = nh.advertise<std_msgs::Bool>("enabled_status", 10, true);
+    
+    publishEnableStatus();
 
     if (!rotation_target_frame_id_.empty()) {
         listener_ = new tf::TransformListener();
@@ -73,6 +80,10 @@ qrcode_detection_impl::~qrcode_detection_impl()
 
 void qrcode_detection_impl::imageCallback(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info)
 {
+    if (!enabled_) {
+        return;
+    }
+    
     cv_bridge::CvImageConstPtr cv_image;
     cv_image = cv_bridge::toCvShare(image, "mono8");
     cv::Mat rotation_matrix = cv::Mat::eye(2,3,CV_32FC1);
@@ -240,6 +251,27 @@ void qrcode_detection_impl::imageCallback(const sensor_msgs::ImageConstPtr& imag
 
     // clean up
     zbar.set_data(NULL, 0);
+}
+
+void qrcode_detection_impl::enabledCallback(const std_msgs::BoolConstPtr& enabled) {
+    enabled_ = enabled->data;
+    publishEnableStatus();
+}
+
+void qrcode_detection_impl::publishEnableStatus() {
+    std_msgs::Bool bool_msg;
+    bool_msg.data = enabled_;
+    enabled_pub_.publish(bool_msg);
+
+    std::string enabled_string;
+    
+    if (enabled_) {
+        enabled_string = "Enabled";
+    } else {
+        enabled_string = "Disabled";
+    }
+    
+    ROS_INFO_STREAM(enabled_string << " qrcode_detection.");
 }
 
 } // namespace hector_qrcode_detection

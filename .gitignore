@@ -5,3 +5,8 @@ msg_gen/
 srv_gen/
 share/
 *.user
+.idea/
+cmake-build-debug/
+.vscode/
+*.pyc
+.ipynb_checkpoints/

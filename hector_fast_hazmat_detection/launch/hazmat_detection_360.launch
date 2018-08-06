@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="periodic_hazmat_detection" pkg="hector_fast_hazmat_detection" type="hazmat_detection_node.py" output="screen">
+    <param name="detection_frequency" value="0.5" />
+    <param name="periodic_detection" value="true" />
+    <param name="image_projection_raycast" value="true" />
+    
+    <param name="model_folder" value="$(find hector_fast_hazmat_detection)/templates/rc18" />
+    
+    <remap from="~image" to="/camera360/equirectangular_low_fov" />
+    <remap from="project_pixel_to_ray" to="/camera360_equirectangular_low_fov/project_pixel_to_ray" />
+<!--    <remap from="~enabled" to="/hazmat_detection/enabled" />
+    <remap from="~enabled_status" to="/startup_check/hazmat_detection/enabled_status" />-->
+    <remap from="image_percept" to="image_percept_trash" />
+    <remap from="/move_group/get_distance_to_obstacle" to="/worldmodel_main/get_distance_to_obstacle" />
+  </node>
+</launch>

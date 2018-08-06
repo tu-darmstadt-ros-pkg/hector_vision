@@ -33,6 +33,8 @@
 #include <image_transport/image_transport.h>
 #include <tf/transform_listener.h>
 
+#include <std_msgs/Bool.h>
+
 namespace zbar {
   class ImageScanner;
 }
@@ -46,7 +48,10 @@ public:
 
 protected:
   void imageCallback(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info);
-
+  
+  void publishEnableStatus();
+  void enabledCallback(const std_msgs::BoolConstPtr& enabled);
+  
 private:
   ros::NodeHandle nh_;
   image_transport::ImageTransport image_transport_;
@@ -63,6 +68,10 @@ private:
   std::string rotation_source_frame_id_;
   std::string rotation_target_frame_id_;
   int rotation_image_size_;
+  
+  bool enabled_;
+  ros::Subscriber enabled_sub_;
+  ros::Publisher enabled_pub_;
 };
 
 } // namespace hector_qrcode_detection

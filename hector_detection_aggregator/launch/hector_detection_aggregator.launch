@@ -1,4 +1,12 @@
 <?xml version="1.0"?>
+
 <launch>
-<node name="hector_detection_aggregator_node" pkg="hector_detection_aggregator" type="hector_detection_aggregator_node" respawn="true" output="screen"/>
+    
+  <arg name="camera_ns" default="arm_rgbd_cam" />
+  <arg name="image_topic" default="rgb/image_raw" />      
+    
+  <node name="hector_detection_aggregator_node" pkg="hector_detection_aggregator" type="hector_detection_aggregator_node" respawn="true" output="screen">
+    <remap from="/arm_rgbd_cam/rgb/image_raw" to="$(arg camera_ns)/$(arg image_topic)"/>
+  </node>
+  
 </launch>

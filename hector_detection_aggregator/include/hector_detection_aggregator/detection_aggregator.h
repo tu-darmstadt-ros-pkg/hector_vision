@@ -23,7 +23,7 @@ namespace hector_detection_aggregator
 {
 class DetectionAggregator{
 public:
-    DetectionAggregator();
+    DetectionAggregator(ros::NodeHandle& nh, ros::NodeHandle& pnh);
     ~DetectionAggregator();
     void createImage();
 
@@ -32,6 +32,16 @@ private:
     void imageCallback(const sensor_msgs::ImageConstPtr& img);
     void imageDetectionCallback(const hector_perception_msgs::PerceptionDataArrayConstPtr& percept);
     void dynRecParamCallback(HectorDetectionAggregatorConfig &config, uint32_t level);
+
+    void connectCb();
+    void startSubscribers();
+    void stopSubscribers();
+
+    boost::mutex connect_mutex_;
+
+    ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
+    image_transport::ImageTransport it_;
 
     image_transport::CameraPublisher image_detected_pub_;
 

@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+
+  <node pkg="nodelet" type="nodelet" name="pipe_detection"
+        args="load hector_pipe_detection/PipeDetectionNodelet standalone_nodelet" output="screen">
+        <remap from="image" to="/arm_rgbd_cam/rgb/image_rect_color"/>
+  </node>
+
+</launch>

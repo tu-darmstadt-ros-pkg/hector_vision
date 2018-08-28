@@ -38,7 +38,7 @@ inline bool is_smaller( const cv::Mat &mat, int x1, int y1, int x2, int y2 )
   return mat.at<T>( y1, x1 ) < mat.at<T>( y2, x2 );
 }
 
-cv::Mat color_edges( const cv::Mat &image )
+cv::Mat calculateColorEdges( const cv::Mat &image )
 {
   int filter_type = CV_16S;
   cv::Mat x_filter( 3, 3, filter_type, cv::Scalar( 0 ));

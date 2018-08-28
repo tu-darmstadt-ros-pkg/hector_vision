@@ -49,7 +49,6 @@
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>nodelet</depend>
-  <depend>hector_profiling</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

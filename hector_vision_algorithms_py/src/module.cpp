@@ -11,28 +11,28 @@
 
 #include "../np_opencv_converter/np_opencv_converter.hpp"
 
-class GenericWrapper {
-public:
-  GenericWrapper(const int& _var_int = 1, const float& _var_float = 1.f,
-                 const double& _var_double = 1.d, const std::string& _var_string = std::string("test_string"))
-    : var_int(_var_int), var_float(_var_float), var_double(_var_double), var_string(_var_string)
-  {
-
-  }
-
-  cv::Mat process(const cv::Mat& in) {
-    std::cerr << "in: " << in << std::endl;
-    std::cerr << "sz: " << in.size() << std::endl;
-    std::cerr << "Returning transpose" << std::endl;
-    return in.t();
-  }
-
-private:
-  int var_int;
-  float var_float;
-  double var_double;
-  std::string var_string;
-};
+//class GenericWrapper {
+//public:
+//  GenericWrapper(const int& _var_int = 1, const float& _var_float = 1.f,
+//                 const double& _var_double = 1.d, const std::string& _var_string = std::string("test_string"))
+//    : var_int(_var_int), var_float(_var_float), var_double(_var_double), var_string(_var_string)
+//  {
+//
+//  }
+//
+//  cv::Mat process(const cv::Mat& in) {
+//    std::cerr << "in: " << in << std::endl;
+//    std::cerr << "sz: " << in.size() << std::endl;
+//    std::cerr << "Returning transpose" << std::endl;
+//    return in.t();
+//  }
+//
+//private:
+//  int var_int;
+//  float var_float;
+//  double var_double;
+//  std::string var_string;
+//};
 
 boost::python::tuple calculateThresholds(const cv::Mat &image)
 {
@@ -58,22 +58,22 @@ BOOST_PYTHON_MODULE(libhector_vision_algorithms_py)
 
   fs::python::init_and_export_converters();
 
-  class_<GenericWrapper>( "GenericWrapper" )
-    .def( init<optional<int, float, double, std::string> >(
-      (arg( "var_int" ) = 1, arg( "var_float" ) = 1.f, arg( "var_double" ) = 1.d,
-       arg( "var_string" ) = std::string( "test" ))))
-    .def( "process", &GenericWrapper::process );
+//  class_<GenericWrapper>( "GenericWrapper" )
+//    .def( init<optional<int, float, double, std::string> >(
+//      (arg( "var_int" ) = 1, arg( "var_float" ) = 1.f, arg( "var_double" ) = 1.d,
+//       arg( "var_string" ) = std::string( "test" ))))
+//    .def( "process", &GenericWrapper::process );
 
   // Export functions and documentation strings
   // Edge Algorithms
-  def( "color_difference_map", &hector_vision_algorithms::color_difference_map,
+  def( "color_difference_map", &hector_vision_algorithms::calculateColorDifferenceMap,
        "edges = color_difference_map( image )" );
-  def( "color_edges", &hector_vision_algorithms::color_edges, "edges = color_edges( image )" );
+  def( "color_edges", &hector_vision_algorithms::calculateColorEdges, "edges = color_edges( image )" );
 
   // Thresholding
-  def<tuple ( * )( const cv::Mat & )>( "calculateThresholds", &calculateThresholds,
-                                       "upper, lower = calculateThresholds( image )" );
-  def<tuple ( * )( const cv::Mat &, double )>( "calculateThresholds", &calculateThresholds,
+  def<tuple ( * )( const cv::Mat & )>( "calculate_thresholds", &calculateThresholds,
+                                       "upper, lower = calculate_thresholds( image )" );
+  def<tuple ( * )( const cv::Mat &, double )>( "calculate_thresholds", &calculateThresholds,
                                                "upper, lower = calculateThresholds( image, stop_val )" );
   def<cv::Mat ( * )( const cv::Mat &, double )>( "threshold", &hector_vision_algorithms::threshold,
                                                  "binary_image = threshold( image, thresh )" );

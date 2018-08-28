@@ -4,8 +4,6 @@
 
 #include "hector_pipe_detection/circle_detection.h"
 
-#include <hector_profiling/timer.h>
-
 #include <nodelet/nodelet.h>
 
 #include <image_transport/image_transport.h>
@@ -104,10 +102,17 @@ void PipeDetectionNodelet::detectCallback( const sensor_msgs::ImageConstPtr &msg
   cv::Point2d center;
   double radius;
 
+//  hector_profiling::Timer timer("CDM", hector_profiling::Timer::Microseconds);
+//  timer.start();
   if (!findOuterCircle( image->image, 1, center, radius, debug_info_ ))
   {
+//    timer.stop();
+    std::cout << "No circle." << std::endl;
+//    std::cout << timer.toString() <<std::endl;
     return;
   }
+//  timer.stop();
+//  std::cout << timer.toString() <<std::endl;
 
   geometry_msgs::PoseStamped pose_2d;
   pose_2d.header.frame_id = image->header.frame_id;

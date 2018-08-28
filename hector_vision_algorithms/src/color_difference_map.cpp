@@ -10,7 +10,7 @@
 namespace hector_vision_algorithms
 {
 
-cv::Mat color_difference_map( const cv::Mat &image )
+cv::Mat calculateColorDifferenceMap( const cv::Mat &image )
 {
   cv::Mat mean_filtered;
   cv::boxFilter(image, mean_filtered, CV_16S, cv::Size(5, 5));

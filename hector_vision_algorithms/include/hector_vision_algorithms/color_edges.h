@@ -10,7 +10,7 @@
 namespace hector_vision_algorithms
 {
 
-cv::Mat color_edges(const cv::Mat &image);
+cv::Mat calculateColorEdges( const cv::Mat &image );
 
 }
 

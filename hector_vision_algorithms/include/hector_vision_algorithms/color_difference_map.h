@@ -10,7 +10,7 @@
 namespace hector_vision_algorithms
 {
 
-cv::Mat color_difference_map( const cv::Mat &image);
+cv::Mat calculateColorDifferenceMap( const cv::Mat &image );
 
 }
 

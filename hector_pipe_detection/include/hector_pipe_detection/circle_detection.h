@@ -20,11 +20,11 @@ public:
 
   void publishEdgeImage( const cv::Mat &edge_image );
 
-  void publishFilteredContours( const cv::Mat &image, const std::vector<std::vector<cv::Point>> &contours );
+  void publishFilteredContours( const cv::Mat &image, std::vector<std::vector<cv::Point>> contours );
 
   void publishSubEdgeImage( const cv::Mat &sub_edge_image );
 
-  void publishSubImageContours( const cv::Mat &sub_image, const std::vector<std::vector<cv::Point>> &contours,
+  void publishSubImageContours( const cv::Mat &sub_image, std::vector<std::vector<cv::Point>> contours,
                                 const cv::Point &offset );
 
   void publishDetection( const cv::Mat &image, const cv::Point2d &center, double radius );

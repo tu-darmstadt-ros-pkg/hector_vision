@@ -148,7 +148,7 @@ class HazmatSignDetector:
             (x_offset, y_offset, w, h) = roi
             sub_image = image_mem[y_offset:y_offset + h, x_offset:x_offset + w, :]
             test_edges = hector_vision.color_difference_map(sub_image)
-            upper, lower = hector_vision.calculateThresholds(test_edges)
+            upper, lower = hector_vision.calculate_thresholds(test_edges)
             kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
             test_edges = cv2.erode(hector_vision.threshold(test_edges, upper, lower), kernel)
 

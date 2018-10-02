@@ -34,7 +34,7 @@ def detect_areas_of_interest(image, downsample_passes=3, debug_info=None):
         image = cv2.pyrDown(image, dstsize=(width, height))
 
     img_edges = hector_vision.color_edges(image)
-    upper, lower = hector_vision.calculateThresholds(img_edges)
+    upper, lower = hector_vision.calculate_thresholds(img_edges)
     img_edges = hector_vision.threshold(img_edges, upper, lower)
     _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for c in contours:

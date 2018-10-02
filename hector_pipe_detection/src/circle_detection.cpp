@@ -341,7 +341,8 @@ bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &
   unsigned int scaling = 1U << downsample_passes;
   while ( passes-- > 0 ) cv::pyrDown( image_downsampled, image_downsampled );
 
-  cv::Mat edges = hector_vision_algorithms::calculateColorEdges( image_downsampled );
+  cv::Mat edges;
+  hector_vision_algorithms::calculateColorEdges( image_downsampled, edges );
   double upper, lower;
   hector_vision_algorithms::calculateThresholds( edges, upper, lower );
   edges = hector_vision_algorithms::threshold( edges, lower );
@@ -390,7 +391,7 @@ bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &
     cv::Mat sub_image = image( rect );
     std::cout << "SubImage: " << rect.x << ", " << rect.y << ", " << rect.width << ", " << rect.height << std::endl;
 
-    edges = hector_vision_algorithms::calculateColorEdges( sub_image );
+    hector_vision_algorithms::calculateColorEdges( sub_image, edges );
     hector_vision_algorithms::calculateThresholds( edges, upper, lower );
     edges = hector_vision_algorithms::threshold( edges, upper, lower );
     // Exclude Pen

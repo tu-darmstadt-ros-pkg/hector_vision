@@ -131,8 +131,8 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-            src/pipe_detection_nodelet.cpp src/circle_detection.cpp src/edge_detection.cpp
-)
+            src/pipe_detection_nodelet.cpp src/circle_detection.cpp
+            )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

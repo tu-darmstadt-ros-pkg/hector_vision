@@ -38,11 +38,12 @@ inline bool is_smaller( const cv::Mat &mat, int x1, int y1, int x2, int y2 )
   return mat.at<T>( y1, x1 ) < mat.at<T>( y2, x2 );
 }
 
-cv::Mat calculateColorEdges( const cv::Mat &image )
+template<typename FilterType>
+void internalCalculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat &orientation, bool include_orientation,
+                                  int filter_type )
 {
-  int filter_type = CV_16S;
-  cv::Mat x_filter( 3, 3, filter_type, cv::Scalar( 0 ));
-  typedef short FilterType;
+
+  cv::Mat x_filter( 3, 3, filter_type, cv::Scalar((FilterType) 0 ));
   x_filter.at<FilterType>( 0, 0 ) = 1;
   x_filter.at<FilterType>( 0, 1 ) = 2;
   x_filter.at<FilterType>( 0, 2 ) = 1;
@@ -70,56 +71,55 @@ cv::Mat calculateColorEdges( const cv::Mat &image )
   cv::sqrt( cv::abs( jx.mul( jx ) - 2 * jx.mul( jy ) + jy.mul( jy ) + 4 * jxy.mul( jxy )), d );
   cv::Mat e1 = (jx + jy + d) / 2;
   // the 2nd eigenvalue would be:  e2 = (Jx + Jy - D) / 2
-  cv::Mat edges;
   cv::sqrt( e1, edges );
 
-  return edges;
-  cv::Mat mean, stddev;
-  cv::meanStdDev( edges, mean, stddev );
-  double high_threshold = mean.at<double>( 0, 0 ) + 1 * stddev.at<double>( 0, 0 );
-  cv::Mat out = cv::Mat( edges.rows, edges.cols, CV_8U );
-  float min_orientation = 360;
-  float max_orientation = 0;
+  if ( !include_orientation ) return;
 
+  orientation = cv::Mat( edges.rows, edges.cols, CV_32F );
   for ( int row = 0; row < edges.rows; ++row )
   {
     for ( int col = 0; col < edges.cols; ++col )
     {
-      // 0 degrees is the positive X-Axis, degrees increment counter-clockwise
-      // We move it so that up is 90, down is -90 and flip the left side to the right
-      float orientation =
-        cv::fastAtan2( -jxy.at<float>( row, col ), e1.at<float>( row, col ) - jy.at<float>( row, col )) - 90;
-      if ( orientation > 270 ) orientation -= 360;
-      else if ( orientation > 90 ) orientation -= 180;
-      if ( orientation > max_orientation ) max_orientation = orientation;
-      if ( orientation < min_orientation ) min_orientation = orientation;
-      bool zero;
-      if ( edges.at<float>( row, col ) < high_threshold )
-      {
-        zero = true;
-      }
-      else if ( orientation > 67.5 || orientation <= -67.5 ) // Vertical
-      {
-        zero = is_smaller<float>( edges, col, row, col, row - 1 ) || is_smaller<float>( edges, col, row, col, row + 1 );
-      }
-      else if ( orientation > 22.5 ) // Bottom-Left to Top-Right
-      {
-        zero = is_smaller<float>( edges, col, row, col + 1, row - 1 ) ||
-               is_smaller<float>( edges, col, row, col - 1, row + 1 );
-      }
-      else if ( orientation > -22.5 ) // Horizontal
-      {
-        zero = is_smaller<float>( edges, col, row, col - 1, row ) || is_smaller<float>( edges, col, row, col + 1, row );
-      }
-      else // Top-Left to Bottom-Right
-      {
-        zero = is_smaller<float>( edges, col, row, col - 1, row - 1 ) ||
-               is_smaller<float>( edges, col, row, col + 1, row + 1 );
-      }
-
-      out.at<char>( row, col ) = zero ? (char) 0 : (char) 255;
+      orientation.at<float>( row, col ) = cv::fastAtan2( -jxy.at<float>( row, col ),
+                                                         e1.at<float>( row, col ) - jy.at<float>( row, col ));
     }
   }
-  return out;
+}
+
+void calculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat &orientation, bool include_orientation )
+{
+  if ( image.channels() != 3 )
+  {
+    char buffer[256];
+    sprintf(buffer, "Unsupported number of channels. Only 3 channel color images are supported! "
+                    "Number of channels was: %d", image.channels());
+    throw std::runtime_error(buffer);
+  }
+  if ( image.depth() == CV_8U )
+  {
+    internalCalculateColorEdges<short>( image, edges, orientation, include_orientation, CV_16S );
+  }
+  else if ( image.depth() == CV_32F )
+  {
+    internalCalculateColorEdges<float>( image, edges, orientation, include_orientation, CV_32F );
+  }
+  else
+  {
+    char buffer[256];
+    sprintf(buffer, "Depth not supported! Supported depths are CV_8U and CV_32F. "
+                    "Depth was: %d", image.depth());
+    throw std::runtime_error( buffer );
+  }
+}
+
+void calculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat &orientation )
+{
+  calculateColorEdges( image, edges, orientation, true );
+}
+
+void calculateColorEdges( const cv::Mat &image, cv::Mat &edges )
+{
+  cv::Mat orientation;
+  calculateColorEdges( image, edges, orientation, false );
 }
 }

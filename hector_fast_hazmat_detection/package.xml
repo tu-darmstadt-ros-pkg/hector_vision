@@ -58,6 +58,7 @@
   <run_depend>hector_perception_msgs</run_depend>
   <run_depend>hector_worldmodel_msgs</run_depend>
   <run_depend>hector_nav_msgs</run_depend>
+  <run_depend>zbar</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

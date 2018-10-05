@@ -27,7 +27,9 @@ class HazmatDetectionNode:
         self.last_image = None
         self.last_stamp = None
         self.bridge = cv_bridge.CvBridge()
+        rospy.loginfo("Loading templates from '%s'" % template_folder)
         self.detector = hazmat_detection.HazmatSignDetector(template_folder)
+        rospy.loginfo("%d templates loaded." % len(self.detector.signs))
 
         self.image_projection_raycast_enabled = rospy.get_param("~image_projection_raycast", False)
         if self.image_projection_raycast_enabled:
@@ -50,6 +52,7 @@ class HazmatDetectionNode:
         self.publish_enabled_status()
 
         self.debug_image_pub = rospy.Publisher("~debug_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
+        self.hazmat_image_pub = rospy.Publisher("~last_hazmat_template", sensor_msgs.msg.Image, queue_size=10, latch=True)  # TODO Remove again after demo
         self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
                                               queue_size=10)
         self.world_model_pub = rospy.Publisher("/worldmodel/pose_percept", hector_worldmodel_msgs.msg.PosePercept,
@@ -122,6 +125,8 @@ class HazmatDetectionNode:
         for detection in detections:
             if detection.type == detection.HAZMAT_SIGN:
                 rospy.loginfo("Detected hazmat: " + detection.name)
+                hazmat_img_msg = self.bridge.cv2_to_imgmsg(detection.sign.image, encoding="rgb8")
+                self.hazmat_image_pub.publish(hazmat_img_msg)
             else:
                 rospy.loginfo("Detected qrcode: " + detection.name)
             perception_msg = hector_perception_msgs.msg.PerceptionData()

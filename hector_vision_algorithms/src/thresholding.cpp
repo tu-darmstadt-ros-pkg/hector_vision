@@ -8,7 +8,7 @@ namespace hector_vision_algorithms
 {
 
 template<typename T>
-void internalCalculateThresholds( const cv::Mat &mat, double &upper, double &lower, double stop_val )
+void internalCalculateThresholds( const cv::Mat &mat, double &upper, double &lower, double stop_val ) // TODO special cases can be faster
 {
   double old_upper = 0;
   double old_lower = 0;

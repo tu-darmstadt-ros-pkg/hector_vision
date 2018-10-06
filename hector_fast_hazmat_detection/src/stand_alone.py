@@ -28,21 +28,26 @@ if __name__ == "__main__":
         image_path = raw_input("Enter image path: ")
     if os.path.splitext(image_path)[1] == ".pickle":
         with open(image_path, 'rb') as handle:
-            image = pickle.load(handle)
+            detection_result = pickle.load(handle)
+        assert isinstance(detection_result, hazmat_detection.DetectionResult)
+        input_image = detection_result.debug_information.input_image
+        image = cv2.cvtColor(input_image, cv2.COLOR_RGB2BGR)
+        signs = detection_result.debug_information.signs
     else:
         image = cv2.imread(image_path)
-
-    input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: np.ndarray
-    detector = hazmat_detection.HazmatSignDetector(args.template_path)
-    start = timer()
-    detection_result = detector.detect(input_image, debug=args.debug)  # type: hazmat_detection.DetectionResult
-    end = timer()
-    print((end - start) * 1000, "ms")
-    if not args.noplots:
-        debug_info = detection_result.debug_information
+        input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: np.ndarray
+        detector = hazmat_detection.HazmatSignDetector(args.template_path)
+        signs = detector.signs
+        start = timer()
+        detection_result = detector.detect(input_image, debug=args.debug)  # type: hazmat_detection.DetectionResult
+        end = timer()
+        print((end - start) * 1000, "ms")
 
         plt.figure("Input Image")
         plt.imshow(input_image)
+
+    if not args.noplots:
+        debug_info = detection_result.debug_information
 
         if debug_info is not None:
             plt.figure("Debug Images")
@@ -61,8 +66,8 @@ if __name__ == "__main__":
             plt.imshow(out_image)
 
             plt.figure("Signs")
-            rows = (len(detector.signs) + 4) / 5
-            for i, sign in enumerate(detector.signs):
+            rows = (len(signs) + 4) / 5
+            for i, sign in enumerate(signs):
                 plt.subplot(rows, 5, i+1)
                 plt.title("%s - Color: %s" % (sign.name, str(sign.is_color)))
                 plt.imshow(sign.image)

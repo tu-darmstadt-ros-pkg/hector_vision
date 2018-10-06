@@ -15,13 +15,13 @@ def is_square(contour):
 
     ad = euclidean_distance(contour[-1, 0, :], contour[0, 0, :])
     ab = euclidean_distance(contour[0, 0, :], contour[1, 0, :])
-    if np.abs(ad - ab) / np.maximum(ad, ab) > 0.2:
+    if np.abs(ad - ab) / np.maximum(ad, ab) > 0.25:
         return False
     bc = euclidean_distance(contour[1, 0, :], contour[2, 0, :])
-    if np.abs(ab - bc) / np.maximum(ab, bc) > 0.2:
+    if np.abs(ab - bc) / np.maximum(ab, bc) > 0.25:
         return False
     cd = euclidean_distance(contour[2, 0, :], contour[3, 0, :])
-    return np.abs(bc - cd) / np.maximum(bc, cd) <= 0.2 and np.abs(cd - ad) / np.maximum(cd, ad) <= 0.2
+    return np.abs(bc - cd) / np.maximum(bc, cd) <= 0.25 and np.abs(cd - ad) / np.maximum(cd, ad) <= 0.25
 
 
 def is_rectangle(contour):

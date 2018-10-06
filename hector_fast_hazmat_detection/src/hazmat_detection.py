@@ -108,7 +108,7 @@ class HazmatSign:
 class HazmatSignDetector:
     def __init__(self, hazmat_sign_folder, gpu=False):
         self.gpu = gpu
-        self.downsample_passes = 4  # Each downsample pass halfes the resolution
+        self.downsample_passes = 2  # Each downsample pass halfes the resolution
         self.signs = []
         self.sift = cv2.xfeatures2d.SIFT_create()
         for f in os.listdir(hazmat_sign_folder):
@@ -242,6 +242,8 @@ class HazmatSignDetector:
             image = cv2.UMat(image)
         if debug:
             result.debug_information = DebugInformation()
+            result.debug_information.input_image = image_mem
+            result.debug_information.signs = self.signs
         contours, regions_of_interest = detect_areas_of_interest(image, self.downsample_passes, result.debug_information)
         # Check big roi for qr codes
         for i in range(len(regions_of_interest) - 1, -1, -1):
@@ -274,10 +276,10 @@ class HazmatSignDetector:
         for i in range(len(rectangles)):
             rectangle = rectangles[i]
             rectangle_is_color = is_color(rectangle)
-            corr_soft_threshold = 0.3
+            corr_soft_threshold = 0.5
             corr_threshold = 0.65 if rectangle_is_color is None or rectangle_is_color else 0.75
-            match_soft_threshold = 1
-            min_sift_matches = 5 if rectangle_is_color is not None or rectangle_is_color else 8
+            match_soft_threshold = 4
+            min_sift_matches = 6 if rectangle_is_color is not None or rectangle_is_color else 8
 
             target_keypoints, target_descriptors = self.sift.detectAndCompute(sub_images[i], None)
             rectangle = cv2.GaussianBlur(rectangle, (5, 5), 0)

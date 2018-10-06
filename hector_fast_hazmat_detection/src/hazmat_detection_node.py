@@ -18,7 +18,15 @@ import hector_nav_msgs.srv
 
 import hazmat_detection
 
+# Set to true to debug the hazmat detection. This adds a publisher which publishes the detection results drawn in the
+#  input image. Can be used with DEBUG_FOLDER to collect input and result images for further debugging and improvements
 DEBUG = True
+
+# Set to true to dump a pickle file containing all intermediate steps which is usually not needed since you can just
+#  run the detection again on the dumped image
+DEBUG_PICKLES = False
+
+# Set a path to save the input and result images of detections if DEBUG is true
 DEBUG_FOLDER = None  # "/home/username/debug_hazmat"
 
 
@@ -51,7 +59,9 @@ class HazmatDetectionNode:
         self.enabled = rospy.get_param("~periodic_detection", False)
         self.publish_enabled_status()
 
-        self.debug_image_pub = rospy.Publisher("~debug_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
+        if DEBUG:
+            self.debug_image_pub = rospy.Publisher("~debug_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
+            rospy.loginfo("Debugging enabled.")
         self.hazmat_image_pub = rospy.Publisher("~last_hazmat_template", sensor_msgs.msg.Image, queue_size=10, latch=True)  # TODO Remove again after demo
         self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
                                               queue_size=10)
@@ -64,6 +74,7 @@ class HazmatDetectionNode:
         self.detect_as.start()
         if DEBUG and DEBUG_FOLDER is not None and not os.path.isdir(DEBUG_FOLDER):
             os.mkdir(DEBUG_FOLDER)
+            rospy.loginfo("Saving detection input and result images to %s" % DEBUG_FOLDER)
 
     def image_cb(self, image):
         self.last_image = self.bridge.imgmsg_to_cv2(image, desired_encoding="rgb8")
@@ -86,13 +97,16 @@ class HazmatDetectionNode:
         rospy.logdebug(" ### Starting detection")
         if self.last_image is not None:
             image = self.last_image
-            result = self.detector.detect(image, debug=DEBUG and DEBUG_FOLDER is not None)
+            result = self.detector.detect(image, debug=DEBUG and DEBUG_FOLDER is not None and DEBUG_PICKLES)
             if DEBUG:
                 if DEBUG_FOLDER is not None:
                     cv2.imwrite(os.path.join(DEBUG_FOLDER, str(self.last_stamp) + ".png"),
                                 cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-                    with open(os.path.join(DEBUG_FOLDER, str(self.last_stamp)+".pickle"), 'wb') as handle:
-                        pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+                    # Dump a pickle with the detection result if wanted
+                    if DEBUG_PICKLES:
+                        with open(os.path.join(DEBUG_FOLDER, str(self.last_stamp)+".pickle"), 'wb') as handle:
+                            pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
                 debug_image = image
                 for detection in result.detections:
                     cv2.drawContours(debug_image, [detection.contour], 0, np.array([255, 0, 0]), 2)

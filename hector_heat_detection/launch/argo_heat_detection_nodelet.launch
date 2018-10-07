@@ -18,8 +18,8 @@
     output="screen">
     <remap from="thermal/image" to="/$(arg thermal_camera_ns)/image_converted"/>    
     <remap from="/image_percept" to="/worldmodel/image_percept" />
-    <param name="min_temp_detection" value="25" />
-    <param name="max_temp_detection" value="150" />
+    <param name="min_temp_detection" value="29" />
+    <param name="max_temp_detection" value="100" />
     <param name="min_area_detection" value="40" />
     <param name="min_dist_between_blobs" value="20" />
     <param name="percept_class_id" value="$(arg percept_class_id)" />

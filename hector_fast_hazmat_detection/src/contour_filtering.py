@@ -58,7 +58,7 @@ def filter_contours(contours):
         #if len(approx) < 4:
         #    continue
         area = cv2.contourArea(approx)
-        if ((len(approx) == 3 and 600 < area and 0.2 < area / (peri / 4)**2) or
+        if (False and (len(approx) == 3 and 600 < area and 0.2 < area / (peri / 4)**2) or
             (900 < area and 0.4 < area / (peri / 4)**2)):
             filtered_contours.append(approx)
     return filtered_contours

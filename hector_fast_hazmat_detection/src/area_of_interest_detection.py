@@ -57,7 +57,7 @@ def detect_areas_of_interest(image, downsample_passes=3, debug_info=None):
     filtered_contours = filter_contours(contours)
 
     regions_of_interest = []
-    margin = 16
+    margin = 0
     for contour in filtered_contours:
         x, y, w, h = cv2.boundingRect(contour)
         right = x + w + margin

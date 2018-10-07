@@ -28,24 +28,23 @@ def detect_areas_of_interest(image, downsample_passes=3, debug_info=None):
     height = image_mem.shape[0]
     original_width = width
     original_height = height
-    for _ in range(downsample_passes):
-        width //= 2
-        height //= 2
-        image = cv2.pyrDown(image, dstsize=(width, height))
+    image = cv2.resize(image, None, None, 0.5**downsample_passes, 0.5**downsample_passes, cv2.INTER_AREA)
+    width = width // 2**downsample_passes
+    height = height // 2**downsample_passes
 
     img_edges, orientation = hector_vision.color_edges(image)
     upper, lower = hector_vision.calculate_thresholds(img_edges)
     img_edges = hector_vision.threshold(img_edges, upper, lower)
-    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for c in contours:
-        connected_to_wall = False
-        for pt in c[:, 0, :]:
-            if pt[0] < 2 or pt[1] < 2 or pt[0] + 2 >= img_edges.shape[1] or pt[1] + 2 >= img_edges.shape[0]:
-                connected_to_wall = True
-                break
-        if not connected_to_wall:
-            continue
-        cv2.fillConvexPoly(img_edges, c, 0)
+    # _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # for c in contours:
+    #     connected_to_wall = False
+    #     for pt in c[:, 0, :]:
+    #         if pt[0] < 2 or pt[1] < 2 or pt[0] + 2 >= img_edges.shape[1] or pt[1] + 2 >= img_edges.shape[0]:
+    #             connected_to_wall = True
+    #             break
+    #     if not connected_to_wall:
+    #         continue
+    #     cv2.fillConvexPoly(img_edges, c, 0)
 
     _, contours, _ = cv2.findContours(img_edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 

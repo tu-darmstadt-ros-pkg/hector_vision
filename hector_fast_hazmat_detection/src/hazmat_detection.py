@@ -276,10 +276,10 @@ class HazmatSignDetector:
         for i in range(len(rectangles)):
             rectangle = rectangles[i]
             rectangle_is_color = is_color(rectangle)
-            corr_soft_threshold = 0.5
-            corr_threshold = 0.65 if rectangle_is_color is None or rectangle_is_color else 0.75
-            match_soft_threshold = 4
-            min_sift_matches = 6 if rectangle_is_color is not None or rectangle_is_color else 8
+            corr_soft_threshold = 0.4
+            corr_threshold = 0.6 if rectangle_is_color is None or rectangle_is_color else 0.75
+            match_soft_threshold = 8
+            min_sift_matches = 10 if rectangle_is_color is not None or rectangle_is_color else 8
 
             target_keypoints, target_descriptors = self.sift.detectAndCompute(sub_images[i], None)
             rectangle = cv2.GaussianBlur(rectangle, (5, 5), 0)
@@ -296,7 +296,7 @@ class HazmatSignDetector:
                 if rectangle_is_color is not None and sign.is_color is not None and sign.is_color != rectangle_is_color:
                     continue
                 template = cv2.GaussianBlur(sign.image, (5, 5), 0)
-                template = cv2.resize(template, (rectangle.shape[1], rectangle.shape[0]))
+                template = cv2.resize(template, (rectangle.shape[1], rectangle.shape[0]), interpolation=cv2.INTER_AREA)
                 template = cv2.GaussianBlur(template, (5, 5), 0)
                 matches = get_sift_matches(target_keypoints, target_descriptors, sign)
 

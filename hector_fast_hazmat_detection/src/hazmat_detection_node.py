@@ -113,8 +113,8 @@ class HazmatDetectionNode:
                     (x, y, w, h) = cv2.boundingRect(detection.contour)
                     cv2.putText(debug_image, detection.name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, np.array([255, 0, 0]), 2)
                 debug_image_msg = self.bridge.cv2_to_imgmsg(debug_image, encoding="rgb8")
-                if DEBUG_FOLDER is not None:
-                    cv2.imwrite(os.path.join(DEBUG_FOLDER, str(self.last_stamp) + "_result.png"),
+                if DEBUG_FOLDER is not None and len(result.detections) > 0:
+                    cv2.imwrite(os.path.join(DEBUG_FOLDER, str(self.last_stamp) + "_detections.png"),
                                 cv2.cvtColor(debug_image, cv2.COLOR_RGB2BGR))
                 self.debug_image_pub.publish(debug_image_msg)
             self.publish_detections(result.detections)

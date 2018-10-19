@@ -6,6 +6,7 @@
 
 #include <opencv2/imgproc.hpp>
 
+
 namespace hector_vision_algorithms
 {
 
@@ -43,7 +44,7 @@ void internalCalculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat 
                                   int filter_type )
 {
 
-  cv::Mat x_filter( 3, 3, filter_type, cv::Scalar((FilterType) 0 ));
+  cv::Mat x_filter( 3, 3, filter_type, cv::Scalar( 0.f ));
   x_filter.at<FilterType>( 0, 0 ) = 1;
   x_filter.at<FilterType>( 0, 1 ) = 2;
   x_filter.at<FilterType>( 0, 2 ) = 1;
@@ -55,11 +56,9 @@ void internalCalculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat 
 
   cv::Mat response_x;
   cv::filter2D( image, response_x, filter_type, x_filter );
-  response_x.convertTo( response_x, CV_32F );
 
   cv::Mat response_y;
   cv::filter2D( image, response_y, filter_type, y_filter );
-  response_y.convertTo( response_y, CV_32F );
 
   cv::Mat jx, jy, jxy;
   getJacobians( response_x, response_y, jx, jy, jxy );
@@ -97,7 +96,7 @@ void calculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat &orienta
   }
   if ( image.depth() == CV_8U )
   {
-    internalCalculateColorEdges<short>( image, edges, orientation, include_orientation, CV_16S );
+    internalCalculateColorEdges<float>( image, edges, orientation, include_orientation, CV_32F );
   }
   else if ( image.depth() == CV_32F )
   {

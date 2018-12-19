@@ -1,0 +1,7 @@
+sensor_msgs/Image image
+---
+# Indicates if the detection was successful
+bool success
+
+DetectionResult detection_result
+---

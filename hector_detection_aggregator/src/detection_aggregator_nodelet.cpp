@@ -22,6 +22,5 @@ class DetectionAggregatorNodelet : public nodelet::Nodelet {
 };
 }
 
-PLUGINLIB_DECLARE_CLASS(hector_detection_aggregator, DetectionAggregatorNodelet,
-                        hector_detection_aggregator::DetectionAggregatorNodelet,
+PLUGINLIB_EXPORT_CLASS(hector_detection_aggregator::DetectionAggregatorNodelet,
                         nodelet::Nodelet);

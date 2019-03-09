@@ -17,6 +17,7 @@ find_package(catkin REQUIRED
   nodelet
   dynamic_reconfigure
   hector_worldmodel_msgs
+  hector_nav_msgs
 )
 
 #add dynamic reconfigure api

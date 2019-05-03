@@ -108,7 +108,7 @@ class HazmatSign:
 class HazmatSignDetector:
     def __init__(self, hazmat_sign_folder, gpu=False):
         self.gpu = gpu
-        self.downsample_passes = 2  # Each downsample pass halfes the resolution
+        self.downsample_passes = 1  # Each downsample pass halfes the resolution
         self.signs = []
         self.sift = cv2.xfeatures2d.SIFT_create()
         for f in os.listdir(hazmat_sign_folder):
@@ -161,6 +161,7 @@ class HazmatSignDetector:
             largest_area = 0
             largest = None
             for c in contours:
+                c = cv2.convexHull(c)
                 peri = cv2.arcLength(c, True)
                 approx = cv2.approxPolyDP(c, 0.07 * peri, True)
                 area = cv2.contourArea(c)

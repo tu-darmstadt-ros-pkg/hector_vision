@@ -5,7 +5,7 @@
     <param name="periodic_detection" value="true" />
     <param name="image_projection_raycast" value="true" />
     
-    <param name="model_folder" value="$(find hector_fast_hazmat_detection)/templates/demo" />
+    <param name="model_folder" value="$(find hector_fast_hazmat_detection)/templates/rgb" />
     
     <remap from="~image" to="/camera360/equirectangular_low_fov" />
     <remap from="project_pixel_to_ray" to="/camera360_equirectangular_low_fov/project_pixel_to_ray" />

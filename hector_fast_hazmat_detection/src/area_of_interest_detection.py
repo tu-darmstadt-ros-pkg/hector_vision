@@ -22,7 +22,7 @@ def is_square(contour):
     return (longest_side - shortest_side) / float(longest_side) > 0.8
 
 
-def detect_areas_of_interest(image, downsample_passes=3, debug_info=None):
+def detect_areas_of_interest(image, downsample_passes=1, debug_info=None):
     image_mem = image.get() if isinstance(image, cv2.UMat) else image
     width = image_mem.shape[1]
     height = image_mem.shape[0]
@@ -34,19 +34,27 @@ def detect_areas_of_interest(image, downsample_passes=3, debug_info=None):
 
     img_edges, orientation = hector_vision.color_edges(image)
     upper, lower = hector_vision.calculate_thresholds(img_edges)
+    mask = hector_vision.threshold(img_edges, upper, lower)
+    img_edges[mask == 0] = lower
+    upper, lower = hector_vision.calculate_thresholds(img_edges)
     img_edges = hector_vision.threshold(img_edges, upper, lower)
-    # _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # for c in contours:
-    #     connected_to_wall = False
-    #     for pt in c[:, 0, :]:
-    #         if pt[0] < 2 or pt[1] < 2 or pt[0] + 2 >= img_edges.shape[1] or pt[1] + 2 >= img_edges.shape[0]:
-    #             connected_to_wall = True
-    #             break
-    #     if not connected_to_wall:
-    #         continue
-    #     cv2.fillConvexPoly(img_edges, c, 0)
 
-    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    img_edges = cv2.dilate(img_edges, None)
+    img_edges = cv2.erode(img_edges, None)
+    img_edges = cv2.dilate(img_edges, None)
+
+    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for c in contours:
+        connected_to_wall = False
+        for pt in c[:, 0, :]:
+            if pt[0] < 2 or pt[1] < 2 or pt[0] + 2 >= img_edges.shape[1] or pt[1] + 2 >= img_edges.shape[0]:
+                connected_to_wall = True
+                break
+        if not connected_to_wall:
+            continue
+        cv2.fillConvexPoly(img_edges, c, 0)
+
+    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     for c in contours:
         c *= 2**downsample_passes

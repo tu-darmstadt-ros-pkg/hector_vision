@@ -31,7 +31,7 @@ catkin_package(
      cv_bridge
      std_msgs
      dynamic_reconfigure
-   DEPENDS system_lib
+#   DEPENDS system_lib
 )
 
 include_directories(

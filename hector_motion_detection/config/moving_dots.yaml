@@ -1,9 +1,9 @@
 activation_threshold: 170
 automatic_learning_rate: false
-learning_rate: 0.7
+learning_rate: 0.3
 motion_detect_debug_contours: false
-motion_detect_detectionLimit: 5
-motion_detect_dilation: 10
+motion_detect_detectionLimit: 3
+motion_detect_dilation: 11
 motion_detect_erosion: 2
 motion_detect_max_area: 5000
 motion_detect_min_area: 60

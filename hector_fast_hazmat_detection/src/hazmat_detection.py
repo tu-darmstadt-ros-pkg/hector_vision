@@ -189,7 +189,7 @@ class HazmatSignDetector:
                     max_distance_squared = distance_squared
 
             size = int(np.sqrt(max_distance_squared))
-            if size < 24:
+            if size < 32:
                 continue
 
             x_sorted_points = []
@@ -230,9 +230,11 @@ class HazmatSignDetector:
 
     @staticmethod
     def effective_weight(correlation, matches, is_color):
+        if correlation < 0.3:
+            return 0
         correlation = (correlation + 1) / 2
         if matches >= 4:
-            return correlation + 0.25 + matches * (0.1 if is_color else 0.02)
+            return correlation + 0.25 + matches * (0.05 if is_color else 0.02)
         return correlation + matches * (0.1 if is_color else 0.02)
 
     def detect(self, image, debug=False):  # type: (np.ndarray, bool) -> DetectionResult
@@ -248,6 +250,7 @@ class HazmatSignDetector:
         contours, regions_of_interest = detect_areas_of_interest(image, self.downsample_passes, result.debug_information)
         # Check big roi for qr codes
         for i in range(len(regions_of_interest) - 1, -1, -1):
+            break  # No QR Cods
             (x_offset, y_offset, w, h) = regions_of_interest[i]
             if w < 150 or h < 150:
                 continue
@@ -279,8 +282,8 @@ class HazmatSignDetector:
             rectangle_is_color = is_color(rectangle)
             corr_soft_threshold = 0.4
             corr_threshold = 0.6 if rectangle_is_color is None or rectangle_is_color else 0.75
-            match_soft_threshold = 8
-            min_sift_matches = 10 if rectangle_is_color is not None or rectangle_is_color else 8
+            match_soft_threshold = 1
+            min_sift_matches = 6 if rectangle_is_color is not None or rectangle_is_color else 8
 
             target_keypoints, target_descriptors = self.sift.detectAndCompute(sub_images[i], None)
             rectangle = cv2.GaussianBlur(rectangle, (5, 5), 0)

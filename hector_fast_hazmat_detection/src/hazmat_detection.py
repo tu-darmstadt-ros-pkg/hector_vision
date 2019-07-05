@@ -15,10 +15,13 @@ from edge_detection import *
 
 
 def sanitize_name(name):
-    valid_chars = "._{}{}".format(string.ascii_letters, string.digits)
-    sanitized = ''.join(c for c in name.replace('-', '_') if c in valid_chars)
+    valid_chars = "_{}{}".format(string.ascii_letters, string.digits)
+    sanitized = []
+    for c in name:
+        sanitized.append(c if c in valid_chars else '_')
     if len(sanitized) == 0:
         return "invalid_name"
+    sanitized = ''.join(sanitized)
     return "no" + sanitized if sanitized[0].isdigit() else sanitized
 
 

@@ -4,6 +4,7 @@ import numpy as np
 import os
 import hector_vision
 import pyzbar.pyzbar as pyzbar
+import string
 
 from timeit import default_timer as timer
 from area_of_interest_detection import detect_areas_of_interest
@@ -11,6 +12,14 @@ from contour_filtering import is_square
 from debug_information import DebugInformation
 from distance_measures import *
 from edge_detection import *
+
+
+def sanitize_name(name):
+    valid_chars = "._{}{}".format(string.ascii_letters, string.digits)
+    sanitized = ''.join(c for c in name.replace('-', '_') if c in valid_chars)
+    if len(sanitized) == 0:
+        return "invalid_name"
+    return "no" + sanitized if sanitized[0].isdigit() else sanitized
 
 
 def is_qr_code(edge_image):
@@ -117,7 +126,7 @@ class HazmatSignDetector:
             img = cv2.imread(os.path.join(hazmat_sign_folder, f))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             kp, dsc = self.sift.detectAndCompute(img, None)
-            self.signs.append(HazmatSign(os.path.splitext(f)[0], img, kp, dsc))
+            self.signs.append(HazmatSign(sanitize_name(os.path.splitext(f)[0]), img, kp, dsc))
 
     def get_contour(self, rectangle_edges, w, h, sub_image):
         _, contours, _ = cv2.findContours(rectangle_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

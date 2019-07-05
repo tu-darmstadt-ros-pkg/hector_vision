@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <node name="periodic_hazmat_detection" pkg="hector_fast_hazmat_detection" type="hazmat_detection_node.py" output="screen">
-    <param name="detection_frequency" value="0.5" />
+    <param name="detection_frequency" value="2" />
     <param name="periodic_detection" value="true" />
     <param name="image_projection_raycast" value="true" />
     

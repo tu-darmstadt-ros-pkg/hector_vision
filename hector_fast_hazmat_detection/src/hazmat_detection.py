@@ -37,7 +37,7 @@ def is_color(image):
     sum_mean = np.sum((mean[1:] - 128) ** 2)
     if sum_stddev < 8 and sum_mean < 100:
         return False
-    if sum_stddev < 10 and sum_mean < 150:
+    if sum_stddev < 12 and sum_mean < 900:
         return None
     return True
 
@@ -77,12 +77,12 @@ class DetectionSettings:
 
 class Detection:
     name = None  # type: str
-    sign = None # type: HazmatSign
-    type = None # type: str
+    sign = None  # type: HazmatSign
+    type = None  # type: str
     contour = None  # type: np.ndarray
 
-    HAZMAT_SIGN=0
-    QR_CODE=1
+    HAZMAT_SIGN = 0
+    QR_CODE = 1
 
     def __init__(self, type, contour, data):
         if type == self.HAZMAT_SIGN:
@@ -120,7 +120,7 @@ class HazmatSign:
 class HazmatSignDetector:
     def __init__(self, hazmat_sign_folder, gpu=False):
         self.gpu = gpu
-        self.downsample_passes = 1  # Each downsample pass halfes the resolution
+        self.downsample_passes = 2  # Each downsample pass halfes the resolution
         self.signs = []
         self.sift = cv2.xfeatures2d.SIFT_create()
         for f in os.listdir(hazmat_sign_folder):
@@ -131,33 +131,15 @@ class HazmatSignDetector:
             kp, dsc = self.sift.detectAndCompute(img, None)
             self.signs.append(HazmatSign(sanitize_name(os.path.splitext(f)[0]), img, kp, dsc))
 
-    def get_contour(self, rectangle_edges, w, h, sub_image):
-        _, contours, _ = cv2.findContours(rectangle_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        filtered = []
-        for c in contours:
-            reject = False
-            c = cv2.convexHull(c)
-            if cv2.contourArea(c) < w * h * 0.01:
-                continue
-            for pt in c:
-                pt = pt[0, :]
-                if pt[0] < 4 or pt[0] > sub_image.shape[1] - 4 or pt[1] < 4 or pt[1] > sub_image.shape[0] - 4:
-                    reject = True
-                    break
-            if reject:
-                continue
-            filtered.append(c)
-        contours = np.vstack(c for c in filtered) if len(filtered) > 1 else filtered[0]
-        approx = cv2.convexHull(contours)
-        peri = cv2.arcLength(approx, True)
-        approx = cv2.approxPolyDP(approx, 0.04 * peri, True)
-
     def get_rectangles(self, regions_of_interest, image_mem, debug_info):
         filtered_sub_images = []
         rectangles = []
         sub_contours = []
         for roi in regions_of_interest:
             (x_offset, y_offset, w, h) = roi
+            # Remove regions of interest caused by flashlights
+            if (x_offset < 1000 < x_offset + w or x_offset < 2600 < x_offset + w) and y_offset + h > 650:
+                continue
             sub_image = image_mem[y_offset:y_offset + h, x_offset:x_offset + w, :]
             test_edges = hector_vision.color_difference_map(sub_image)
             upper, lower = hector_vision.calculate_thresholds(test_edges)
@@ -175,19 +157,44 @@ class HazmatSignDetector:
             for c in contours:
                 c = cv2.convexHull(c)
                 peri = cv2.arcLength(c, True)
-                approx = cv2.approxPolyDP(c, 0.07 * peri, True)
+                approx = cv2.approxPolyDP(c, 0.08 * peri, True)
                 area = cv2.contourArea(c)
                 if area > largest_area:
                     largest = approx
                     largest_area = area
 
             if len(largest) == 3:
-                offset = largest[1, :, :] - largest[0, :, :]
-                largest = np.vstack((largest, largest[2, :, :] - offset[np.newaxis, :, :]))
-                if largest[3, :, 0] < 0 or largest[3, :, 1] < 0 or largest[3, :, 0] > w or largest[3, :, 1] > h:
-                    if debug_info is not None:
-                        debug_info.sub_images.append((sub_image, test_edges, largest))
+                # Some hazmats are hard to find as rectangles because they have a strong triangle, so try to get the
+                # enclosing rectangle
+                right_angle_index = 0
+                min_dot_product = np.infty
+                for i in range(3):
+                    next = i + 1 if i < 2 else 0
+                    diff_1 = largest[i, 0, :] - largest[i - 1, 0, :]
+                    diff_1 = diff_1 / np.linalg.norm(diff_1)
+                    diff_2 = largest[i, 0, :] - largest[next, 0, :]
+                    diff_2 = diff_2 / np.linalg.norm(diff_2)
+                    dot_product = abs(diff_1.dot(diff_2))
+                    if dot_product < min_dot_product:
+                        right_angle_index = i
+                        min_dot_product = dot_product
+                if min_dot_product > 0.4:  # 0.4 ~ 66.4 degrees
                     continue
+                next = right_angle_index + 1 if right_angle_index < 2 else 0
+                offset = largest[next, :, :] + (largest[right_angle_index - 1, :, :] - largest[right_angle_index, :, :])
+                if right_angle_index == 0:
+                    largest = np.vstack((largest[:2, :, :], offset[np.newaxis, :, :], largest[2:, :, :]))
+                elif right_angle_index == 1:
+                    largest = np.vstack((largest, offset[np.newaxis, :, :]))
+                else:
+                    largest = np.vstack((largest[:1, :, :], offset[np.newaxis, :, :], largest[1:, :, :]))
+
+                # offset = largest[1, :, :] - largest[0, :, :]
+                # largest = np.vstack((largest, largest[2, :, :] - offset[np.newaxis, :, :]))
+                # if largest[3, :, 0] < 0 or largest[3, :, 1] < 0 or largest[3, :, 0] > w or largest[3, :, 1] > h:
+                #    if debug_info is not None:
+                #        debug_info.sub_images.append((sub_image, test_edges, largest))
+                #    continue
 
             if debug_info is not None:
                 debug_info.sub_images.append((sub_image, test_edges, largest))
@@ -225,9 +232,9 @@ class HazmatSignDetector:
             else:
                 # Otherwise we determine which one is top or bottom by comparing the y values of the two leftmost and
                 #  two rightmost points
-                top_left, bottom_left = (x_sorted_points[0], x_sorted_points[1])\
+                top_left, bottom_left = (x_sorted_points[0], x_sorted_points[1]) \
                     if x_sorted_points[0][1] < x_sorted_points[1][1] else (x_sorted_points[1], x_sorted_points[0])
-                top_right, bottom_right = (x_sorted_points[2], x_sorted_points[3])\
+                top_right, bottom_right = (x_sorted_points[2], x_sorted_points[3]) \
                     if x_sorted_points[2][1] < x_sorted_points[3][1] else (x_sorted_points[3], x_sorted_points[2])
             pts1 = np.float32([bottom_left, top_left, top_right])
             pts2 = np.float32([[-2, size + 1], [-2, -2], [size + 1, -2]])
@@ -247,7 +254,7 @@ class HazmatSignDetector:
         correlation = (correlation + 1) / 2
         if matches >= 4:
             return correlation + 0.25 + matches * (0.05 if is_color else 0.02)
-        return correlation + matches * (0.1 if is_color else 0.02)
+        return correlation + matches * (0.05 if is_color else 0.02)
 
     def detect(self, image, debug=False):  # type: (np.ndarray, bool) -> DetectionResult
         result = DetectionResult()
@@ -259,7 +266,8 @@ class HazmatSignDetector:
             result.debug_information = DebugInformation()
             result.debug_information.input_image = image_mem
             result.debug_information.signs = self.signs
-        contours, regions_of_interest = detect_areas_of_interest(image, self.downsample_passes, result.debug_information)
+        contours, regions_of_interest = detect_areas_of_interest(image, self.downsample_passes,
+                                                                 result.debug_information)
         # Check big roi for qr codes
         for i in range(len(regions_of_interest) - 1, -1, -1):
             break  # No QR Cods
@@ -280,7 +288,7 @@ class HazmatSignDetector:
                 result.detections.append(Detection(Detection.QR_CODE,
                                                    np.array([[[x, y],
                                                               [x + obj.rect.width, y],
-                                                              [x + obj.rect.width, y + obj.rect.height ],
+                                                              [x + obj.rect.width, y + obj.rect.height],
                                                               [x, y + obj.rect.height]]]),
                                                    obj.data))
             if qrcode:
@@ -342,7 +350,7 @@ class HazmatSignDetector:
                 result.debug_information.best_matches.append((sub_images[i], rectangle, best_template,
                                                               (best_correlation, best_matches, rectangle_is_color)))
             if (0.8 * best_effective_weight <= second_best_effective_weight or best_correlation < corr_soft_threshold
-                or best_matches < match_soft_threshold) and\
+                or best_matches < match_soft_threshold) and \
                     (best_correlation < corr_threshold and best_matches < min_sift_matches):
                 continue
             if debug:

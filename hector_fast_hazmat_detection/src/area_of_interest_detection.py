@@ -34,9 +34,9 @@ def detect_areas_of_interest(image, downsample_passes=1, debug_info=None):
 
     img_edges, orientation = hector_vision.color_edges(image)
     upper, lower = hector_vision.calculate_thresholds(img_edges)
-    mask = hector_vision.threshold(img_edges, upper, lower)
-    img_edges[mask == 0] = lower
-    upper, lower = hector_vision.calculate_thresholds(img_edges)
+    #mask = hector_vision.threshold(img_edges, upper, lower)
+    #img_edges[mask == 0] = lower
+    #upper, lower = hector_vision.calculate_thresholds(img_edges)
     img_edges = hector_vision.threshold(img_edges, upper, lower)
 
     img_edges = cv2.dilate(img_edges, None)
@@ -47,7 +47,7 @@ def detect_areas_of_interest(image, downsample_passes=1, debug_info=None):
     for c in contours:
         connected_to_wall = False
         for pt in c[:, 0, :]:
-            if pt[0] < 2 or pt[1] < 2 or pt[0] + 2 >= img_edges.shape[1] or pt[1] + 2 >= img_edges.shape[0]:
+            if pt[1] < 4 or pt[1] + 4 >= img_edges.shape[0]:
                 connected_to_wall = True
                 break
         if not connected_to_wall:
@@ -65,7 +65,7 @@ def detect_areas_of_interest(image, downsample_passes=1, debug_info=None):
     filtered_contours = filter_contours(contours)
 
     regions_of_interest = []
-    margin = 0
+    margin = 16
     for contour in filtered_contours:
         x, y, w, h = cv2.boundingRect(contour)
         right = x + w + margin

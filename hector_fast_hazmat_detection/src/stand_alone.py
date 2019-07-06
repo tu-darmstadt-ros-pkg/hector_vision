@@ -52,14 +52,18 @@ if __name__ == "__main__":
         if debug_info is not None:
             plt.figure("Debug Images")
             plt.subplot(411)
+            plt.title("Edge image")
             plt.imshow(detection_result.debug_information.edge_image, "gray")
             plt.subplot(412)
+            plt.title("Contours")
             out_image = input_image.copy()
             plt.imshow(cv2.drawContours(out_image, debug_info.contours, -1, np.array([255, 0, 0]), 2))
             plt.subplot(413)
+            plt.title("Filtered Contours")
             out_image = input_image.copy()
             plt.imshow(cv2.drawContours(out_image, debug_info.filtered_contours, -1, np.array([0, 255, 0]), 2))
             plt.subplot(414)
+            plt.title("Regions of interest")
             out_image = input_image.copy()
             for roi in debug_info.regions_of_interest:
                 cv2.rectangle(out_image, (roi[0], roi[1]), (roi[0] + roi[2], roi[1] + roi[3]), (255, 0, 0), 2)

@@ -45,7 +45,7 @@ def filter_large_contours(contours):
         area = cv2.contourArea(hull)
         if area < 1000 or area > 350 ** 2:
             continue
-        filtered_contours.append(c)
+        filtered_contours.append(hull)
         filtered_areas.append(area)
     return filtered_contours, filtered_areas
 

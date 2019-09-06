@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node pkg="hector_thermal_image_conversion" type="heat_image_colorizer_node" name="heat_image_colorizer_node" output="screen">
+    <remap from="~/image" to="/arm_thermal_cam/image_raw"/>
+    <remap from="~/image_mapped" to="/arm_thermal_cam/image_mapped_new"/>
+  </node>
+
+</launch>

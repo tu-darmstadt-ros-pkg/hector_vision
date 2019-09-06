@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2015, Stefan Kohlbrecher, TU Darmstadt
+// Copyright (c) 2019, Stefan Kohlbrecher and Marius Schnaubelt, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,18 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
+#include "ros/ros.h"
 
-#ifndef HEAT_IMAGE_TRANSLATOR_H__
-#define HEAT_IMAGE_TRANSLATOR_H__
+#include <hector_thermal_image_conversion/heat_image_colorizer.h>
 
-#include <ros/ros.h>
-
-#include <image_transport/image_transport.h>
-#include <image_transport/subscriber_filter.h>
-#include <image_transport/camera_subscriber.h>
-
-class HeatImageTranslator
+int main(int argc, char** argv)
 {
-public:
-  HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
+  ros::init(argc, argv, "heat_image_translator");
 
-  void connectCb();
+  ros::NodeHandle nh_("");
+  ros::NodeHandle pnh_("~");
+  HeatImageColorizer dg(nh_, pnh_);
+  ros::spin();
 
-  void imageCb(const sensor_msgs::ImageConstPtr& image_msg);
-
-  void convertImage(const sensor_msgs::ImageConstPtr& image_msg);
-
-protected:
-  bool mappingDefined_;
-  double min_temp_img_;
-  double max_temp_img_;
-  double temperature_unit_kelvin_;
-
-  boost::mutex connect_mutex_;
-
-  boost::shared_ptr<image_transport::ImageTransport> it_;//, it_out_;
-  image_transport::Subscriber image_sub_;
-  //image_transport::CameraSubscriber sub_;
-
-  //ros::Subscriber image_sub_;
-  image_transport::Publisher converted_image_pub_;
-
-};
-
-#endif HEAT_IMAGE_TRANSLATOR_H__
+  return 0;
+}

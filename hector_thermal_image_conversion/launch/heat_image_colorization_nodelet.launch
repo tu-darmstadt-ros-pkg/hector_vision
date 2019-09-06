@@ -7,12 +7,12 @@
   <arg name="image_topic" default="image_raw" />   
   
   <node pkg="nodelet" type="nodelet"
-    name="hector_$(arg camera_ns)_image_conversion" 
-    args="load hector_image_proc/heat_image_translator_nodelet $(arg camera_nodelet_manager_name)" 
+    name="hector_$(arg camera_ns)_image_colorizer" 
+    args="load hector_image_proc/heat_image_colorizer_nodelet $(arg camera_nodelet_manager_name)" 
     output="screen"
     respawn="true">
     <remap from="~/image" to="/$(arg camera_ns)/$(arg image_topic)"/>
-    <remap from="~/image_converted" to="/arm_thermal_cam/image_converted"/>
+    <remap from="~/image_mapped" to="/$(arg camera_ns)/image_mapped"/>
   </node>  
 
 </launch>

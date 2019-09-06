@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2015, Stefan Kohlbrecher, TU Darmstadt
+// Copyright (c) 2019, Stefan Kohlbrecher and Marius Schnaubelt, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,8 @@
 //=================================================================================================
 
 
-#ifndef HEAT_IMAGE_TRANSLATOR_H__
-#define HEAT_IMAGE_TRANSLATOR_H__
+#ifndef HEAT_IMAGE_COLORIZER_H__
+#define HEAT_IMAGE_COLORIZER_H__
 
 #include <ros/ros.h>
 
@@ -36,32 +36,35 @@
 #include <image_transport/subscriber_filter.h>
 #include <image_transport/camera_subscriber.h>
 
-class HeatImageTranslator
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <boost/thread.hpp>
+#include <nodelet/nodelet.h>
+
+#include "iron_bow_color_mapping.h"
+
+class HeatImageColorizer
 {
 public:
-  HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
+    HeatImageColorizer(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
 
   void connectCb();
 
   void imageCb(const sensor_msgs::ImageConstPtr& image_msg);
 
-  void convertImage(const sensor_msgs::ImageConstPtr& image_msg);
+  void colorizeImage(const sensor_msgs::ImageConstPtr& image_msg);
 
 protected:
-  bool mappingDefined_;
-  double min_temp_img_;
-  double max_temp_img_;
-  double temperature_unit_kelvin_;
+
+  cv::Mat color_mapping_;
 
   boost::mutex connect_mutex_;
 
-  boost::shared_ptr<image_transport::ImageTransport> it_;//, it_out_;
+  boost::shared_ptr<image_transport::ImageTransport> it_;
   image_transport::Subscriber image_sub_;
-  //image_transport::CameraSubscriber sub_;
 
-  //ros::Subscriber image_sub_;
   image_transport::Publisher converted_image_pub_;
-
 };
 
-#endif HEAT_IMAGE_TRANSLATOR_H__
+#endif // HEAT_IMAGE_COLORIZER_H__

@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2015, Stefan Kohlbrecher, TU Darmstadt
+// Copyright (c) 2019, Stefan Kohlbrecher and Marius Schnaubelt, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,26 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
+#include <hector_thermal_image_conversion/heat_image_colorizer.h>
+#include <nodelet/nodelet.h>
 
-#ifndef HEAT_IMAGE_TRANSLATOR_H__
-#define HEAT_IMAGE_TRANSLATOR_H__
+namespace hector_image_proc{
 
-#include <ros/ros.h>
-
-#include <image_transport/image_transport.h>
-#include <image_transport/subscriber_filter.h>
-#include <image_transport/camera_subscriber.h>
-
-class HeatImageTranslator
+class HeatImageColorizerNodelet : public nodelet::Nodelet
 {
-public:
-  HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
-
-  void connectCb();
-
-  void imageCb(const sensor_msgs::ImageConstPtr& image_msg);
-
-  void convertImage(const sensor_msgs::ImageConstPtr& image_msg);
-
 protected:
-  bool mappingDefined_;
-  double min_temp_img_;
-  double max_temp_img_;
-  double temperature_unit_kelvin_;
+  boost::shared_ptr<HeatImageColorizer> dg_;
 
-  boost::mutex connect_mutex_;
-
-  boost::shared_ptr<image_transport::ImageTransport> it_;//, it_out_;
-  image_transport::Subscriber image_sub_;
-  //image_transport::CameraSubscriber sub_;
-
-  //ros::Subscriber image_sub_;
-  image_transport::Publisher converted_image_pub_;
-
+  virtual void onInit();
 };
 
-#endif HEAT_IMAGE_TRANSLATOR_H__
+void HeatImageColorizerNodelet::onInit()
+{
+  dg_.reset(new HeatImageColorizer(getNodeHandle(), getPrivateNodeHandle()));
+}
+
+} //namespace
+
+// Register nodelet
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatImageColorizerNodelet, nodelet::Nodelet)

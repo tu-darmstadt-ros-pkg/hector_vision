@@ -1,3 +1,4 @@
+<class_libraries>
 <library path="lib/libheat_image_translator_nodelet">
 
   <class name="hector_image_proc/heat_image_translator_nodelet"
@@ -7,5 +8,14 @@
       Thermal image processing nodelet for image conversion
     </description>
   </class>
-
 </library>
+<library path="lib/libheat_image_colorizer_nodelet">
+  <class name="hector_image_proc/heat_image_colorizer_nodelet" type="hector_image_proc::HeatImageColorizerNodelet" base_class_type="nodelet::Nodelet">
+  <description>
+    Thermal image processing nodelet for colorizing a thermal image
+  </description>
+  </class>
+</library>
+
+</class_libraries>
+

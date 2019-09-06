@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2015, Stefan Kohlbrecher, TU Darmstadt
+// Copyright (c) 2019, Stefan Kohlbrecher and Marius Schnaubelt, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,35 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <hector_thermal_image_conversion/heat_image_translator.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
-#include <boost/thread.hpp>
-#include <nodelet/nodelet.h>
+#include <hector_thermal_image_conversion/heat_image_colorizer.h>
 
-HeatImageTranslator::HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_)
+HeatImageColorizer::HeatImageColorizer(ros::NodeHandle& nh_,ros::NodeHandle& pnh_)
 {
-  min_temp_img_ =  10.0;
-  max_temp_img_ = 200.0;
-  temperature_unit_kelvin_ = 0.04;
-
-  mappingDefined_ = true;
-
   // This converter does not require camera info, so we just subscribe to the image
   // Setup is inspired by standard image_proc nodelets such as
   // https://github.com/strawlab/image_pipeline/blob/master/image_proc/src/nodelets/debayer.cpp
   it_.reset(new image_transport::ImageTransport(pnh_));
 
   typedef image_transport::SubscriberStatusCallback ConnectCB;
-  ConnectCB connect_cb = boost::bind(&HeatImageTranslator::connectCb, this);
+  ConnectCB connect_cb = boost::bind(&HeatImageColorizer::connectCb, this);
 
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-  converted_image_pub_ = it_->advertise("image_converted", 1, connect_cb, connect_cb);
+  converted_image_pub_ = it_->advertise("image_mapped", 1, connect_cb, connect_cb);
+
+  color_mapping_ = cv::Mat(iron_bow_color_mapping, true);
 }
 
-void HeatImageTranslator::connectCb()
+void HeatImageColorizer::connectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   if (converted_image_pub_.getNumSubscribers() == 0)
     image_sub_.shutdown();
   else if (!image_sub_)
-    image_sub_ = it_->subscribe("image", 1, &HeatImageTranslator::imageCb, this);
+    image_sub_ = it_->subscribe("image", 1, &HeatImageColorizer::imageCb, this);
 }
 
-void HeatImageTranslator::convertImage(const sensor_msgs::ImageConstPtr& image_msg)
+void HeatImageColorizer::colorizeImage(const sensor_msgs::ImageConstPtr& image_msg)
 {
-  //ROS_ERROR("cb");
   cv_bridge::CvImagePtr cv_ptr;
   try
   {
@@ -73,20 +63,23 @@ void HeatImageTranslator::convertImage(const sensor_msgs::ImageConstPtr& image_m
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
-  cv::Mat convertedImage;
-  const int raw_min = (min_temp_img_+273.15)/temperature_unit_kelvin_;
-  const int raw_max = (max_temp_img_+273.15)/temperature_unit_kelvin_;
 
-  const double alpha = 255.0 / (raw_max - raw_min);
-  const double beta = -alpha * raw_min;
-  cv_ptr->image.convertTo(convertedImage, CV_8UC1, alpha, beta);
+  double min, max;
+  cv::minMaxLoc(cv_ptr->image, &min, &max);
+  ROS_INFO_STREAM("min: " << min << " max: " << max);
 
-  cv_ptr->image = convertedImage;
-  cv_ptr->encoding = "mono8";
+  cv::Mat colorized_image;
+
+  cv::normalize(cv_ptr->image, colorized_image, 0, 255, cv::NORM_MINMAX, CV_8U);
+  cvtColor(colorized_image, colorized_image, cv::COLOR_GRAY2RGB);
+  cv::LUT(colorized_image, iron_bow_color_mapping, colorized_image);
+
+  cv_ptr->image = colorized_image;
+  cv_ptr->encoding = "rgb8";
   converted_image_pub_.publish(cv_ptr->toImageMsg());
 }
 
-void HeatImageTranslator::imageCb(const sensor_msgs::ImageConstPtr& image_msg)
+void HeatImageColorizer::imageCb(const sensor_msgs::ImageConstPtr& image_msg)
 {
-  convertImage(image_msg);
+  colorizeImage(image_msg);
 }

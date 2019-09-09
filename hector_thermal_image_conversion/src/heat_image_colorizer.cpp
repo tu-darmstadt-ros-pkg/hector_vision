@@ -64,10 +64,6 @@ void HeatImageColorizer::colorizeImage(const sensor_msgs::ImageConstPtr& image_m
     return;
   }
 
-  double min, max;
-  cv::minMaxLoc(cv_ptr->image, &min, &max);
-  ROS_INFO_STREAM("min: " << min << " max: " << max);
-
   cv::Mat colorized_image;
 
   cv::normalize(cv_ptr->image, colorized_image, 0, 255, cv::NORM_MINMAX, CV_8U);

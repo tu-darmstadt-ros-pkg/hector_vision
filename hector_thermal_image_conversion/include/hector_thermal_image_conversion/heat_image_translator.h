@@ -64,4 +64,4 @@ protected:
 
 };
 
-#endif HEAT_IMAGE_TRANSLATOR_H__
+#endif

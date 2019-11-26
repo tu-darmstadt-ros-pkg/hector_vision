@@ -4,7 +4,7 @@
   
   <arg name="thermal_camera_ns" default="arm_thermal_cam" /> 
   
-  <node pkg="hector_heat_detection" type="heat_detection" name="heat_detection" output="screen">
+  <node pkg="hector_heat_detection" type="heat_detection_node" name="heat_detection" output="screen">
     <remap from="thermal/image" to="/$(arg thermal_camera_ns)/image_converted"/>    
   </node>
 

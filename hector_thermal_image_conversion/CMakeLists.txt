@@ -15,10 +15,14 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf_conversions
   eigen_conversions
+  dynamic_reconfigure
 )
 
 find_package(OpenCV REQUIRED)
 
+generate_dynamic_reconfigure_options(
+  cfg/ThermalImageConversion.cfg
+)
 
 include_directories(
   include
@@ -38,10 +42,11 @@ target_link_libraries(heat_image_translator ${catkin_LIBRARIES} ${OpenCV_LIBRARI
 
 add_executable(heat_image_translator_node src/heat_image_translator_node.cpp)
 target_link_libraries(heat_image_translator_node heat_image_translator)
+add_dependencies(heat_image_translator_node ${PROJECT_NAME}_gencfg)
 
 add_library(heat_image_translator_nodelet src/heat_image_translator_nodelet.cpp)
-target_link_libraries(heat_image_translator_nodelet heat_image_translator)
-
+target_link_libraries(heat_image_translator_nodelet heat_image_translator )
+add_dependencies(heat_image_translator_nodelet ${PROJECT_NAME}_gencfg)
 
 add_library(heat_image_colorizer src/heat_image_colorizer.cpp include/hector_thermal_image_conversion/iron_bow_color_mapping.h)
 #add_dependencies(heat_image_translator ${${PROJECT_NAME}_EXPORTED_TARGETS})

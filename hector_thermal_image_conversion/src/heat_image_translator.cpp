@@ -40,7 +40,7 @@ HeatImageTranslator::HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& p
   if (use_raw_threshold_)
   {
     pnh_.param<double>("min_temp_img", min_temp_img_, 22000.0);
-    pnh_.param<double>("max_temp_img", max_temp_img_, 26000.0);
+    pnh_.param<double>("max_temp_img", max_temp_img_, 25000.0);
   }
   else
   {

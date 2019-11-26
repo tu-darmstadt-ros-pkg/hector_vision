@@ -1,6 +1,11 @@
 #include "heat_detection.h"
 
-HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
+HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n)
+: image_sub_(n, "thermal/image", 1),
+  cam_info_sub_(n, "thermal/camera_info", 1),
+  image_mapped_sub_(n, "thermal/image_mapped", 1),
+  time_sync_(SyncPolicy(10), image_sub_, cam_info_sub_, image_mapped_sub_)
+{
 
     processing_enabled_ = true;
 
@@ -21,7 +26,9 @@ HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n){
     blob_temperature_ = -1.0;
     perform_measurement_ = false;
 
-    sub_ = it.subscribeCamera("thermal/image", 1, &HeatDetection::imageCallback,this);
+    //sub_ = it.subscribeCamera("thermal/image", 1, &HeatDetection::imageCallback,this);
+
+    time_sync_.registerCallback( boost::bind(&HeatDetection::imageCallback, this, _1, _2, _3));
 
     //sub_mapping_ = n.subscribe("thermal/mapping",1, &HeatDetection::mappingCallback,this);
 
@@ -64,7 +71,9 @@ bool HeatDetection::getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::
 }
 */
 
-void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info){
+void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info,
+  const sensor_msgs::ImageConstPtr& img_mapped)
+{
 //if(debug_){
 //    ROS_INFO("count: %i", ++image_count_);
 //}
@@ -89,6 +98,11 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
      cv_bridge::CvImageConstPtr cv_ptr;
      cv_ptr = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::MONO8);
      cv::Mat img_filtered(cv_ptr->image);
+
+     //Read image with cvbridge
+     cv_bridge::CvImageConstPtr cv_mapped_ptr;
+     cv_mapped_ptr = cv_bridge::toCvShare(img_mapped, sensor_msgs::image_encodings::RGB8);
+     cv::Mat cv_img_mapped(cv_mapped_ptr->image);
 
      if ((img_thres_.rows != static_cast<int>(img->height)) || (img_thres_.cols != static_cast<int>(img->width))){
        img_thres_min_ = cv::Mat (img->height, img->width,CV_8UC1,1);
@@ -193,7 +207,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        int width = 3;
        int height = 3;
 
-       IplImage ipl_img = img_filtered;
+       IplImage ipl_img = cv_img_mapped;
 
       //Display Keypoints
        for(unsigned int i = 0; i < keypoints.size(); i++){
@@ -206,11 +220,11 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
                     if ((keypoints.at(i).pt.x + j) >= 0  &&  (keypoints.at(i).pt.x + j) < ipl_img.width){
                        //Draw upper line
                        if ((keypoints.at(i).pt.y - height) >= 0){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y - height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(0));
+                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y - height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(255));
                        }
                        //Draw lower line
                        if ((keypoints.at(i).pt.y + height) < ipl_img.height){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y + height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(0));
+                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y + height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(255));
                        }
                     }
                }
@@ -219,11 +233,11 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
                    if ((keypoints.at(i).pt.y + k) >= 0  &&  (keypoints.at(i).pt.y + k) < ipl_img.height){
                        //Draw left line
                        if ((keypoints.at(i).pt.x - width) >= 0){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x - width),cv::Scalar(0));
+                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x - width),cv::Scalar(255));
                        }
                         //Draw right line
                        if ((keypoints.at(i).pt.x + width) < ipl_img.width){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x + width),cv::Scalar(0));
+                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x + width),cv::Scalar(255));
                        }
                    }
                }
@@ -234,12 +248,12 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
        //cv::waitKey(20);
 
        cv_bridge::CvImage cvImg;
-       cvImg.image = img_filtered;
+       cvImg.image = cv_img_mapped;
 
 
 
        cvImg.header = img->header;
-       cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+       cvImg.encoding = sensor_msgs::image_encodings::RGB8;
        pub_detection_.publish(cvImg.toImageMsg(),info);
     }
 }

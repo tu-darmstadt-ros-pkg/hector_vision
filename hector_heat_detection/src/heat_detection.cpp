@@ -100,8 +100,8 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
      cv::Mat img_filtered(cv_ptr->image);
 
      //Read image with cvbridge
-     cv_bridge::CvImageConstPtr cv_mapped_ptr;
-     cv_mapped_ptr = cv_bridge::toCvShare(img_mapped, sensor_msgs::image_encodings::RGB8);
+     cv_bridge::CvImagePtr cv_mapped_ptr;
+     cv_mapped_ptr = cv_bridge::toCvCopy(img_mapped, sensor_msgs::image_encodings::RGB8);
      cv::Mat cv_img_mapped(cv_mapped_ptr->image);
 
      if ((img_thres_.rows != static_cast<int>(img->height)) || (img_thres_.cols != static_cast<int>(img->width))){
@@ -203,55 +203,20 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
 
    if(pub_detection_.getNumSubscribers() > 0){
 
-   //Create image with detection frames
-       int width = 3;
-       int height = 3;
-
-       IplImage ipl_img = cv_img_mapped;
-
       //Display Keypoints
        for(unsigned int i = 0; i < keypoints.size(); i++){
            if (keypoints.at(i).size > 1){
 
-               //Write rectangle into image
-               width = (int)(keypoints.at(i).size );
-               height = (int)(keypoints.at(i).size );
-               for(int j = -width; j <= width;j++){
-                    if ((keypoints.at(i).pt.x + j) >= 0  &&  (keypoints.at(i).pt.x + j) < ipl_img.width){
-                       //Draw upper line
-                       if ((keypoints.at(i).pt.y - height) >= 0){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y - height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(255));
-                       }
-                       //Draw lower line
-                       if ((keypoints.at(i).pt.y + height) < ipl_img.height){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y + height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(255));
-                       }
-                    }
-               }
+             int half_size = keypoints.at(i).size/2;
+             cv::rectangle(cv_img_mapped, cv::Point(keypoints.at(i).pt.x - half_size, keypoints.at(i).pt.y - half_size),
+               cv::Point(keypoints.at(i).pt.x + half_size, keypoints.at(i).pt.y + half_size), cv::Scalar(255), 3);
 
-               for(int k = -height; k <= height;k++){
-                   if ((keypoints.at(i).pt.y + k) >= 0  &&  (keypoints.at(i).pt.y + k) < ipl_img.height){
-                       //Draw left line
-                       if ((keypoints.at(i).pt.x - width) >= 0){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x - width),cv::Scalar(255));
-                       }
-                        //Draw right line
-                       if ((keypoints.at(i).pt.x + width) < ipl_img.width){
-                            cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x + width),cv::Scalar(255));
-                       }
-                   }
-               }
            }
        }
 
-       //cv::imshow("Converted Image",img_filtered);
-       //cv::waitKey(20);
-
        cv_bridge::CvImage cvImg;
        cvImg.image = cv_img_mapped;
-
-
-
+       
        cvImg.header = img->header;
        cvImg.encoding = sensor_msgs::image_encodings::RGB8;
        pub_detection_.publish(cvImg.toImageMsg(),info);

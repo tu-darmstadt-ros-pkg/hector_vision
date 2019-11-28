@@ -12,7 +12,7 @@
     <arg name="image_topic" value="$(arg image_topic)" />
   </include>
   
-<!--  <include file="$(find hector_thermal_image_conversion)/launch/heat_image_translation_nodelet.launch">
+  <include file="$(find hector_thermal_image_conversion)/launch/heat_image_translation_nodelet.launch">
     <arg name="camera_nodelet_manager_name" value="$(arg camera_nodelet_manager_name)"/>
     <arg name="camera_ns" value="$(arg camera_ns)" /> 
     <arg name="image_topic" value="$(arg image_topic)" />

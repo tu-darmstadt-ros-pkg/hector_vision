@@ -52,3 +52,6 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 ## Declare a cpp executable
 add_executable(hector_detection_aggregator_node src/detection_aggregator_node.cpp)
 target_link_libraries(hector_detection_aggregator_node ${PROJECT_NAME})
+
+
+install(DIRECTORY config launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

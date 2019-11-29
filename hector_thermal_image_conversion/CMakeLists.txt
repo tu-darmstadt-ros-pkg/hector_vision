@@ -61,3 +61,10 @@ target_link_libraries(heat_image_colorizer_nodelet heat_image_colorizer)
 #add_dependencies(hotspot_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+install(DIRECTORY include/${PROJECT_NAME}/ DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION} FILES_MATCHING PATTERN "*.h")
+install(TARGETS heat_image_translator heat_image_translator_node heat_image_translator_nodelet
+                heat_image_colorizer heat_image_colorizer_node heat_image_colorizer_nodelet
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES nodelet_plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

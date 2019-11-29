@@ -56,3 +56,5 @@ catkin_package(
       hector_perception_msgs
       nodelet
 )
+
+install(DIRECTORY cfg config launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

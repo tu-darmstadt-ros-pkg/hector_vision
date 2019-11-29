@@ -41,3 +41,5 @@ target_link_libraries(heat_detection_nodelet heat_detection)
 #    INCLUDE_DIRS # TODO include
 #    LIBRARIES # TODO
 #)
+
+install(DIRECTORY cfg launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

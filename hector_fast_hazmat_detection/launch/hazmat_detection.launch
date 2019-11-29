@@ -4,7 +4,7 @@
   <arg name="camera_ns" default="arm_rgbd_cam" />
   <arg name="image_topic" default="rgb/image_raw" />
   
-  <node name="hazmat_detection" pkg="hector_fast_hazmat_detection" type="hazmat_detection_node.py" output="screen">
+  <node name="hazmat_detection" pkg="hector_fast_hazmat_detection" type="hazmat_detection_node" output="screen">
     <remap from="~image" to="$(arg camera_ns)/$(arg image_topic)" />
     <remap from="image_percept" to="/detection/visual_detection" />
     <remap from="~enabled" to="/startup_check/enabled" />

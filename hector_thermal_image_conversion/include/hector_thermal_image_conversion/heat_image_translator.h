@@ -35,10 +35,14 @@
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
 #include <image_transport/camera_subscriber.h>
+#include <hector_thermal_image_conversion/ThermalImageConversionConfig.h>
+#include <dynamic_reconfigure/server.h>
 
 class HeatImageTranslator
 {
 public:
+  typedef hector_thermal_image_conversion::ThermalImageConversionConfig DynRecConfig;
+
   HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
 
   void connectCb();
@@ -47,8 +51,11 @@ public:
 
   void convertImage(const sensor_msgs::ImageConstPtr& image_msg);
 
+  void dynRecCallback(DynRecConfig &config, uint32_t level);
+
 protected:
   bool mappingDefined_;
+  bool use_raw_threshold_;
   double min_temp_img_;
   double max_temp_img_;
   double temperature_unit_kelvin_;
@@ -61,6 +68,9 @@ protected:
 
   //ros::Subscriber image_sub_;
   image_transport::Publisher converted_image_pub_;
+
+  dynamic_reconfigure::Server<DynRecConfig> dyn_rec_server_;
+  dynamic_reconfigure::Server<DynRecConfig>::CallbackType dyn_rec_callback_type_;
 
 };
 

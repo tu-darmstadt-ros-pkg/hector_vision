@@ -35,9 +35,20 @@
 
 HeatImageTranslator::HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_)
 {
-  min_temp_img_ =  10.0;
-  max_temp_img_ = 200.0;
-  temperature_unit_kelvin_ = 0.04;
+  pnh_.param<bool>("use_raw_threshold", use_raw_threshold_, true);
+
+  if (use_raw_threshold_)
+  {
+    pnh_.param<double>("min_temp_img", min_temp_img_, 22000.0);
+    pnh_.param<double>("max_temp_img", max_temp_img_, 25000.0);
+  }
+  else
+  {
+    pnh_.param<double>("min_temp_img", min_temp_img_, 10.0);
+    pnh_.param<double>("max_temp_img", max_temp_img_, 200.0);
+  }
+
+  pnh_.param<double>("temperature_unit_kelvin", temperature_unit_kelvin_, 0.04);
 
   mappingDefined_ = true;
 
@@ -51,6 +62,9 @@ HeatImageTranslator::HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& p
 
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   converted_image_pub_ = it_->advertise("image_converted", 1, connect_cb, connect_cb);
+
+  dyn_rec_callback_type_ = boost::bind(&HeatImageTranslator::dynRecCallback, this, _1, _2);
+  dyn_rec_server_.setCallback(dyn_rec_callback_type_);
 }
 
 void HeatImageTranslator::connectCb()
@@ -74,8 +88,19 @@ void HeatImageTranslator::convertImage(const sensor_msgs::ImageConstPtr& image_m
     return;
   }
   cv::Mat convertedImage;
-  const int raw_min = (min_temp_img_+273.15)/temperature_unit_kelvin_;
-  const int raw_max = (max_temp_img_+273.15)/temperature_unit_kelvin_;
+  int raw_min = 0;
+  int raw_max = 0;
+
+  if (use_raw_threshold_)
+  {
+    raw_min = min_temp_img_;
+    raw_max = max_temp_img_;
+  }
+  else
+  {
+    raw_min = (min_temp_img_+273.15)/temperature_unit_kelvin_;
+    raw_max = (max_temp_img_+273.15)/temperature_unit_kelvin_;
+  }
 
   const double alpha = 255.0 / (raw_max - raw_min);
   const double beta = -alpha * raw_min;
@@ -90,3 +115,11 @@ void HeatImageTranslator::imageCb(const sensor_msgs::ImageConstPtr& image_msg)
 {
   convertImage(image_msg);
 }
+
+void HeatImageTranslator::dynRecCallback(DynRecConfig &config, uint32_t level)
+{
+  min_temp_img_ = config.min_value;
+  max_temp_img_ = config.max_value;
+  use_raw_threshold_ = config.use_raw_threshold;
+}
+

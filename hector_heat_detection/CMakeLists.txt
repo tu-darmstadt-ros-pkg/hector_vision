@@ -6,14 +6,22 @@ project(hector_heat_detection)
 find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure nodelet)
 
 find_package(OpenCV 3 REQUIRED)
+
+generate_dynamic_reconfigure_options(cfg/HeatDetection.cfg)
+
+catkin_package(
+#    DEPENDS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure
+#    CATKIN_DEPENDS # TODO
+#    INCLUDE_DIRS # TODO include
+    LIBRARIES heat_detection heat_detection_nodelet
+)
+
 #find_package(OpenCV REQUIRED)
 include_directories(
-  include
+#  include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
-
-generate_dynamic_reconfigure_options(cfg/HeatDetection.cfg)
 
 add_library(heat_detection src/heat_detection.cpp)
 add_dependencies(heat_detection ${${PROJECT_NAME}_EXPORTED_TARGETS})
@@ -33,13 +41,8 @@ target_link_libraries(heat_detection_nodelet heat_detection)
     #TODO DEPENDENCIES geometry_msgs std_msgs
 #)
 
-# catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
-# TODO: fill in what other packages will need to use this package
-#catkin_package(
-#    DEPENDS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure
-#    CATKIN_DEPENDS # TODO
-#    INCLUDE_DIRS # TODO include
-#    LIBRARIES # TODO
-#)
-
+install(TARGETS heat_detection heat_detection_node heat_detection_nodelet
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 install(DIRECTORY cfg launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES nodelet_plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

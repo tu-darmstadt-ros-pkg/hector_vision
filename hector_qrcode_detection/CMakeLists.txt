@@ -88,7 +88,10 @@ catkin_package(
     LIBRARIES # TODO
 )
 
-install(TARGETS )
+install(TARGETS qrcode_detection qrcode_detection_nodelet qrcode_detection_node
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 

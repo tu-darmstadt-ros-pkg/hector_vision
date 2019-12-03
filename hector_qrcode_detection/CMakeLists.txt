@@ -72,7 +72,14 @@ add_library(zbar SHARED IMPORTED)
 add_dependencies(zbar zbar_built)
 set_target_properties(zbar PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/lib/libzbar.so)
 
-add_subdirectory(src)
+add_library(qrcode_detection src/qrcode_detection.cpp)
+target_link_libraries(qrcode_detection zbar ${catkin_LIBRARIES})
+
+add_library(qrcode_detection_nodelet src/nodelet.cpp)
+target_link_libraries(qrcode_detection_nodelet qrcode_detection)
+
+add_executable(qrcode_detection_node src/node.cpp)
+target_link_libraries(qrcode_detection_node qrcode_detection)
 
 ## Generate added messages and services with any dependencies listed here
 #generate_messages(

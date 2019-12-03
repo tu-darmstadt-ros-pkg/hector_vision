@@ -1,8 +1,0 @@
-add_library(qrcode_detection qrcode_detection.cpp)
-target_link_libraries(qrcode_detection zbar ${catkin_LIBRARIES})
-
-add_library(qrcode_detection_nodelet nodelet.cpp)
-target_link_libraries(qrcode_detection_nodelet qrcode_detection)
-
-add_executable(qrcode_detection_node node.cpp)
-target_link_libraries(qrcode_detection_node qrcode_detection)

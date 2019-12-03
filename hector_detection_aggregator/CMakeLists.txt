@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   nodelet
 )
-generate_dynamic_reconfigure_options(config/HectorDetectionAggregatorConfig.cfg)
+generate_dynamic_reconfigure_options(config/HectorDetectionAggregator.cfg)
 
 catkin_package(
    INCLUDE_DIRS include

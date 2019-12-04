@@ -1,9 +1,9 @@
 #include "heat_detection.h"
 
 HeatDetection::HeatDetection(ros::NodeHandle& n,ros::NodeHandle& p_n)
-: image_sub_(n, "thermal/image", 1),
-  cam_info_sub_(n, "thermal/camera_info", 1),
-  image_mapped_sub_(n, "thermal/image_mapped", 1),
+: image_sub_(p_n, "thermal/image", 1),
+  cam_info_sub_(p_n, "thermal/camera_info", 1),
+  image_mapped_sub_(p_n, "thermal/image_mapped", 1),
   time_sync_(SyncPolicy(10), image_sub_, cam_info_sub_, image_mapped_sub_)
 {
 

@@ -39,6 +39,7 @@ catkin_package(
 add_library(heat_image_translator src/heat_image_translator.cpp)
 #add_dependencies(heat_image_translator ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(heat_image_translator ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(heat_image_translator ${PROJECT_NAME}_gencfg)
 
 add_executable(heat_image_translator_node src/heat_image_translator_node.cpp)
 target_link_libraries(heat_image_translator_node heat_image_translator)

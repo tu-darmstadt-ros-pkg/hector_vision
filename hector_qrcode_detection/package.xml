@@ -23,7 +23,8 @@
   <build_depend>cv_bridge</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>nodelet</build_depend>
-  <build_depend>roscpp</build_depend>
+  <build_depend>zbar</build_depend>
+
 
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>roscpp</run_depend>
@@ -33,7 +34,7 @@
   <run_depend>cv_bridge</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>nodelet</run_depend>
-  <run_depend>roscpp</run_depend>
+  <run_depend>zbar</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
   <!-- <test_depend>image_transport</test_depend> -->

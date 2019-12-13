@@ -28,9 +28,9 @@ find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge image_transport hector_
 # rosbuild_init()
 
 #set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #uncomment if you have defined messages
 #add_message_files(
@@ -55,22 +55,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 #add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-# download and build zbar library
-add_custom_command(
-  OUTPUT lib/libzbar.so
-  COMMAND make INSTALL_DIR=${PROJECT_SOURCE_DIR} CFLAGS=""
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rdparty/zbar
-)
-add_custom_target(
-  zbar_built
-  DEPENDS lib/libzbar.so
-)
-
 include_directories(include ${catkin_INCLUDE_DIRS})
-
-add_library(zbar SHARED IMPORTED)
-add_dependencies(zbar zbar_built)
-set_target_properties(zbar PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/lib/libzbar.so)
 
 add_library(qrcode_detection src/qrcode_detection.cpp)
 target_link_libraries(qrcode_detection zbar ${catkin_LIBRARIES})

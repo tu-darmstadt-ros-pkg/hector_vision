@@ -30,7 +30,7 @@
 #include <hector_worldmodel_msgs/ImagePercept.h>
 #include <hector_perception_msgs/PerceptionDataArray.h>
 
-#include <cv.h>
+#include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <zbar.h>
 

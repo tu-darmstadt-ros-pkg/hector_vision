@@ -3,15 +3,13 @@
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
-#include <opencv/cv.h>
-#include <cv_bridge/cv_bridge.h>
 
 #include <hector_worldmodel_msgs/ImagePercept.h>
 #include <hector_perception_msgs/PerceptionDataArray.h>
 
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <sensor_msgs/image_encodings.h>
 

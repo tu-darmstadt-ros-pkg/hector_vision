@@ -89,8 +89,8 @@ target_link_libraries(thermal_self_filter_node ${catkin_LIBRARIES})
 # catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
 # TODO: fill in what other packages will need to use this package
 catkin_package(
-    DEPENDS robot_self_filter pcl_ros pcl_conversions hector_worldmodel_msgs
-    CATKIN_DEPENDS # TODO
+    DEPENDS 
+    CATKIN_DEPENDS robot_self_filter pcl_ros pcl_conversions hector_worldmodel_msgs
     INCLUDE_DIRS # TODO include
     LIBRARIES # TODO
 )

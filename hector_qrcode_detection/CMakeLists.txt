@@ -5,6 +5,13 @@ project(hector_qrcode_detection)
 
 find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge image_transport hector_worldmodel_msgs hector_perception_msgs cv_bridge tf nodelet)
 
+catkin_package(
+    DEPENDS
+    CATKIN_DEPENDS  roscpp cv_bridge image_transport hector_worldmodel_msgs hector_perception_msgs cv_bridge tf nodelet
+    INCLUDE_DIRS include
+    LIBRARIES qrcode_detection qrcode_detection_nodelet
+)
+
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_library(qrcode_detection src/qrcode_detection.cpp)
@@ -15,13 +22,6 @@ target_link_libraries(qrcode_detection_nodelet qrcode_detection)
 
 add_executable(qrcode_detection_node src/node.cpp)
 target_link_libraries(qrcode_detection_node qrcode_detection)
-
-catkin_package(
-    DEPENDS
-    CATKIN_DEPENDS  roscpp cv_bridge image_transport hector_worldmodel_msgs hector_perception_msgs cv_bridge tf nodelet
-    INCLUDE_DIRS include
-    LIBRARIES qrcode_detection qrcode_detection_nodelet
-)
 
 install(TARGETS qrcode_detection qrcode_detection_nodelet qrcode_detection_node
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   image_geometry
   image_transport
-  pcl_ros
   roscpp
   sensor_msgs
   tf

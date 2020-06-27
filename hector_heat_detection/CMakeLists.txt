@@ -5,7 +5,7 @@ project(hector_heat_detection)
 # Load catkin and all dependencies required for this package
 find_package(catkin REQUIRED COMPONENTS roscpp rospy image_transport camera_info_manager hector_worldmodel_msgs sensor_msgs cv_bridge std_msgs image_transport dynamic_reconfigure nodelet)
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 generate_dynamic_reconfigure_options(cfg/HeatDetection.cfg)
 

@@ -29,8 +29,8 @@
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <opencv/highgui.h>
-#include <opencv/cv.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <hector_worldmodel_msgs/ImagePercept.h>

@@ -6,7 +6,7 @@
 #define HECTOR_VISION_ALGORITHMS_THESHOLDING_H
 
 #include <opencv2/core.hpp>
-
+#include <opencv2/core/types_c.h>
 namespace hector_vision_algorithms
 {
 

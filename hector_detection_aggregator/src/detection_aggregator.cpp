@@ -88,8 +88,8 @@ void DetectionAggregator::createImage()
                           true, 			// draw closed contour (i.e. joint end to start)
                           color_map_[percept_pair.first.c_str()],// colour RGB ordering
                         2, 		        // line thickness
-                        CV_AA, 0);
-                cv::putText(img_detected,percept.percept_name,cv_center_point,CV_FONT_HERSHEY_SIMPLEX, 0.75, color_map_[percept_pair.first.c_str()], 2);
+                        cv::LINE_AA, 0);
+                cv::putText(img_detected,percept.percept_name,cv_center_point,cv::FONT_HERSHEY_SIMPLEX, 0.75, color_map_[percept_pair.first.c_str()], 2);
             }
         }
 

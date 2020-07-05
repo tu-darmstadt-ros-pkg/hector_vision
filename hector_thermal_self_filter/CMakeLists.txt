@@ -8,8 +8,6 @@ find_package(catkin REQUIRED COMPONENTS cmake_modules robot_self_filter pcl_ros 
 
 find_package(PCL REQUIRED)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-
 find_package(ASSIMP QUIET)
 if (NOT ASSIMP_FOUND)
   pkg_check_modules(ASSIMP assimp)

@@ -424,38 +424,14 @@ namespace hector_color_detection_nodelet{
         int width = 3;
         int height = 3;
 
-        IplImage ipl_img = img_filtered;
-
-        //Display Keypoints
         for(unsigned int i = 0; i < keypoints.size(); i++){
-            //Write rectangle into image
-            width = (int)(keypoints.at(i).size );
-            height = (int)(keypoints.at(i).size );
-            for(int j = -width; j <= width;j++){
-                if ((keypoints.at(i).pt.x + j) >= 0  &&  (keypoints.at(i).pt.x + j) < ipl_img.width){
-                    //Draw upper line
-                    if ((keypoints.at(i).pt.y - height) >= 0){
-                        cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y - height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(0));
-                    }
-                    //Draw lower line
-                    if ((keypoints.at(i).pt.y + height) < ipl_img.height){
-                        cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y + height), (int)(keypoints.at(i).pt.x + j),cv::Scalar(0));
-                    }
-                }
-            }
+           if (keypoints.at(i).size > 1){
 
-            for(int k = -height; k <= height;k++){
-                if ((keypoints.at(i).pt.y + k) >= 0  &&  (keypoints.at(i).pt.y + k) < ipl_img.height){
-                    //Draw left line
-                    if ((keypoints.at(i).pt.x - width) >= 0){
-                        cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x - width),cv::Scalar(0));
-                    }
-                    //Draw right line
-                    if ((keypoints.at(i).pt.x + width) < ipl_img.width){
-                        cvSet2D(&ipl_img,(int)(keypoints.at(i).pt.y +k), (int)(keypoints.at(i).pt.x + width),cv::Scalar(0));
-                    }
-                }
-            }
+             int half_size = keypoints.at(i).size/2;
+             cv::rectangle(img_filtered, cv::Point(keypoints.at(i).pt.x - half_size, keypoints.at(i).pt.y - half_size),
+               cv::Point(keypoints.at(i).pt.x + half_size, keypoints.at(i).pt.y + half_size), cv::Scalar(255), 3);
+
+           }
         }
 
 

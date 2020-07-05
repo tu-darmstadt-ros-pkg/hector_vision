@@ -121,11 +121,7 @@ void HeatDetection::imageCallback(const sensor_msgs::ImageConstPtr& img, const s
    cv::threshold(img_filtered,img_thres_max_,maxThreshold,1,cv::THRESH_BINARY_INV);
 
    //Element-wise multiplication to obtain an image with respect to both thresholds
-   IplImage img_thres_min_ipl = img_thres_min_;
-   IplImage img_thres_max_ipl = img_thres_max_;
-   IplImage img_thres_ipl = img_thres_;
-
-   cvMul(&img_thres_min_ipl, &img_thres_max_ipl, &img_thres_ipl, 255);
+   cv::multiply(img_thres_min_, img_thres_max_, img_thres_, 255);
    //Perform blob detection
    cv::SimpleBlobDetector::Params params;
    params.filterByColor = true;

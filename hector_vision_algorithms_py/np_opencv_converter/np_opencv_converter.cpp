@@ -9,7 +9,7 @@ namespace fs { namespace python {
 // Static PyInit
 static void py_init() {
   Py_Initialize();
-  import_array();
+  _import_array();
 }
 
 // Singleton init and export converters

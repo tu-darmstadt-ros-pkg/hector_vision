@@ -12,7 +12,7 @@
     output="screen"
     respawn="true">
     <remap from="~/image" to="/$(arg camera_ns)/$(arg image_topic)"/>
-    <remap from="~/image_converted" to="/arm_thermal_cam/image_converted"/>
+    <remap from="~/image_converted" to="/$(arg camera_ns)/image_converted"/>
   </node>  
 
 </launch>

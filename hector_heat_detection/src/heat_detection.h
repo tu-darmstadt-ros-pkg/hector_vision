@@ -11,6 +11,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <sensor_msgs/image_encodings.h>
 //#include <thermaleye_msgs/Mapping.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <hector_heat_detection/HeatDetectionConfig.h>
@@ -29,14 +32,25 @@ private:
     void setProcessingEnabledCb(const std_msgs::Bool& msg);
     void publishProcessingEnabledState();
 
-    void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info);
+    void imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& info, const sensor_msgs::ImageConstPtr& img_mapped);
     //void mappingCallback(const thermaleye_msgs::Mapping& mapping);
     void dynRecParamCallback(HeatDetectionConfig &config, uint32_t level);
     //bool getMeasurementSrvCallback(argo_vision_msgs::GetMeasurement::Request &req,
     //                    argo_vision_msgs::GetMeasurement::Response &res);
     ros::Publisher pub_;
     image_transport::CameraSubscriber sub_;
-    image_transport::CameraPublisher pub_detection_;
+
+    message_filters::Subscriber<sensor_msgs::Image> image_sub_;
+    message_filters::Subscriber<sensor_msgs::CameraInfo> cam_info_sub_;
+
+    message_filters::Subscriber<sensor_msgs::Image> image_mapped_sub_;
+
+   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::Image> SyncPolicy;
+
+   message_filters::Synchronizer<SyncPolicy> time_sync_;
+
+
+  image_transport::CameraPublisher pub_detection_;
     ros::Subscriber sub_mapping_;
 
     ros::Publisher processing_enabled_pub_;

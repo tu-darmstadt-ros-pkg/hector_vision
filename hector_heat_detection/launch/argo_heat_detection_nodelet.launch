@@ -13,11 +13,14 @@
   <arg name="thermal_camera_ns" default="arm_thermal_cam" /> 
   
   <node pkg="nodelet" type="nodelet"
-    name="hector_heat_detection" 
+    name="heat_detection" 
     args="load hector_image_proc/heat_detection_nodelet $(arg camera_nodelet_manager_name)" 
-    output="screen">
-    <remap from="thermal/image" to="/$(arg thermal_camera_ns)/image_converted"/>    
+    output="screen" respawn="true">
+    <remap from="~/thermal/image" to="/$(arg thermal_camera_ns)/image_converted"/>    
+    <remap from="~/thermal/image_mapped" to="/$(arg thermal_camera_ns)/image_mapped"/>    
+    <remap from="~/thermal/camera_info" to="/$(arg thermal_camera_ns)/camera_info"/>    
     <remap from="/image_percept" to="/worldmodel/image_percept" />
+
     <param name="min_temp_detection" value="29" />
     <param name="max_temp_detection" value="100" />
     <param name="min_area_detection" value="40" />

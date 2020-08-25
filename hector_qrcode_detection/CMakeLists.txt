@@ -1,6 +1,6 @@
 # Catkin User Guide: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/user_guide.html
 # Catkin CMake Standard: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/standards.html
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(hector_qrcode_detection)
 
 find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge image_transport hector_worldmodel_msgs hector_perception_msgs cv_bridge tf nodelet)

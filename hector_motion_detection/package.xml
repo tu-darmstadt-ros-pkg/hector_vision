@@ -28,7 +28,6 @@
   <depend>geometry_msgs</depend>
   <depend>hector_perception_msgs</depend>
   <depend>nodelet</depend>
-  <exec_depend>libuvc_camera</exec_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />

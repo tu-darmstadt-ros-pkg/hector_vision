@@ -97,7 +97,7 @@ class BarrelsDetection:
             for p in c:
                 sum[0] += p[0][0]
                 sum[1] += p[0][1]
-            point = (math.floor(sum[0] / len(c)), math.floor(sum[1] / len(c)))
+            point = (sum[0] // len(c), sum[1] // len(c))
             cv2.circle(detection_image, point, 4, (255, 255, 255), thickness=4)
             centers.append(point)
 
@@ -144,7 +144,7 @@ class BarrelsDetection:
         detections = list()
         for k in keypoints:
             # approximate circle with rectangle
-            l = k.size / 2
+            l = k.size // 2
             c1 = k.pt[0]
             c2 = k.pt[1]
             pt1 = (int(c1 - l), int(c2 - l))

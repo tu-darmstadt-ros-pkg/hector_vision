@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+import math
 
 class Detection:
     def __init__(self, name, center, points):
@@ -71,7 +71,7 @@ class BarrelsDetection:
 
     def contour_detection(self, img, detection_image, scaling):
         # Find contours in binary image
-        im2, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         # Filter contours by area
         contours_filtered = []
@@ -97,7 +97,7 @@ class BarrelsDetection:
             for p in c:
                 sum[0] += p[0][0]
                 sum[1] += p[0][1]
-            point = (sum[0] / len(c), sum[1] / len(c))
+            point = (math.floor(sum[0] / len(c)), math.floor(sum[1] / len(c)))
             cv2.circle(detection_image, point, 4, (255, 255, 255), thickness=4)
             centers.append(point)
 
@@ -165,7 +165,7 @@ class BarrelsDetection:
         elif barrel_type == "white":
             img_pre, detection_image, scaling = self.find_white_barrels(img)
         else:
-            print "Unknown barrel type '{}'".format(barrel_type)
+            print("Unknown barrel type '{}'".format(barrel_type))
             return [], img
         detections, detection_image = self.contour_detection(img_pre, detection_image, scaling)
         return detections, detection_image

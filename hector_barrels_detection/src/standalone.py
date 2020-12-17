@@ -8,7 +8,9 @@ from visualization import show_color
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Barrels Detection')
+    parser.add_argument('barrel_type', metavar='STRING', help='type of barrel, e.g. blue')
     parser.add_argument('images', metavar='IMAGE', help='image path', nargs="+")
+
 
     args = parser.parse_args()
 
@@ -16,7 +18,7 @@ if __name__ == "__main__":
 
     for path in args.images:
         image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
-        d, detection_image = detection.detect(image)
+        d, detection_image = detection.detect(image, args.barrel_type)
         show_color(detection_image)
 
     plt.show()

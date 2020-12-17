@@ -156,7 +156,7 @@ def find_outer_circle(image, debug_info=None):
     # Downsample for better performance
     downsampled_image = cv2.pyrDown(image)
     edges = cdm(downsampled_image, auto_threshold_multiplier=0.75)
-    _, contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(edges, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     if debug_info is not None:
         debug_info.image = downsampled_image
         debug_info.edge_image = edges
@@ -179,7 +179,7 @@ def find_outer_circle(image, debug_info=None):
     sub_image = image[rect[1]-margin:rect[1]+rect[3]+margin, rect[0]-margin:rect[0]+rect[2]+margin, :]
 
     edges = cdm(sub_image, auto_threshold_multiplier=1.0)
-    _, contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if debug_info is not None:
         debug_info.sub_image = sub_image
         debug_info.sub_edge_image = edges

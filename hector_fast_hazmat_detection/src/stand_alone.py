@@ -57,11 +57,11 @@ if __name__ == "__main__":
             plt.subplot(412)
             plt.title("Contours")
             out_image = input_image.copy()
-            plt.imshow(cv2.drawContours(out_image, debug_info.contours, -1, np.array([255, 0, 0]), 2))
+            plt.imshow(cv2.drawContours(out_image, debug_info.contours, -1, (255, 0, 0), 2))
             plt.subplot(413)
             plt.title("Filtered Contours")
             out_image = input_image.copy()
-            plt.imshow(cv2.drawContours(out_image, debug_info.filtered_contours, -1, np.array([0, 255, 0]), 2))
+            plt.imshow(cv2.drawContours(out_image, debug_info.filtered_contours, -1, (0, 255, 0), 2))
             plt.subplot(414)
             plt.title("Regions of interest")
             out_image = input_image.copy()
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                     plt.subplot(5, 3, 3 * i + 3)
                     out_image = debug_info.sub_images[index][0].copy()
                     if debug_info.sub_images[index][2] is not None:
-                        cv2.drawContours(out_image, [debug_info.sub_images[index][2]], -1, np.array([255, 0, 0]), 2)
+                        cv2.drawContours(out_image, [debug_info.sub_images[index][2]], -1, (255, 0, 0), 2)
                     plt.imshow(out_image)
 
             rows = len(debug_info.best_matches)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
             plt.figure("Result")
             out_image = input_image.copy()
             for detection in detection_result.detections:
-                cv2.drawContours(out_image, [detection.contour], 0, np.array([255, 0, 0]), 2)
+                cv2.drawContours(out_image, [detection.contour], 0, (255, 0, 0), 2)
             plt.imshow(out_image)
         else:
             plt.figure("Detections")
@@ -158,7 +158,7 @@ if __name__ == "__main__":
             plt.figure("Result")
             out_image = input_image.copy()
             for detection in detection_result.detections:
-                cv2.drawContours(out_image, [detection.contour], 0, np.array([255, 0, 0]), 2)
+                cv2.drawContours(out_image, [detection.contour], 0, (255, 0, 0), 2)
             plt.imshow(out_image)
 
         plt.show()
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     if args.out:
         debug_image = image
         for detection in detection_result.detections:
-            cv2.drawContours(debug_image, [detection.contour], 0, np.array([255, 0, 0]), 2)
+            cv2.drawContours(debug_image, [detection.contour], 0, (255, 0, 0), 2)
             (x, y, w, h) = cv2.boundingRect(detection.contour)
             cv2.putText(debug_image, detection.name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, np.array([255, 0, 0]), 2)
         cv2.imwrite(args.out, debug_image)

@@ -122,7 +122,7 @@ class HazmatSignDetector:
         self.gpu = gpu
         self.downsample_passes = 2  # Each downsample pass halfes the resolution
         self.signs = []
-        self.sift = cv2.xfeatures2d.SIFT_create()
+        self.sift = cv2.SIFT_create()
         for f in os.listdir(hazmat_sign_folder):
             if not os.path.isfile(os.path.join(hazmat_sign_folder, f)):
                 continue
@@ -146,7 +146,7 @@ class HazmatSignDetector:
             kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
             test_edges = cv2.erode(hector_vision.threshold(test_edges, upper, lower), kernel)
 
-            _, contours, _ = cv2.findContours(test_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(test_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if len(contours) == 0:
                 if debug_info is not None:
                     debug_info.sub_images.append((sub_image, test_edges, None))

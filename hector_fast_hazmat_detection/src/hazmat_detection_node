@@ -109,7 +109,7 @@ class HazmatDetectionNode:
                             pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
                 debug_image = image
                 for detection in result.detections:
-                    cv2.drawContours(debug_image, [detection.contour], 0, np.array([255, 0, 0]), 2)
+                    cv2.drawContours(debug_image, [detection.contour], 0, (255, 0, 0), 2)
                     (x, y, w, h) = cv2.boundingRect(detection.contour)
                     cv2.putText(debug_image, detection.name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, np.array([255, 0, 0]), 2)
                 debug_image_msg = self.bridge.cv2_to_imgmsg(debug_image, encoding="rgb8")

@@ -43,7 +43,7 @@ def detect_areas_of_interest(image, downsample_passes=1, debug_info=None):
     img_edges = cv2.erode(img_edges, None)
     img_edges = cv2.dilate(img_edges, None)
 
-    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for c in contours:
         connected_to_wall = False
         for pt in c[:, 0, :]:
@@ -54,7 +54,7 @@ def detect_areas_of_interest(image, downsample_passes=1, debug_info=None):
             continue
         cv2.fillConvexPoly(img_edges, c, 0)
 
-    _, contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(img_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     for c in contours:
         c *= 2**downsample_passes

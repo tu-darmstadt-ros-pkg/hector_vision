@@ -9,6 +9,7 @@ import sensor_msgs.msg
 import geometry_msgs.msg
 import hector_perception_msgs.msg
 import hector_perception_msgs.srv
+import image_projection_msgs.srv
 import hector_worldmodel_msgs.msg
 import hector_nav_msgs.srv
 
@@ -28,7 +29,7 @@ class BarrelsDetectionNode:
             rospy.loginfo("Waiting for service " + project_pixel_to_ray_srv)
             rospy.wait_for_service(project_pixel_to_ray_srv)
             self.project_pixel_to_ray = rospy.ServiceProxy(project_pixel_to_ray_srv,
-                                                           hector_perception_msgs.srv.ProjectPixelTo3DRay)
+                                                           image_projection_msgs.srv.ProjectPixelTo3DRay)
 
             get_distance_to_obstacle_srv = "/move_group/get_distance_to_obstacle"
             rospy.loginfo("Waiting for service " + get_distance_to_obstacle_srv)

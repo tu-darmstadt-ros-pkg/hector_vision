@@ -8,7 +8,6 @@ import actionlib
 import sensor_msgs.msg
 import geometry_msgs.msg
 import hector_perception_msgs.msg
-import hector_perception_msgs.srv
 import image_projection_msgs.srv
 import hector_worldmodel_msgs.msg
 import hector_nav_msgs.srv

@@ -14,7 +14,6 @@ from enum import Enum
 import sensor_msgs.msg
 import geometry_msgs.msg
 import hector_perception_msgs.msg
-import hector_perception_msgs.srv
 import hector_nav_msgs.srv
 import bar_detection
 import actionlib

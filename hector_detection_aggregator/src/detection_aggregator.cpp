@@ -146,7 +146,7 @@ void DetectionAggregator::connectCb()
 
 void DetectionAggregator::startSubscribers()
 {
-  image_sub_ = it_.subscribe("/arm_rgbd_cam/rgb/image_raw", 1 , &DetectionAggregator::imageCallback, this);
+  image_sub_ = it_.subscribe("/sensor_head_rgbd_cam/rgb/image_raw", 1 , &DetectionAggregator::imageCallback, this);
   image_percept_sub_ = nh_.subscribe("/detection/visual_detection", 1 , &DetectionAggregator::imageDetectionCallback, this);
 }
 

@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="qr_rgbd_back_ns" default="back_rgbd_cam" />
+  <arg name="qr_rgbd_front_ns" default="front_rgbd_cam" />
+  <arg name="qr_rgbd_sensor_head_ns" default="sensor_head_rgbd_cam" />
+
+  <!-- Back RGBD cam-->
+  <node name="qrcode_detection_rgbd_back" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection /back_rgbd_cam/back_rgbd_cam_nodelet_manager" respawn="true">
+    <remap from="$(arg qr_rgbd_back_ns)/image" to="$(arg qr_rgbd_back_ns)/color/image_rect_color" />
+    <remap from="$(arg qr_rgbd_back_ns)/image_percept" to="worldmodel/image_percept" />
+    <remap from="$(arg qr_rgbd_back_ns)/perception/image_percept" to="/detection/visual_detection" />
+    
+    <param name="enabled" value="false" />
+    <param name="always_enabled" value="true" />
+    <remap from="$(arg qr_rgbd_back_ns)/enabled_status" to="/qrcode_detection/back/enabled_status" />
+    <remap from="$(arg qr_rgbd_back_ns)/enabled" to="/object_detection/enabled" />
+  </node>
+
+  <!-- Front RGBD cam-->
+  <node name="qrcode_detection_rgbd_front" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection /front_rgbd_cam/front_rgbd_cam_nodelet_manager" respawn="true">
+    <remap from="$(arg qr_rgbd_front_ns)/image" to="$(arg qr_rgbd_front_ns)/color/image_rect_color" />
+    <remap from="$(arg qr_rgbd_front_ns)/image_percept" to="worldmodel/image_percept" />
+    <remap from="$(arg qr_rgbd_front_ns)/perception/image_percept" to="/detection/visual_detection" />
+    
+    <param name="enabled" value="false" />
+    <param name="always_enabled" value="true" />
+    <remap from="$(arg qr_rgbd_front_ns)/enabled_status" to="qrcode_detection/front/enabled_status" />
+    <remap from="$(arg qr_rgbd_front_ns)/enabled" to="object_detection/enabled" />
+  </node>
+
+  <!-- Sensor head RGBD cam-->
+  <node name="qrcode_detection_rgbd_sensor_head" pkg="nodelet" type="nodelet" args="load hector_qrcode_detection/qrcode_detection /sensor_head_rgbd_cam/sensor_head_rgbd_cam_nodelet_manager" respawn="true">
+    <remap from="$(arg qr_rgbd_sensor_head_ns)/image" to="$(arg qr_rgbd_sensor_head_ns)/color/image_rect_color" />
+    <remap from="$(arg qr_rgbd_sensor_head_ns)/image_percept" to="worldmodel/image_percept" />
+    <remap from="$(arg qr_rgbd_sensor_head_ns)/perception/image_percept" to="/detection/visual_detection" />
+
+    <param name="enabled" value="false" />
+    <param name="always_enabled" value="true" />
+    <remap from="$(arg qr_rgbd_sensor_head_ns)/enabled_status" to="qrcode_detection/sensor_head/enabled_status" />
+    <remap from="$(arg qr_rgbd_sensor_head_ns)/enabled" to="object_detection/enabled" />
+  </node>
+  
+</launch>

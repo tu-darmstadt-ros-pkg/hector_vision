@@ -137,10 +137,10 @@ void DetectionAggregator::connectCb()
 
   if (image_detected_pub_.getNumSubscribers() == 0) {
     stopSubscribers();
-    ROS_INFO_STREAM("Stopping subscribers..");
+    ROS_DEBUG_STREAM("Stopping subscribers..");
   } else {
     startSubscribers();
-    ROS_INFO_STREAM("Starting subscribers..");
+    ROS_DEBUG_STREAM("Starting subscribers..");
   }
 }
 

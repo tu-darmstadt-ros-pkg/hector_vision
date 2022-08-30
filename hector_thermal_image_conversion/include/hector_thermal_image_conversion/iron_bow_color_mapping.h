@@ -3,7 +3,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-std::vector<cv::Vec3b> iron_bow_color_mapping = {cv::Vec3b(0, 0, 19), cv::Vec3b(0, 0, 37), cv::Vec3b(0, 0, 42),
+static std::vector<cv::Vec3b> iron_bow_color_mapping = {cv::Vec3b(0, 0, 19), cv::Vec3b(0, 0, 37), cv::Vec3b(0, 0, 42),
                                                  cv::Vec3b(0, 0, 50), cv::Vec3b(0, 0, 58), cv::Vec3b(0, 0, 62),
                                                  cv::Vec3b(0, 0, 70), cv::Vec3b(0, 0, 79), cv::Vec3b(1, 0, 85),
                                                  cv::Vec3b(1, 0, 87), cv::Vec3b(2, 0, 92), cv::Vec3b(4, 0, 97),

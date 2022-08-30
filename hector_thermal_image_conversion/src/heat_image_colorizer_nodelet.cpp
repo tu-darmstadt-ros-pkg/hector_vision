@@ -41,7 +41,7 @@ protected:
 
 void HeatImageColorizerNodelet::onInit()
 {
-  dg_.reset(new HeatImageColorizer(getNodeHandle(), getPrivateNodeHandle()));
+  dg_ = boost::make_shared<HeatImageColorizer>(getNodeHandle(), getPrivateNodeHandle());
 }
 
 } //namespace

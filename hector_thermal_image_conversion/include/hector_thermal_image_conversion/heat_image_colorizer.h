@@ -57,7 +57,9 @@ public:
 
 protected:
 
-  cv::Mat color_mapping_;
+  cv::Mat tmp_grey_img_;
+  cv::Mat tmp_rgb_img_;
+  cv_bridge::CvImagePtr img_out_;
 
   boost::mutex connect_mutex_;
 

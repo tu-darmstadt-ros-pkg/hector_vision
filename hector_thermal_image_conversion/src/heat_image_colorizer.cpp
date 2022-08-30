@@ -33,15 +33,15 @@ HeatImageColorizer::HeatImageColorizer(ros::NodeHandle& nh_,ros::NodeHandle& pnh
   // This converter does not require camera info, so we just subscribe to the image
   // Setup is inspired by standard image_proc nodelets such as
   // https://github.com/strawlab/image_pipeline/blob/master/image_proc/src/nodelets/debayer.cpp
-  it_.reset(new image_transport::ImageTransport(pnh_));
+
+
+  it_ = boost::make_shared<image_transport::ImageTransport>(pnh_);
 
   typedef image_transport::SubscriberStatusCallback ConnectCB;
   ConnectCB connect_cb = boost::bind(&HeatImageColorizer::connectCb, this);
 
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   converted_image_pub_ = it_->advertise("image_mapped", 1, connect_cb, connect_cb);
-
-  color_mapping_ = cv::Mat(iron_bow_color_mapping, true);
 }
 
 void HeatImageColorizer::connectCb()
@@ -55,24 +55,30 @@ void HeatImageColorizer::connectCb()
 
 void HeatImageColorizer::colorizeImage(const sensor_msgs::ImageConstPtr& image_msg)
 {
-  cv_bridge::CvImagePtr cv_ptr;
+  cv_bridge::CvImageConstPtr cv_ptr_in;
   try
   {
-    cv_ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO16);
+    cv_ptr_in = cv_bridge::toCvShare(image_msg);
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
 
-  cv::Mat colorized_image;
+  // Init outgoing cv image, should only happen once in normal operation
+  if ( !img_out_.get() ||
+       (img_out_->image.rows != image_msg->height) ||
+       (img_out_->image.cols != image_msg->width))
+  {
+    img_out_ = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::RGB8);
+  }else{
+    img_out_->header = image_msg->header; 
+  }
 
-  cv::normalize(cv_ptr->image, colorized_image, 0, 255, cv::NORM_MINMAX, CV_8U);
-  cvtColor(colorized_image, colorized_image, cv::COLOR_GRAY2RGB);
-  cv::LUT(colorized_image, iron_bow_color_mapping, colorized_image);
+  cv::normalize(cv_ptr_in->image, tmp_grey_img_, 0, 255, cv::NORM_MINMAX, CV_8U);
+  cvtColor(tmp_grey_img_, tmp_rgb_img_, cv::COLOR_GRAY2RGB);
+  cv::LUT(tmp_rgb_img_, iron_bow_color_mapping, img_out_->image);
 
-  cv_ptr->image = colorized_image;
-  cv_ptr->encoding = "rgb8";
-  converted_image_pub_.publish(cv_ptr->toImageMsg());
+  converted_image_pub_.publish(img_out_->toImageMsg());
 }
 
 void HeatImageColorizer::imageCb(const sensor_msgs::ImageConstPtr& image_msg)

@@ -29,7 +29,10 @@
 #include <hector_thermal_image_conversion/heat_image_colorizer.h>
 
 HeatImageColorizer::HeatImageColorizer(ros::NodeHandle& nh_,ros::NodeHandle& pnh_)
-{
+{ 
+  std::cout << "bla2";
+  ROS_INFO("bla2");
+  /*
   // This converter does not require camera info, so we just subscribe to the image
   // Setup is inspired by standard image_proc nodelets such as
   // https://github.com/strawlab/image_pipeline/blob/master/image_proc/src/nodelets/debayer.cpp
@@ -42,6 +45,7 @@ HeatImageColorizer::HeatImageColorizer(ros::NodeHandle& nh_,ros::NodeHandle& pnh
   converted_image_pub_ = it_->advertise("image_mapped", 1, connect_cb, connect_cb);
 
   color_mapping_ = cv::Mat(iron_bow_color_mapping, true);
+  */
 }
 
 void HeatImageColorizer::connectCb()

@@ -37,7 +37,9 @@ int main(int argc, char** argv)
   ros::NodeHandle nh_("");
   ros::NodeHandle pnh_("~");
   HeatImageColorizer dg(nh_, pnh_);
+  ROS_INFO("test1");
   ros::spin();
+  ROS_INFO("test2");
 
   return 0;
 }

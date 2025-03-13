@@ -29,11 +29,15 @@
 #ifndef HECTOR_QRCODE_DETECTION_H
 #define HECTOR_QRCODE_DETECTION_H
 
-#include <ros/ros.h>
-#include <image_transport/image_transport.h>
-#include <tf/transform_listener.h>
+#include <rclcpp/rclcpp.hpp>
+#include <image_transport/image_transport.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <std_msgs/msg/bool.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <vision_msgs/msg/detection2_d_array.hpp>
 
-#include <std_msgs/Bool.h>
+typedef vision_msgs::msg::Detection2DArray Detection2DArray;
 
 namespace zbar {
   class ImageScanner;
@@ -41,37 +45,39 @@ namespace zbar {
 
 namespace hector_qrcode_detection {
 
-class qrcode_detection_impl {
+class QrcodeDetectionImpl {
 public:
-  qrcode_detection_impl(ros::NodeHandle& nh, ros::NodeHandle& priv_nh);
-  ~qrcode_detection_impl();
+  explicit QrcodeDetectionImpl(const rclcpp::Node::SharedPtr& node);
+  ~QrcodeDetectionImpl() = default;
 
 protected:
-  void imageCallback(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info);
+  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image, const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
   
-  void publishEnableStatus();
-  void enabledCallback(const std_msgs::BoolConstPtr& enabled);
+  void publishEnableStatus() const;
+  void enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled);
   
 private:
-  ros::NodeHandle nh_;
+  rclcpp::Node::SharedPtr node_;
+
   image_transport::ImageTransport image_transport_;
-  image_transport::CameraSubscriber camera_subscriber_;
-  image_transport::CameraPublisher rotated_image_publisher_;
-  image_transport::CameraPublisher qrcode_image_publisher_;
-
-  ros::Publisher worldmodel_percept_publisher_;
-  ros::Publisher aggregator_percept_publisher_;
-
   zbar::ImageScanner *scanner_;
 
-  tf::TransformListener *listener_;
-  std::string rotation_source_frame_id_;
-  std::string rotation_target_frame_id_;
-  int rotation_image_size_;
-  
+  rclcpp::TimerBase::SharedPtr check_subscribers_timer_;
+
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
+
+  image_transport::CameraSubscriber camera_subscriber_;
+
+  image_transport::CameraPublisher qrcode_image_publisher_;
+  rclcpp::Publisher<Detection2DArray>::SharedPtr aggregator_percept_publisher_;
+
   bool enabled_;
-  ros::Subscriber enabled_sub_;
-  ros::Publisher enabled_pub_;
+  bool has_subscribers_;
+
+  void startSubscribers();
+  void stopSubscribers();
+  void publisherSubscriptionCallback();
 };
 
 } // namespace hector_qrcode_detection

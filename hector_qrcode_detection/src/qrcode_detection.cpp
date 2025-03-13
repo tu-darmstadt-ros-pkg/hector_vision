@@ -26,252 +26,231 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <hector_qrcode_detection/qrcode_detection.h>
-#include <hector_worldmodel_msgs/ImagePercept.h>
-#include <hector_perception_msgs/PerceptionDataArray.h>
-
+#include <limits>
+#include <rclcpp/rclcpp.hpp>
+#include <hector_qrcode_detection/qrcode_detection.hpp>
+#include <tf2/LinearMath/Scalar.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <tf2_ros/buffer.h>
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <zbar.h>
 
 using namespace zbar;
 
 namespace hector_qrcode_detection {
 
-qrcode_detection_impl::qrcode_detection_impl(ros::NodeHandle& nh, ros::NodeHandle& priv_nh)
-    : nh_(nh)
-    , image_transport_(nh_)
-    , listener_(0)
+QrcodeDetectionImpl::QrcodeDetectionImpl(const rclcpp::Node::SharedPtr& node)
+  : node_(node), image_transport_(node), has_subscribers_(false)
 {
-    ROS_INFO("qrcode init");
+  RCLCPP_INFO(node_->get_logger(), "qrcode init");
 
-    scanner_ = new zbar::ImageScanner;
-    scanner_->set_config(ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
+  scanner_ = new zbar::ImageScanner;
+  scanner_->set_config(ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
 
-    rotation_image_size_ = 2;
-    priv_nh.getParam("rotation_source_frame", rotation_source_frame_id_);
-    priv_nh.getParam("rotation_target_frame", rotation_target_frame_id_);
-    priv_nh.getParam("rotation_image_size", rotation_image_size_);
+  node_->declare_parameter("enabled", true);
 
-    worldmodel_percept_publisher_ = nh_.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 10);
-    qrcode_image_publisher_ = image_transport_.advertiseCamera("image/qrcode", 10);
-    aggregator_percept_publisher_ = nh_.advertise<hector_perception_msgs::PerceptionDataArray>("perception/image_percept", 10);
-    camera_subscriber_ = image_transport_.subscribeCamera("image", 10, &qrcode_detection_impl::imageCallback, this);
-    
-    priv_nh.param("enabled", enabled_, true);
-    
-    enabled_sub_ = nh.subscribe("enabled", 10, &qrcode_detection_impl::enabledCallback, this);
-    enabled_pub_ = nh.advertise<std_msgs::Bool>("enabled_status", 10, true);
-    
-    publishEnableStatus();
+  enabled_ = node->get_parameter("enabled").as_bool();
 
-    if (!rotation_target_frame_id_.empty()) {
-        listener_ = new tf::TransformListener();
-        rotated_image_publisher_ = image_transport_.advertiseCamera("image/rotated", 10);
-    }
+  // worldmodel_percept_publisher_ = nh_.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 10);
+  rclcpp::PublisherOptions qrcode_pub_options;
+  qrcode_image_publisher_ = image_transport_.advertiseCamera(
+    "image/qrcode", 10);
+  rclcpp::PublisherOptions aggregator_percept_pub_options;
+  aggregator_percept_publisher_ = node_->create_publisher<Detection2DArray>(
+    "perception/image_percept", 10);
 
-    ROS_INFO("Successfully initialized the zbar qrcode detector for image %s", camera_subscriber_.getTopic().c_str());
+  check_subscribers_timer_ = node_->create_wall_timer(std::chrono::seconds(1), std::bind(&QrcodeDetectionImpl::publisherSubscriptionCallback, this));
+
+  enabled_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
+    "enabled", 10, std::bind(&QrcodeDetectionImpl::enabledCallback, this, std::placeholders::_1));
+  enabled_pub_ = node_->create_publisher<std_msgs::msg::Bool>("enabled_status", 10);
+  
+  publishEnableStatus();
+
+  RCLCPP_INFO(node_->get_logger(), "Successfully initialized the zbar qrcode detector for image %s", camera_subscriber_.getTopic().c_str());
 }
 
-qrcode_detection_impl::~qrcode_detection_impl()
+void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image,
+                                        const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info)
 {
-    delete listener_;
-}
+  cv_bridge::CvImageConstPtr cv_image;
+  cv_image = cv_bridge::toCvShare(image, "mono8");
+  cv::Mat rotation_matrix = cv::Mat::eye(2,3,CV_32FC1);
 
-void qrcode_detection_impl::imageCallback(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info)
-{
-    if (!enabled_) {
-        return;
-    }
-    
-    cv_bridge::CvImageConstPtr cv_image;
-    cv_image = cv_bridge::toCvShare(image, "mono8");
-    cv::Mat rotation_matrix = cv::Mat::eye(2,3,CV_32FC1);
-    double rotation_angle = 0.0;
+  RCLCPP_DEBUG(node_->get_logger(), "Received new image with %u x %u pixels.", image->width, image->height);
 
-    ROS_DEBUG("Received new image with %u x %u pixels.", image->width, image->height);
+  // wrap image data
+  Image zbar(cv_image->image.cols, cv_image->image.rows, "Y800", cv_image->image.data, cv_image->image.cols * cv_image->image.rows);
 
-    if (!rotation_target_frame_id_.empty() && listener_) {
-        tf::StampedTransform transform;
-        std::string source_frame_id_ = rotation_source_frame_id_.empty() ? image->header.frame_id : rotation_source_frame_id_;
-        try
-        {
-            listener_->waitForTransform(rotation_target_frame_id_, source_frame_id_, image->header.stamp, ros::Duration(1.0));
-            listener_->lookupTransform(rotation_target_frame_id_, source_frame_id_, image->header.stamp, transform);
-        } catch (tf::TransformException& e) {
-            ROS_ERROR("%s", e.what());
-            return;
-        }
+  // scan the image for barcodes
+  scanner_->scan(zbar);
 
-        // calculate rotation angle
-        tfScalar roll, pitch, yaw;
-        transform.getBasis().getRPY(roll, pitch, yaw);
-        rotation_angle = -roll;
+  // extract results
+  // hector_worldmodel_msgs::ImagePercept worldmodel_percept;
+  // worldmodel_percept.header = image->header;
+  // worldmodel_percept.camera_info = *camera_info;
+  // worldmodel_percept.info.class_id = "qrcode";
+  // worldmodel_percept.info.class_support = 1.0;
 
-        // Transform the image.
-        try
-        {
-            cv::Mat in_image = cv_image->image;
+  Detection2DArray perception_array;
+  perception_array.header = image->header;
 
-            // Compute the output image size.
-            int max_dim = in_image.cols > in_image.rows ? in_image.cols : in_image.rows;
-            int min_dim = in_image.cols < in_image.rows ? in_image.cols : in_image.rows;
-            int noblack_dim = min_dim / sqrt(2);
-            int diag_dim = sqrt(in_image.cols*in_image.cols + in_image.rows*in_image.rows);
-            int out_size;
-            int candidates[] = { noblack_dim, min_dim, max_dim, diag_dim, diag_dim }; // diag_dim repeated to simplify limit case.
-            int step = rotation_image_size_;
-            out_size = candidates[step] + (candidates[step + 1] - candidates[step]) * (rotation_image_size_ - step);
-            //ROS_INFO("out_size: %d", out_size);
+  for(Image::SymbolIterator symbol = zbar.symbol_begin(); symbol != zbar.symbol_end(); ++symbol)
+  {
+    RCLCPP_DEBUG_STREAM(node_->get_logger(), "Decoded " << symbol->get_type_name() << " symbol \"" << symbol->get_data() << '"');
 
-            // Compute the rotation matrix.
-            rotation_matrix = cv::getRotationMatrix2D(cv::Point2f(in_image.cols / 2.0, in_image.rows / 2.0), 180 * rotation_angle / M_PI, 1);
-            rotation_matrix.at<double>(0, 2) += (out_size - in_image.cols) / 2.0;
-            rotation_matrix.at<double>(1, 2) += (out_size - in_image.rows) / 2.0;
+    // percept.info.object_id = ros::this_node::getName() + "/" + symbol->get_data();
+    // percept.info.object_id = symbol->get_data();
+    // worldmodel_percept.info.object_support = 1.0;
+    // worldmodel_percept.info.name = symbol->get_data();
 
-            // Do the rotation
-            cv_bridge::CvImage *temp = new cv_bridge::CvImage(*cv_image);
-            cv::warpAffine(in_image, temp->image, rotation_matrix, cv::Size(out_size, out_size));
-            cv_image.reset(temp);
-
-            if (rotated_image_publisher_.getNumSubscribers() > 0) {
-                sensor_msgs::Image rotated_image;
-                cv_image->toImageMsg(rotated_image);
-                rotated_image_publisher_.publish(rotated_image, *camera_info);
-            }
-        }
-        catch (cv::Exception &e)
-        {
-            ROS_ERROR("Image processing error: %s %s %s %i", e.err.c_str(), e.func.c_str(), e.file.c_str(), e.line);
-            return;
-        }
-    }
-
-    // wrap image data
-    Image zbar(cv_image->image.cols, cv_image->image.rows, "Y800", cv_image->image.data, cv_image->image.cols * cv_image->image.rows);
-
-    // scan the image for barcodes
-    scanner_->scan(zbar);
-
-    // extract results
-    hector_worldmodel_msgs::ImagePercept worldmodel_percept;
-    worldmodel_percept.header = image->header;
-    worldmodel_percept.camera_info = *camera_info;
-    worldmodel_percept.info.class_id = "qrcode";
-    worldmodel_percept.info.class_support = 1.0;
-
-    hector_perception_msgs::PerceptionDataArray perception_array;
-    perception_array.header = image->header;
-    perception_array.perceptionType = "qr";
-
-    for(Image::SymbolIterator symbol = zbar.symbol_begin(); symbol != zbar.symbol_end(); ++symbol)
+    if (symbol->get_location_size() != 4)
     {
-        ROS_DEBUG_STREAM("Decoded " << symbol->get_type_name() << " symbol \"" << symbol->get_data() << '"');
-
-        // percept.info.object_id = ros::this_node::getName() + "/" + symbol->get_data();
-        //percept.info.object_id = symbol->get_data();
-        worldmodel_percept.info.object_support = 1.0;
-        worldmodel_percept.info.name = symbol->get_data();
-
-        if (symbol->get_location_size() != 4) {
-            ROS_WARN("Could not get symbol locations(location_size != 4)");
-            continue;
-        }
-
-        // point order is left/top, left/bottom, right/bottom, right/top
-        int min_x = 99999999, min_y = 99999999, max_x = 0, max_y = 0;
-        for(int i = 0; i < 4; ++i) {
-            if (symbol->get_location_x(i) > max_x) max_x = symbol->get_location_x(i);
-            if (symbol->get_location_x(i) < min_x) min_x = symbol->get_location_x(i);
-            if (symbol->get_location_y(i) > max_y) max_y = symbol->get_location_y(i);
-            if (symbol->get_location_y(i) < min_y) min_y = symbol->get_location_y(i);
-        }
-
-        // rotate the percept back
-        cv::Vec3f left_top_corner(min_x, min_y, 1.0f);
-        cv::Vec3f right_bottom_corner(max_x, max_y, 1.0f);
-
-        // TODO: calculate the inverse transformation of rotation_matrix
-        if (rotation_angle != 0.0) {
-            ROS_ERROR("Non-zero rotations are currently not supported!");
-            continue;
-        }
-
-        worldmodel_percept.x      = (left_top_corner(0) + right_bottom_corner(0)) / 2;
-        worldmodel_percept.y      = (left_top_corner(1) + right_bottom_corner(1)) / 2;
-        worldmodel_percept.width  = right_bottom_corner(0) - left_top_corner(0);
-        worldmodel_percept.height = right_bottom_corner(1) - left_top_corner(1);
-        worldmodel_percept_publisher_.publish(worldmodel_percept);
-
-        //    ROS_DEBUG("location: min_x: %d  min_y: %d  max_x: %d  max_y: %d", min_x, min_y, max_x, max_y);
-        //    ROS_DEBUG("rotated:  min_x: %f  min_y: %f  max_x: %f  max_y: %f", left_top_corner(0), left_top_corner(1), right_bottom_corner(0), right_bottom_corner(1));
-        //    ROS_DEBUG("percept:  x: %f  y: %f  width: %f  height: %f", percept.x, percept.y, percept.width, percept.height);
-
-        hector_perception_msgs::PerceptionData perception_data;
-        perception_data.percept_name = symbol->get_data();
-        geometry_msgs::Polygon polygon;
-        geometry_msgs::Point32 p0,p1,p2,p3;
-        p0.x = min_x;
-        p0.y = min_y;
-        p1.x = min_x;
-        p1.y = max_y;
-        p2.x = max_x;
-        p2.y = max_y;
-        p3.x = max_x;
-        p3.y = min_y;
-        polygon.points.push_back(p0);
-        polygon.points.push_back(p1);
-        polygon.points.push_back(p2);
-        polygon.points.push_back(p3);
-        perception_data.polygon = polygon;
-        perception_array.perceptionList.push_back(perception_data);
-
-
-
-        if (qrcode_image_publisher_.getNumSubscribers() > 0) {
-            try {
-                cv::Rect rect(cv::Point2i(std::max(min_x, 0), std::max(min_y, 0)), cv::Point2i(std::min(max_x, cv_image->image.cols), std::min(max_y, cv_image->image.rows)));
-                cv_bridge::CvImagePtr qrcode_cv(new cv_bridge::CvImage(*cv_image));
-                qrcode_cv->image = cv_image->image(rect);
-
-                sensor_msgs::Image qrcode_image;
-                qrcode_cv->toImageMsg(qrcode_image);
-                qrcode_image_publisher_.publish(qrcode_image, *camera_info);
-            } catch(cv::Exception& e) {
-                ROS_ERROR("cv::Exception: %s", e.what());
-            }
-        }
-
+      RCLCPP_WARN(node_->get_logger(), "Could not get symbol locations(location_size != 4)");
+      continue;
     }
 
-    if (aggregator_percept_publisher_.getNumSubscribers() > 0)
+    // point order is left/top, left/bottom, right/bottom, right/top
+    int min_x = std::numeric_limits<int>::max(), min_y = std::numeric_limits<int>::max(), max_x = 0, max_y = 0;
+    for(int i = 0; i < 4; ++i)
     {
-        aggregator_percept_publisher_.publish(perception_array);
+      if (symbol->get_location_x(i) > max_x) max_x = symbol->get_location_x(i);
+      if (symbol->get_location_x(i) < min_x) min_x = symbol->get_location_x(i);
+      if (symbol->get_location_y(i) > max_y) max_y = symbol->get_location_y(i);
+      if (symbol->get_location_y(i) < min_y) min_y = symbol->get_location_y(i);
     }
 
-    // clean up
-    zbar.set_data(NULL, 0);
-}
+    vision_msgs::msg::ObjectHypothesis hypothesis;
+    hypothesis.class_id = "qr";
+    hypothesis.score = 1.0;
 
-void qrcode_detection_impl::enabledCallback(const std_msgs::BoolConstPtr& enabled) {
-    enabled_ = enabled->data;
-    publishEnableStatus();
-}
+    // The Pose estimate is currently not used
+    vision_msgs::msg::ObjectHypothesisWithPose identification_pose;
+    identification_pose.hypothesis = hypothesis;
 
-void qrcode_detection_impl::publishEnableStatus() {
-    std_msgs::Bool bool_msg;
-    bool_msg.data = enabled_;
-    enabled_pub_.publish(bool_msg);
+    vision_msgs::msg::Point2D bounding_box_center_point;
+    bounding_box_center_point.x = (min_x + max_x) / 2.0;
+    bounding_box_center_point.y = (min_y + max_y) / 2.0;
 
-    std::string enabled_string;
-    
-    if (enabled_) {
-        enabled_string = "Enabled";
-    } else {
-        enabled_string = "Disabled";
+    vision_msgs::msg::Pose2D bounding_box_center_pose;
+    bounding_box_center_pose.theta = 0.0;
+    bounding_box_center_pose.position = bounding_box_center_point;
+
+    vision_msgs::msg::BoundingBox2D bounding_box;
+    bounding_box.center = bounding_box_center_pose;
+    bounding_box.size_x = max_x - min_x;
+    bounding_box.size_y = max_y - min_y;
+
+    vision_msgs::msg::Detection2D perception_data;
+    perception_data.header = perception_array.header;
+    perception_data.id = symbol->get_data();
+    perception_data.results.push_back(identification_pose);
+    perception_data.bbox = bounding_box;
+
+    perception_array.detections.push_back(perception_data);
+
+    if (qrcode_image_publisher_.getNumSubscribers() > 0)
+    {
+      try
+      {
+        cv::Rect rect(
+          cv::Point2i(std::max(min_x, 0), std::max(min_y, 0)),
+          cv::Point2i(std::min(max_x, cv_image->image.cols), std::min(max_y, cv_image->image.rows)));
+
+        cv_bridge::CvImagePtr qrcode_cv(new cv_bridge::CvImage(*cv_image));
+        qrcode_cv->image = cv_image->image(rect);
+
+        sensor_msgs::msg::Image qrcode_image;
+        qrcode_cv->toImageMsg(qrcode_image);
+        qrcode_image_publisher_.publish(qrcode_image, *camera_info);
+      }
+      catch(cv::Exception& e)
+      {
+        RCLCPP_ERROR(node_->get_logger(), "cv::Exception: %s", e.what());
+      }
     }
-    
-    ROS_INFO_STREAM(enabled_string << " qrcode_detection.");
+  }
+
+  if (aggregator_percept_publisher_->get_subscription_count() > 0)
+    aggregator_percept_publisher_->publish(perception_array);
+
+  // clean up
+  zbar.set_data(nullptr, 0);
 }
 
+void QrcodeDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled)
+{
+  // Changed to disabled
+  if (!enabled->data && enabled_)
+  {
+    enabled_ = false;
+    if (has_subscribers_)
+      stopSubscribers();
+  }
+  // Changed to enabled
+  if (enabled->data && !enabled_)
+  {
+    enabled_ = true;
+    if (has_subscribers_)
+      startSubscribers();
+  }
+}
+
+void QrcodeDetectionImpl::publisherSubscriptionCallback()
+{
+  const size_t subscribers = qrcode_image_publisher_.getNumSubscribers()
+                           + aggregator_percept_publisher_->get_subscription_count();
+
+  // Changed to no subscribers
+  if (subscribers == 0 && has_subscribers_)
+  {
+    has_subscribers_ = false;
+    if (enabled_)
+      stopSubscribers();
+  }
+  // Changed from no subscribers
+  if (subscribers > 1 && !has_subscribers_)
+  {
+    has_subscribers_ = true;
+    if (enabled_)
+      startSubscribers();
+  }
+}
+
+void QrcodeDetectionImpl::publishEnableStatus() const
+{
+  std_msgs::msg::Bool bool_msg;
+  bool_msg.data = enabled_;
+  enabled_pub_->publish(bool_msg);
+
+  std::string enabled_string;
+  
+  RCLCPP_INFO_STREAM(node_->get_logger(), (enabled_ ? "Enabled" : "Disabled") << " qrcode_detection.");
+}
+
+void QrcodeDetectionImpl::startSubscribers()
+{
+  RCLCPP_INFO(node_->get_logger(), "Starting subscribers");
+  camera_subscriber_ = image_transport_.subscribeCamera("image", 10, &QrcodeDetectionImpl::imageCallback, this);
+}
+
+void QrcodeDetectionImpl::stopSubscribers()
+{
+  RCLCPP_INFO(node_->get_logger(), "Stopping subscribers");
+  camera_subscriber_.shutdown();
+}
 } // namespace hector_qrcode_detection
+
+int main( int argc, char **argv )
+{
+  rclcpp::init(argc, argv);
+
+  const auto node = std::make_shared<rclcpp::Node>("qrcode_detection");
+  auto detection_aggregator = hector_qrcode_detection::QrcodeDetectionImpl(node);
+
+  rclcpp::spin(node);
+
+  rclcpp::shutdown();
+  return 0;
+}

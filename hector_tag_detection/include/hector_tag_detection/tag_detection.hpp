@@ -26,13 +26,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef HECTOR_QRCODE_DETECTION_H
-#define HECTOR_QRCODE_DETECTION_H
+#ifndef HECTOR_TAG_DETECTION_H
+#define HECTOR_TAG_DETECTION_H
 
 #include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.hpp>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
 #include <std_msgs/msg/bool.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
@@ -43,12 +41,12 @@ namespace zbar {
   class ImageScanner;
 }
 
-namespace hector_qrcode_detection {
+namespace hector_tag_detection {
 
-class QrcodeDetectionImpl {
+class TagDetectionImpl {
 public:
-  explicit QrcodeDetectionImpl(const rclcpp::Node::SharedPtr& node);
-  ~QrcodeDetectionImpl() = default;
+  explicit TagDetectionImpl(const rclcpp::Node::SharedPtr& node);
+  ~TagDetectionImpl() = default;
 
 protected:
   void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image, const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
@@ -69,7 +67,7 @@ private:
 
   image_transport::CameraSubscriber camera_subscriber_;
 
-  image_transport::CameraPublisher qrcode_image_publisher_;
+  image_transport::CameraPublisher tag_image_publisher_;
   rclcpp::Publisher<Detection2DArray>::SharedPtr aggregator_percept_publisher_;
 
   bool enabled_;
@@ -80,6 +78,6 @@ private:
   void publisherSubscriptionCallback();
 };
 
-} // namespace hector_qrcode_detection
+} // namespace hector_tag_detection
 
-#endif // HECTOR_QRCODE_DETECTION_H
+#endif // HECTOR_TAG_DETECTION_H

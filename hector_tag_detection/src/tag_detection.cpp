@@ -27,23 +27,29 @@
 //=================================================================================================
 
 #include <limits>
+
+#include <hector_tag_detection/tag_detection.hpp>
+
 #include <rclcpp/rclcpp.hpp>
-#include <hector_qrcode_detection/qrcode_detection.hpp>
-#include <tf2/LinearMath/Scalar.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_ros/buffer.h>
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.hpp>
 #include <zbar.h>
+#include <apriltag/apriltag.h>
+#include <apriltag/tagStandard41h12.h>
+#include <std_msgs/msg/bool.hpp>
+#include <image_transport/image_transport.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <vision_msgs/msg/detection2_d_array.hpp>
 
 using namespace zbar;
 
-namespace hector_qrcode_detection {
+namespace hector_tag_detection {
 
-QrcodeDetectionImpl::QrcodeDetectionImpl(const rclcpp::Node::SharedPtr& node)
+TagDetectionImpl::TagDetectionImpl(const rclcpp::Node::SharedPtr& node)
   : node_(node), image_transport_(node), has_subscribers_(false)
 {
-  RCLCPP_INFO(node_->get_logger(), "qrcode init");
+  RCLCPP_INFO(node_->get_logger(), "Initializing tag detector");
 
   scanner_ = new zbar::ImageScanner;
   scanner_->set_config(ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
@@ -53,26 +59,25 @@ QrcodeDetectionImpl::QrcodeDetectionImpl(const rclcpp::Node::SharedPtr& node)
   enabled_ = node->get_parameter("enabled").as_bool();
 
   // worldmodel_percept_publisher_ = nh_.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 10);
-  rclcpp::PublisherOptions qrcode_pub_options;
-  qrcode_image_publisher_ = image_transport_.advertiseCamera(
-    "image/qrcode", 10);
+  tag_image_publisher_ = image_transport_.advertiseCamera(
+    "image/tag", 10);
   rclcpp::PublisherOptions aggregator_percept_pub_options;
   aggregator_percept_publisher_ = node_->create_publisher<Detection2DArray>(
     "perception/image_percept", 10);
 
-  check_subscribers_timer_ = node_->create_wall_timer(std::chrono::seconds(1), std::bind(&QrcodeDetectionImpl::publisherSubscriptionCallback, this));
+  check_subscribers_timer_ = node_->create_wall_timer(std::chrono::seconds(1), std::bind(&TagDetectionImpl::publisherSubscriptionCallback, this));
 
   enabled_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
-    "enabled", 10, std::bind(&QrcodeDetectionImpl::enabledCallback, this, std::placeholders::_1));
+    "enabled", 10, std::bind(&TagDetectionImpl::enabledCallback, this, std::placeholders::_1));
   enabled_pub_ = node_->create_publisher<std_msgs::msg::Bool>("enabled_status", 10);
   
   publishEnableStatus();
 
-  RCLCPP_INFO(node_->get_logger(), "Successfully initialized the zbar qrcode detector for image %s", camera_subscriber_.getTopic().c_str());
+  RCLCPP_INFO(node_->get_logger(), "Successfully initialized the tag detector for image %s", camera_subscriber_.getTopic().c_str());
 }
 
-void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image,
-                                        const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info)
+void TagDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image,
+                                     const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info)
 {
   cv_bridge::CvImageConstPtr cv_image;
   cv_image = cv_bridge::toCvShare(image, "mono8");
@@ -86,24 +91,12 @@ void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstShar
   // scan the image for barcodes
   scanner_->scan(zbar);
 
-  // extract results
-  // hector_worldmodel_msgs::ImagePercept worldmodel_percept;
-  // worldmodel_percept.header = image->header;
-  // worldmodel_percept.camera_info = *camera_info;
-  // worldmodel_percept.info.class_id = "qrcode";
-  // worldmodel_percept.info.class_support = 1.0;
-
   Detection2DArray perception_array;
   perception_array.header = image->header;
 
   for(Image::SymbolIterator symbol = zbar.symbol_begin(); symbol != zbar.symbol_end(); ++symbol)
   {
     RCLCPP_DEBUG_STREAM(node_->get_logger(), "Decoded " << symbol->get_type_name() << " symbol \"" << symbol->get_data() << '"');
-
-    // percept.info.object_id = ros::this_node::getName() + "/" + symbol->get_data();
-    // percept.info.object_id = symbol->get_data();
-    // worldmodel_percept.info.object_support = 1.0;
-    // worldmodel_percept.info.name = symbol->get_data();
 
     if (symbol->get_location_size() != 4)
     {
@@ -115,10 +108,10 @@ void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstShar
     int min_x = std::numeric_limits<int>::max(), min_y = std::numeric_limits<int>::max(), max_x = 0, max_y = 0;
     for(int i = 0; i < 4; ++i)
     {
-      if (symbol->get_location_x(i) > max_x) max_x = symbol->get_location_x(i);
-      if (symbol->get_location_x(i) < min_x) min_x = symbol->get_location_x(i);
-      if (symbol->get_location_y(i) > max_y) max_y = symbol->get_location_y(i);
-      if (symbol->get_location_y(i) < min_y) min_y = symbol->get_location_y(i);
+      min_x = std::min(min_x, symbol->get_location_x(i));
+      max_x = std::max(max_x, symbol->get_location_x(i));
+      min_y = std::min(min_y, symbol->get_location_y(i));
+      max_y = std::max(max_y, symbol->get_location_y(i));
     }
 
     vision_msgs::msg::ObjectHypothesis hypothesis;
@@ -150,7 +143,7 @@ void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstShar
 
     perception_array.detections.push_back(perception_data);
 
-    if (qrcode_image_publisher_.getNumSubscribers() > 0)
+    if (tag_image_publisher_.getNumSubscribers() > 0)
     {
       try
       {
@@ -163,7 +156,79 @@ void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstShar
 
         sensor_msgs::msg::Image qrcode_image;
         qrcode_cv->toImageMsg(qrcode_image);
-        qrcode_image_publisher_.publish(qrcode_image, *camera_info);
+        tag_image_publisher_.publish(qrcode_image, *camera_info);
+      }
+      catch(cv::Exception& e)
+      {
+        RCLCPP_ERROR(node_->get_logger(), "cv::Exception: %s", e.what());
+      }
+    }
+  }
+
+  apriltag_detector_t *apriltag_detector = apriltag_detector_create();
+  apriltag_family_t *apriltag_family = tagStandard41h12_create();
+  apriltag_detector_add_family(apriltag_detector, apriltag_family);
+
+  image_u8_t img_header = {
+    .width = cv_image->image.rows,
+    .stride = cv_image->image.cols,
+    .buf = cv_image->image.data
+  };
+  zarray_t *apriltags = apriltag_detector_detect(apriltag_detector, &img_header);
+
+  perception_array.detections.reserve(zarray_size(apriltags));
+
+  for (int i = 0; i < zarray_size(apriltags); ++i)
+  {
+    apriltag_detection_t *apriltag;
+    zarray_get(apriltags, i, &apriltag);
+
+    // Tag bounds
+    int min_x = std::numeric_limits<int>::max(), min_y = std::numeric_limits<int>::max(), max_x = 0, max_y = 0;
+    for (const auto& corner : apriltag->p)
+    {
+      min_x = std::min(min_x, static_cast<int>(corner[0]));
+      max_x = std::max(max_x, static_cast<int>(corner[0]));
+      min_y = std::min(min_y, static_cast<int>(corner[1]));
+      max_y = std::max(max_y, static_cast<int>(corner[1]));
+    }
+    vision_msgs::msg::BoundingBox2D bbox;
+    bbox.center.position.x = (min_x + max_x) / 2.0;
+    bbox.center.position.y = (min_y + max_y) / 2.0;
+    bbox.size_x = max_x - min_x;
+    bbox.size_y = max_y - min_y;
+
+    vision_msgs::msg::ObjectHypothesisWithPose result;
+    result.hypothesis.class_id = "apriltag";
+    result.hypothesis.score = 1.0;
+
+    vision_msgs::msg::Detection2D tag_detection;
+    tag_detection.bbox = bbox;
+    tag_detection.header = image->header;
+    tag_detection.id = std::to_string(apriltag->id);
+    tag_detection.results.push_back(result);
+
+    perception_array.detections.push_back(tag_detection);
+
+    if (tag_image_publisher_.getNumSubscribers() > 0)
+    {
+      try
+      {
+        cv::Rect rect(
+          cv::Point2i(
+            std::max(min_x, 0),
+            std::max(min_y, 0)),
+
+          cv::Point2i(
+            std::min(max_x, cv_image->image.cols),
+            std::min(max_y, cv_image->image.rows)));
+
+        cv_bridge::CvImagePtr apriltag_cv(new cv_bridge::CvImage(*cv_image));
+        apriltag_cv->image = cv_image->image(rect);
+
+        sensor_msgs::msg::Image apriltag_image;
+        apriltag_cv->toImageMsg(apriltag_image);
+        tag_image_publisher_.publish(apriltag_image, *camera_info);
       }
       catch(cv::Exception& e)
       {
@@ -177,9 +242,12 @@ void QrcodeDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstShar
 
   // clean up
   zbar.set_data(nullptr, 0);
+  apriltag_detector_destroy(apriltag_detector);
+  tagStandard41h12_destroy(apriltag_family);
+  apriltag_detections_destroy(apriltags);
 }
 
-void QrcodeDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled)
+void TagDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled)
 {
   // Changed to disabled
   if (!enabled->data && enabled_)
@@ -197,9 +265,9 @@ void QrcodeDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstShared
   }
 }
 
-void QrcodeDetectionImpl::publisherSubscriptionCallback()
+void TagDetectionImpl::publisherSubscriptionCallback()
 {
-  const size_t subscribers = qrcode_image_publisher_.getNumSubscribers()
+  const size_t subscribers = tag_image_publisher_.getNumSubscribers()
                            + aggregator_percept_publisher_->get_subscription_count();
 
   // Changed to no subscribers
@@ -218,7 +286,7 @@ void QrcodeDetectionImpl::publisherSubscriptionCallback()
   }
 }
 
-void QrcodeDetectionImpl::publishEnableStatus() const
+void TagDetectionImpl::publishEnableStatus() const
 {
   std_msgs::msg::Bool bool_msg;
   bool_msg.data = enabled_;
@@ -226,28 +294,28 @@ void QrcodeDetectionImpl::publishEnableStatus() const
 
   std::string enabled_string;
   
-  RCLCPP_INFO_STREAM(node_->get_logger(), (enabled_ ? "Enabled" : "Disabled") << " qrcode_detection.");
+  RCLCPP_INFO_STREAM(node_->get_logger(), (enabled_ ? "Enabled" : "Disabled") << " tag_detection.");
 }
 
-void QrcodeDetectionImpl::startSubscribers()
+void TagDetectionImpl::startSubscribers()
 {
   RCLCPP_INFO(node_->get_logger(), "Starting subscribers");
-  camera_subscriber_ = image_transport_.subscribeCamera("image", 10, &QrcodeDetectionImpl::imageCallback, this);
+  camera_subscriber_ = image_transport_.subscribeCamera("image", 10, &TagDetectionImpl::imageCallback, this);
 }
 
-void QrcodeDetectionImpl::stopSubscribers()
+void TagDetectionImpl::stopSubscribers()
 {
   RCLCPP_INFO(node_->get_logger(), "Stopping subscribers");
   camera_subscriber_.shutdown();
 }
-} // namespace hector_qrcode_detection
+} // namespace hector_tag_detection
 
 int main( int argc, char **argv )
 {
   rclcpp::init(argc, argv);
 
-  const auto node = std::make_shared<rclcpp::Node>("qrcode_detection");
-  auto detection_aggregator = hector_qrcode_detection::QrcodeDetectionImpl(node);
+  const auto node = std::make_shared<rclcpp::Node>("tag_detection");
+  auto detection_aggregator = hector_tag_detection::TagDetectionImpl(node);
 
   rclcpp::spin(node);
 

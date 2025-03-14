@@ -14,7 +14,8 @@ find_package(vision_msgs REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(include)
 
-add_executable(detection_aggregator src/detection_aggregator.cpp)
+add_executable(detection_aggregator src/detection_aggregator.cpp
+  include/hector_detection_aggregator/detection_aggregator.hpp)
 ament_target_dependencies(detection_aggregator PUBLIC
   OpenCV
   rclcpp

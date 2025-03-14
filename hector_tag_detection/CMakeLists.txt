@@ -31,9 +31,10 @@ install(TARGETS tag_detection
   DESTINATION lib/${PROJECT_NAME}
 )
 install(
-  DIRECTORY launch include
+  DIRECTORY include
   DESTINATION share/${PROJECT_NAME}/
 )
+
 if (BUILD_TESTING)
   add_executable(camera_dummy_node src/camera_dummy_node.cpp)
   ament_target_dependencies(camera_dummy_node

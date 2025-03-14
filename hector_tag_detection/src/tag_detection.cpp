@@ -42,7 +42,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
-using namespace zbar;
+// using namespace zbar;
 
 namespace hector_tag_detection {
 
@@ -51,14 +51,18 @@ TagDetectionImpl::TagDetectionImpl(const rclcpp::Node::SharedPtr& node)
 {
   RCLCPP_INFO(node_->get_logger(), "Initializing tag detector");
 
-  scanner_ = new zbar::ImageScanner;
-  scanner_->set_config(ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
+  // Set up QR-Code detector
+  qrcode_detector_ = new zbar::ImageScanner;
+  qrcode_detector_->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+
+  // Set up Apriltag detector
+  apriltag_detector_.reset(apriltag_detector_create(), apriltag_detector_destroy);
+  apriltag_family_.reset(tagStandard41h12_create(), tagStandard41h12_destroy);
+  apriltag_detector_add_family(apriltag_detector_.get(), apriltag_family_.get());
 
   node_->declare_parameter("enabled", true);
-
   enabled_ = node->get_parameter("enabled").as_bool();
 
-  // worldmodel_percept_publisher_ = nh_.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 10);
   tag_image_publisher_ = image_transport_.advertiseCamera(
     "image/tag", 10);
   rclcpp::PublisherOptions aggregator_percept_pub_options;
@@ -85,16 +89,21 @@ void TagDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedP
 
   RCLCPP_DEBUG(node_->get_logger(), "Received new image with %u x %u pixels.", image->width, image->height);
 
-  // wrap image data
-  Image zbar(cv_image->image.cols, cv_image->image.rows, "Y800", cv_image->image.data, cv_image->image.cols * cv_image->image.rows);
+  RCLCPP_DEBUG(node_->get_logger(), "Starting QR-Code detection");
 
-  // scan the image for barcodes
-  scanner_->scan(zbar);
+  // wrap image data
+  zbar::Image zbar_image(cv_image->image.cols, cv_image->image.rows, "Y800", cv_image->image.data, cv_image->image.cols * cv_image->image.rows);
+
+  // Detect QR-Codes (and maybe other things?)
+  qrcode_detector_->scan(zbar_image);
+  zbar::SymbolSet zbar_detections = zbar_image.get_symbols();
+
+  RCLCPP_DEBUG(node_->get_logger(), "Zbar found %d symbols", zbar_detections.get_size());
 
   Detection2DArray perception_array;
   perception_array.header = image->header;
 
-  for(Image::SymbolIterator symbol = zbar.symbol_begin(); symbol != zbar.symbol_end(); ++symbol)
+  for(zbar::Image::SymbolIterator symbol = zbar_image.symbol_begin(); symbol != zbar_image.symbol_end(); ++symbol)
   {
     RCLCPP_DEBUG_STREAM(node_->get_logger(), "Decoded " << symbol->get_type_name() << " symbol \"" << symbol->get_data() << '"');
 
@@ -165,23 +174,26 @@ void TagDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedP
     }
   }
 
-  apriltag_detector_t *apriltag_detector = apriltag_detector_create();
-  apriltag_family_t *apriltag_family = tagStandard41h12_create();
-  apriltag_detector_add_family(apriltag_detector, apriltag_family);
+  // Detect Apriltags
+  RCLCPP_DEBUG(node_->get_logger(), "Starting Apriltag detection");
 
-  image_u8_t img_header = {
-    .width = cv_image->image.rows,
+  image_u8_t img_header = { .width = cv_image->image.cols,
+    .height = cv_image->image.rows,
     .stride = cv_image->image.cols,
     .buf = cv_image->image.data
   };
-  zarray_t *apriltags = apriltag_detector_detect(apriltag_detector, &img_header);
 
-  perception_array.detections.reserve(zarray_size(apriltags));
+  std::shared_ptr<zarray_t> apriltags;
+  apriltags.reset(apriltag_detector_detect(apriltag_detector_.get(), &img_header), apriltag_detections_destroy);
 
-  for (int i = 0; i < zarray_size(apriltags); ++i)
+  perception_array.detections.reserve(zarray_size(apriltags.get()));
+
+  RCLCPP_DEBUG(node_->get_logger(), "Apriltag found %d symbols.", zarray_size(apriltags.get()));
+
+  for (int i = 0; i < zarray_size(apriltags.get()); ++i)
   {
     apriltag_detection_t *apriltag;
-    zarray_get(apriltags, i, &apriltag);
+    zarray_get(apriltags.get(), i, &apriltag);
 
     // Tag bounds
     int min_x = std::numeric_limits<int>::max(), min_y = std::numeric_limits<int>::max(), max_x = 0, max_y = 0;
@@ -241,10 +253,7 @@ void TagDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedP
     aggregator_percept_publisher_->publish(perception_array);
 
   // clean up
-  zbar.set_data(nullptr, 0);
-  apriltag_detector_destroy(apriltag_detector);
-  tagStandard41h12_destroy(apriltag_family);
-  apriltag_detections_destroy(apriltags);
+  zbar_image.set_data(nullptr, 0);
 }
 
 void TagDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled)
@@ -267,8 +276,11 @@ void TagDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr
 
 void TagDetectionImpl::publisherSubscriptionCallback()
 {
+
   const size_t subscribers = tag_image_publisher_.getNumSubscribers()
                            + aggregator_percept_publisher_->get_subscription_count();
+
+  RCLCPP_DEBUG_STREAM(node_->get_logger(), "Subscribers: " << subscribers << " has_subscribers_: " << has_subscribers_ << " enabled_: " << enabled_);
 
   // Changed to no subscribers
   if (subscribers == 0 && has_subscribers_)
@@ -278,7 +290,7 @@ void TagDetectionImpl::publisherSubscriptionCallback()
       stopSubscribers();
   }
   // Changed from no subscribers
-  if (subscribers > 1 && !has_subscribers_)
+  if (subscribers > 0 && !has_subscribers_)
   {
     has_subscribers_ = true;
     if (enabled_)

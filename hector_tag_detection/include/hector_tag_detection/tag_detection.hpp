@@ -29,6 +29,9 @@
 #ifndef HECTOR_TAG_DETECTION_H
 #define HECTOR_TAG_DETECTION_H
 
+#include <zbar.h>
+#include <apriltag/apriltag.h>
+#include <apriltag/tagStandard41h12.h>
 #include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -58,8 +61,12 @@ private:
   rclcpp::Node::SharedPtr node_;
 
   image_transport::ImageTransport image_transport_;
-  zbar::ImageScanner *scanner_;
 
+  zbar::ImageScanner *qrcode_detector_;
+  std::shared_ptr<apriltag_detector_t> apriltag_detector_;
+  std::shared_ptr<apriltag_family_t> apriltag_family_;
+
+  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   rclcpp::TimerBase::SharedPtr check_subscribers_timer_;
 
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;

@@ -9,20 +9,28 @@
 namespace hector_detection_aggregator
 {
 DetectionAggregator::DetectionAggregator(const rclcpp::Node::SharedPtr& node)
-  : storage_duration_(0, 1e8), has_subscribers_(false)
+  : enabled_(true), has_subscribers_(false), storage_duration_(0, 1e8)
 {
   node_ = node;
   param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(node_);
 
   node_->declare_parameter<double>("storage_duration", 10.0);
-  auto storage_duration_parameter_callback = [this](const  rclcpp::Parameter& p)
-  {
-    const double storage_duration_param = node_->get_parameter("storage_duration").as_double();
-    const int storage_duration_seconds = static_cast<int>(storage_duration_param);
-    const int storage_duration_nanoseconds = static_cast<int>((storage_duration_param - storage_duration_seconds) * 1e9);
-    this->storage_duration_ = rclcpp::Duration(storage_duration_seconds, storage_duration_nanoseconds);
-  };
-  storage_duration_callback_handle_ = param_subscriber_->add_parameter_callback("storage_duration", storage_duration_parameter_callback);
+  node_->declare_parameter<bool>("enabled", true);
+  storage_duration_callback_handle_ = param_subscriber_->add_parameter_callback("storage_duration",
+    [this](const  rclcpp::Parameter& p)
+    {
+      RCLCPP_DEBUG(this->node_->get_logger(), "Parameter callback for \"storage_duration\" called");
+      const double storage_duration_param = node_->get_parameter("storage_duration").as_double();
+      const int storage_duration_seconds = static_cast<int>(storage_duration_param);
+      const int storage_duration_nanoseconds = static_cast<int>((storage_duration_param - storage_duration_seconds) * 1e9);
+      this->storage_duration_ = rclcpp::Duration(storage_duration_seconds, storage_duration_nanoseconds);
+    });
+  enabled_callback_handle_ = param_subscriber_->add_parameter_callback("enabled",
+    [this](const rclcpp::Parameter& parameter)->void
+    {
+      RCLCPP_DEBUG(this->node_->get_logger(), "Parameter callback for \"enabled\" called");
+      this->enabledCallback(parameter.as_bool());
+    });
 
   // Color mappings A color for "unknown" is required to exist
   color_map_["motion"] = cv::Scalar(0,0,255);       // Red
@@ -33,8 +41,6 @@ DetectionAggregator::DetectionAggregator(const rclcpp::Node::SharedPtr& node)
   color_map_["unknown"] = cv::Scalar(50, 50, 50);   // Grey
 
   image_transport_ = std::make_shared<image_transport::ImageTransport>(node_);
-  image_transport::SubscriberStatusCallback connect_cb = std::bind(
-    &DetectionAggregator::connectCb, this);
 
   image_detected_pub_ = image_transport_->advertiseCamera(
     "/detection/aggregated_detections_image", 10);
@@ -43,6 +49,12 @@ DetectionAggregator::DetectionAggregator(const rclcpp::Node::SharedPtr& node)
 
   current_color_image_.reset();
   image_percept_sub_.reset();
+
+  enabled_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
+    "detection_aggregator/enabled", 10,
+    std::bind(&DetectionAggregator::msgEnabledCallback, this, std::placeholders::_1));
+  enabled_pub_ = node_->create_publisher<std_msgs::msg::Bool>(
+    "detection_aggregator/enabled_status", 10);
 
   RCLCPP_INFO(node_->get_logger(), "Node started");
 }
@@ -80,12 +92,12 @@ void DetectionAggregator::createImage()
 
   for (const auto& [id, detection] : detection_map_)
   {
-    const cv::Point detection_center_point(static_cast<int>(detection.bbox.center.position.x - detection.bbox.size_x / 2),
-                                           static_cast<int>(detection.bbox.center.position.y - detection.bbox.size_y / 2));
+    const cv::Point detection_top_left_point(static_cast<int>(detection.bbox.center.position.x - detection.bbox.size_x / 2),
+                                             static_cast<int>(detection.bbox.center.position.y - detection.bbox.size_y / 2));
     const cv::Size detection_size(static_cast<int>(detection.bbox.size_x),
                                   static_cast<int>(detection.bbox.size_y));
 
-    const cv::Rect rect(detection_center_point, detection_size);
+    const cv::Rect rect(detection_top_left_point, detection_size);
 
     // Detections of unknown type are colored grey
     cv::Scalar detection_color;
@@ -95,11 +107,19 @@ void DetectionAggregator::createImage()
     else
       detection_color = color_find->second;
 
-    const std::string detection_text = id.first + ": " + id.second;
+    const cv::Point text_point = detection_top_left_point + cv::Point(0, -12);
+    int text_background_offset;
 
-    //ROS_INFO("Type: %s color %f %f %f ",percept_pair.first.c_str(),color_map_[percept_pair.first][0],color_map_[percept_pair.first][1],color_map_[percept_pair.first][2]);
+    const std::string detection_text = id.first + ": " + id.second;
+    cv::Size text_size = cv::getTextSize(detection_text, cv::FONT_HERSHEY_SIMPLEX, 0.75, 2, &text_background_offset);
+    text_size.height *= 2;
+
+    // Detection marker
     cv::rectangle(img_detected, rect, detection_color, 2, cv::LINE_AA);
-    cv::putText(img_detected, detection_text, detection_center_point + cv::Point(0, -10), cv::FONT_HERSHEY_SIMPLEX, 0.75, detection_color, 2);
+    // Text background
+    cv::rectangle(img_detected, cv::Rect(text_point + cv::Point(0, -3*text_background_offset), text_size), cv::Scalar(255,255,255), cv::FILLED);
+    // Detection id text
+    cv::putText(img_detected, detection_text, text_point, cv::FONT_HERSHEY_SIMPLEX, 0.75, detection_color, 2);
   }
 
   cv_bridge::CvImage cvImg;
@@ -152,15 +172,39 @@ void DetectionAggregator::imageCallback(const sensor_msgs::msg::Image::ConstShar
   createImage();
 }
 
-void DetectionAggregator::connectCb()
+void DetectionAggregator::publishEnableStatus() const
 {
-  if (image_detected_pub_.getNumSubscribers() == 0) {
-    stopSubscribers();
-    RCLCPP_INFO(node_->get_logger(), "Stopping subscribers");
-  } else {
-    startSubscribers();
-    RCLCPP_INFO(node_->get_logger(), "Starting subscribers");
+  std_msgs::msg::Bool bool_msg;
+  bool_msg.data = enabled_;
+  enabled_pub_->publish(bool_msg);
+
+  RCLCPP_INFO_STREAM(node_->get_logger(), (enabled_ ? "Enabled" : "Disabled") << " tag_detection.");
+}
+
+void DetectionAggregator::enabledCallback(const bool& enabled)
+{
+  // Changed to disabled
+  if (!enabled && enabled_)
+  {
+    enabled_ = false;
+    if (has_subscribers_)
+      stopSubscribers();
   }
+  // Changed to enabled
+  if (enabled && !enabled_)
+  {
+    enabled_ = true;
+    if (has_subscribers_)
+      startSubscribers();
+  }
+
+  publishEnableStatus();
+}
+
+void DetectionAggregator::msgEnabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled) const
+{
+  const rclcpp::Parameter parameter("enabled", rclcpp::ParameterValue(enabled->data));
+  node_->set_parameter(parameter);
 }
 
 void DetectionAggregator::startSubscribers()
@@ -189,13 +233,15 @@ void DetectionAggregator::publisherSubscriptionCallback()
   if (subscribers == 0 && has_subscribers_)
   {
     has_subscribers_ = false;
-    stopSubscribers();
+    if (enabled_)
+      stopSubscribers();
   }
   // Changed from no subscribers
   if (subscribers > 0 && !has_subscribers_)
   {
     has_subscribers_ = true;
-    startSubscribers();
+    if (enabled_)
+      startSubscribers();
   }
 }
 }

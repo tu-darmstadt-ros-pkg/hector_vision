@@ -31,7 +31,6 @@
 
 #include <zbar.h>
 #include <apriltag/apriltag.h>
-#include <apriltag/tagStandard41h12.h>
 #include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -40,48 +39,75 @@
 
 typedef vision_msgs::msg::Detection2DArray Detection2DArray;
 
-namespace zbar {
-  class ImageScanner;
-}
-
 namespace hector_tag_detection {
 
 class TagDetectionImpl {
 public:
   explicit TagDetectionImpl(const rclcpp::Node::SharedPtr& node);
+  TagDetectionImpl(TagDetectionImpl& td) = delete;
+  TagDetectionImpl(TagDetectionImpl&& td) = delete;
   ~TagDetectionImpl() = default;
 
 protected:
+  /**
+   * Called when an image is received.
+   * Performs tag detection on received image and publishes detected tags.
+   * @param image The tag detection is performed on this image
+   * @param camera_info The camera info is replicated for the debug crops but is otherwise unused
+   */
   void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image, const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
-  
+
+  /**
+   * Publishes whether the node is enabled. Called once on startup and by enabledCallback
+   */
   void publishEnableStatus() const;
-  void enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled);
+  /**
+   * Enables or disables the node, stopping or starting subscribers.
+   * Called either by parameter change or topic callback via msgEnabledCallback.
+   * @param enabled Enables or disables the node
+   */
+  void enabledCallback(const bool& enabled);
+  /**
+   * Enables or disables the node via enabledCallback
+   * @param enabled Enables or disables the node
+   */
+  void msgEnabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled);
   
 private:
-  rclcpp::Node::SharedPtr node_;
-
-  image_transport::ImageTransport image_transport_;
+  bool enabled_;
+  bool has_subscribers_;
 
   zbar::ImageScanner *qrcode_detector_;
   std::shared_ptr<apriltag_detector_t> apriltag_detector_;
   std::shared_ptr<apriltag_family_t> apriltag_family_;
 
+  rclcpp::Node::SharedPtr node_;
+  std::shared_ptr<rclcpp::ParameterEventHandler> parameter_event_handler_;
+  rclcpp::ParameterCallbackHandle::SharedPtr enabled_callback_handle_;
+  image_transport::ImageTransport image_transport_;
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   rclcpp::TimerBase::SharedPtr check_subscribers_timer_;
-
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
 
   image_transport::CameraSubscriber camera_subscriber_;
 
   image_transport::CameraPublisher tag_image_publisher_;
   rclcpp::Publisher<Detection2DArray>::SharedPtr aggregator_percept_publisher_;
 
-  bool enabled_;
-  bool has_subscribers_;
-
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
+  
+  /**
+   * Starts the node's subscriptions when the node is enabled and has subscribero of its own.
+   */
   void startSubscribers();
+  /**
+   * Stops the node's subscribers when the node is disabled or has no subscribers of its own.
+   */
   void stopSubscribers();
+  /**
+   * Called periodically to check if the node's publishers have any subscribers,
+   * starting or stopping the node's own subscription accordingly.
+   */
   void publisherSubscriptionCallback();
 };
 

@@ -1,6 +1,6 @@
 <launch>
   <node pkg="hector_tag_detection" exec="camera_dummy_node">
-    <param name="image_path" value="/home/finn/Documents/S11/hector/hector_ws/src/hector_vision/hector_tag_detection/test/Images/image1.jpg"/>
+    <param name="image_path" value="/home/finn/Documents/S11/hector/hector_ws/src/hector_vision/hector_tag_detection/test/Images/image2.jpg"/>
   </node>
   <node pkg="hector_tag_detection" exec="tag_detection">
     <remap from="perception/image_percept" to="/detection/visual_detection"/>

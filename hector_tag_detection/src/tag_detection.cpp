@@ -42,14 +42,23 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
-// using namespace zbar;
-
 namespace hector_tag_detection {
 
 TagDetectionImpl::TagDetectionImpl(const rclcpp::Node::SharedPtr& node)
   : node_(node), image_transport_(node), has_subscribers_(false)
 {
   RCLCPP_INFO(node_->get_logger(), "Initializing tag detector");
+
+  parameter_event_handler_ = std::make_shared<rclcpp::ParameterEventHandler>(node_);
+
+  node_->declare_parameter<bool>("enabled", true);
+  enabled_ = node->get_parameter("enabled").as_bool();
+  enabled_callback_handle_ = parameter_event_handler_->add_parameter_callback("enabled",
+    [this](const  rclcpp::Parameter& p) -> void
+    {
+      this->enabledCallback(p.as_bool());
+    }
+  );
 
   // Set up QR-Code detector
   qrcode_detector_ = new zbar::ImageScanner;
@@ -60,9 +69,6 @@ TagDetectionImpl::TagDetectionImpl(const rclcpp::Node::SharedPtr& node)
   apriltag_family_.reset(tagStandard41h12_create(), tagStandard41h12_destroy);
   apriltag_detector_add_family(apriltag_detector_.get(), apriltag_family_.get());
 
-  node_->declare_parameter("enabled", true);
-  enabled_ = node->get_parameter("enabled").as_bool();
-
   tag_image_publisher_ = image_transport_.advertiseCamera(
     "image/tag", 10);
   rclcpp::PublisherOptions aggregator_percept_pub_options;
@@ -72,8 +78,9 @@ TagDetectionImpl::TagDetectionImpl(const rclcpp::Node::SharedPtr& node)
   check_subscribers_timer_ = node_->create_wall_timer(std::chrono::seconds(1), std::bind(&TagDetectionImpl::publisherSubscriptionCallback, this));
 
   enabled_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
-    "enabled", 10, std::bind(&TagDetectionImpl::enabledCallback, this, std::placeholders::_1));
-  enabled_pub_ = node_->create_publisher<std_msgs::msg::Bool>("enabled_status", 10);
+    "tag_deteciont/enabled", 10, std::bind(&TagDetectionImpl::msgEnabledCallback, this, std::placeholders::_1));
+  enabled_pub_ = node_->create_publisher<std_msgs::msg::Bool>(
+    "tag_detection/enabled_status", 10);
   
   publishEnableStatus();
 
@@ -256,22 +263,30 @@ void TagDetectionImpl::imageCallback(const sensor_msgs::msg::Image::ConstSharedP
   zbar_image.set_data(nullptr, 0);
 }
 
-void TagDetectionImpl::enabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled)
+void TagDetectionImpl::enabledCallback(const bool& enabled)
 {
   // Changed to disabled
-  if (!enabled->data && enabled_)
+  if (!enabled && enabled_)
   {
     enabled_ = false;
     if (has_subscribers_)
       stopSubscribers();
   }
   // Changed to enabled
-  if (enabled->data && !enabled_)
+  if (enabled && !enabled_)
   {
     enabled_ = true;
     if (has_subscribers_)
       startSubscribers();
   }
+
+  publishEnableStatus();
+}
+
+void TagDetectionImpl::msgEnabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled)
+{
+  const rclcpp::Parameter parameter("enabled", rclcpp::ParameterValue(enabled->data));
+  node_->set_parameter(parameter);
 }
 
 void TagDetectionImpl::publisherSubscriptionCallback()
@@ -303,8 +318,6 @@ void TagDetectionImpl::publishEnableStatus() const
   std_msgs::msg::Bool bool_msg;
   bool_msg.data = enabled_;
   enabled_pub_->publish(bool_msg);
-
-  std::string enabled_string;
   
   RCLCPP_INFO_STREAM(node_->get_logger(), (enabled_ ? "Enabled" : "Disabled") << " tag_detection.");
 }

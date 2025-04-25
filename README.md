@@ -19,6 +19,7 @@
 | hector_thermal_self_filter                                  | <span style="color:red">Not Ported</span> |
 | hector_vision_algorithm                                     | <span style="color:red">Not Ported</span> |
 | hector_vision_algorithm_py                                  | <span style="color:red">Not Ported</span> |
+| hector_vision_test                                          | <span style="color:blue">New</span>       |
 
 ## hector_detection_aggregator
 
@@ -45,7 +46,7 @@ Detections are colored according to their type:
 | Topic                           | Type                               | Description                                    |
 | ------------------------------- | ---------------------------------- | ---------------------------------------------- |
 | `/image`                        | `image_transport/Camera`           | The image that detections are overlaid on      |
-| `/detection/visual_detection`   | `vision_msgs/msg/Detection2DArray` | Lists of perceptions that are aggragated       |
+| `/detection/visual_detection`   | `vision_msgs/msg/Detection2DArray` | Lists of perceptions that are aggregated       |
 | `/detection_aggregator/enabled` | `std_msgs/msg/Bool`                | The node can be enabled/disabled on this topic |
 
 #### Published Topics
@@ -107,3 +108,12 @@ None
 | Parameter | Type   | Description               |
 | --------- | ------ | ------------------------- |
 | `enabled` | `bool` | Enables/disables the node |
+
+## hector vision_test
+
+A package for testing the other packages in hector_vision
+
+### camera_dummy
+
+This node is a simple standin for a camera, publishing a configurable series of images
+

@@ -10,18 +10,6 @@
 
 namespace hector_detection_aggregator
 {
-// inline bool operator<( const std::array<uint8_t, 16>& lhs, const std::array<uint8_t, 16>& rhs )
-// {
-//   for (size_t i = 0; i < 16; ++i)
-//   {
-//     if (lhs[i] < rhs[i])
-//       return true;
-//     if (lhs[i] > rhs[i])
-//       return false;
-//   }
-//   return false;
-// }
-
 struct ImageDetections
 {
   struct DetectorDetections
@@ -74,6 +62,16 @@ struct ImageDetections
   }
 };
 
+/**
+ * This aggregator synchronizes received detections with the image frames they  were detected on
+ * so that every detection is displayed in the right place even if the view is moving quickly.
+ * To guarantee that every detection is paired with the matching image this aggregator awaits
+ * a detection from every detector before making it available.
+ * This requires that all detectors consistently publish even if there are no detections as only
+ * complete frames are ever published.
+ * Depending on the delay of different detectors and the framerate of the camera a large buffer size
+ * may be required for the aggregator to ever give results.
+ */
 class CompleteDataDetectionAggregator : public DetectionAggregatorBase
 {
 private:
@@ -82,21 +80,36 @@ private:
   std::map<std::array<uint8_t, 16>, int> detector_indexes_;
   size_t buffer_size_;
   size_t buffer_index_;
+  size_t oldest_frame_index_;
   rclcpp::Time latest_valid_frame_;
   std::vector<rclcpp::Time> current_buffers_;
   std::map<rclcpp::Time, std::pair<cv_bridge::CvImageConstPtr, ImageDetections>> detections_;
 
 public:
-  explicit CompleteDataDetectionAggregator(
+  /**
+   * This aggregator synchronizes received detections with the image frames they  were detected on
+   * so that every detection is displayed in the right place even if the view is moving quickly.
+   * To guarantee that every detection is paired with the matching image this aggregator awaits
+   * a detection from every detector before making it available.
+   * This requires that all detectors consistently publish even if there are no detections as only
+   * complete frames are ever published.
+   * Depending on the delay of different detectors and the framerate of the camera a large buffer size
+   * may be required for the aggregator to ever give results.
+   * @param node Used for logging
+   * @param buffer_size How many frames are stored before the oldest is cleared
+   * @param publisher_info Used to determine which detectors to expect
+   */
+  CompleteDataDetectionAggregator(
     const rclcpp::Node::SharedPtr& node,
     const size_t& buffer_size,
     const std::vector<rclcpp::TopicEndpointInfo>& publisher_info)
-  : DetectionAggregatorBase(), node_(node), buffer_size_(buffer_size), buffer_index_(0)
+  : DetectionAggregatorBase(), node_(node), buffer_size_(buffer_size), buffer_index_(0), oldest_frame_index_(0)
   {
     current_buffers_.reserve(buffer_size_);
     for (size_t i = 0; i < buffer_size_; ++i)
       current_buffers_.push_back(node_->now());
     detections_.clear();
+    CompleteDataDetectionAggregator::UpdatePublishers(publisher_info);
   }
 
   bool AddImage(const sensor_msgs::msg::Image::ConstSharedPtr& image,
@@ -113,6 +126,15 @@ public:
     }
 
     const size_t new_index = buffer_index_ + 1 < buffer_size_ ? buffer_index_ + 1 : 0;
+
+    if (new_index == oldest_frame_index_)
+    {
+      RCLCPP_WARN(node_->get_logger(),
+        "A buffered frame was overwritten before it or a newer one could be published! "
+        "This may indicate that the buffer size is too small!");
+      detections_.erase(current_buffers_[oldest_frame_index_]);
+      oldest_frame_index_ = oldest_frame_index_ + 1 < buffer_size_ ? oldest_frame_index_ + 1 : 0;
+    }
     current_buffers_[new_index] = image_time;
 
     std::vector<DetectionEntry> detection_vector;
@@ -200,6 +222,22 @@ public:
     std::pair data = {frame->second.first, frame->second.second.CollectDetections()};
     const rclcpp::Time frame_time = latest_valid_frame_;
 
+    int frame_index = 0;
+    for (int i = 0; i < buffer_size_; ++i) {
+      if (current_buffers_[i] == latest_valid_frame_) {
+        frame_index = i;
+        break;
+      }
+    }
+
+    if (frame_index == buffer_index_) {
+      // Reset indexes if buffer is empty
+      oldest_frame_index_ = 0;
+      buffer_index_ = 0;
+    }
+    else
+      oldest_frame_index_ = frame_index + 1 < buffer_size_ ? frame_index + 1 : 0;
+
     // Clear obsolete frames
     std::vector<rclcpp::Time> times_before_frame;
     times_before_frame.reserve(buffer_size_);
@@ -212,8 +250,6 @@ public:
     return data;
   }
 
-  // TODO The topic name of node.get_publishers_info_by_topic() isn't automatically remapped
-  // TODO Maybe subscription.get_topic_name() gives the remapped topic name
   void UpdatePublishers(const std::vector<rclcpp::TopicEndpointInfo>& publisher_info) override
   {
     std::map<std::array<uint8_t, 16>, std::string> current_publishers;

@@ -5,7 +5,7 @@
 #include <image_transport/image_transport.hpp>
 #include <hector_detection_aggregator/detection_aggregator_node.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
-#include <hector_ros2_utils/parameters/reconfigurable_parameter.hpp>
+
 #include <hector_detection_aggregator/detection_aggregator_base.hpp>
 #include <hector_detection_aggregator/newest_data_detection_aggregator.hpp>
 #include <hector_detection_aggregator/complete_data_detection_aggregator.hpp>
@@ -23,28 +23,27 @@ namespace hector_detection_aggregator
 DetectionAggregatorNode::DetectionAggregatorNode(const rclcpp::Node::SharedPtr& node)
   : enabled_(true), has_subscribers_(false)
 {
-  const std::string node_namespace = "detection_aggregator";
-
   node_ = node;
   param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(node_);
 
-  node_->declare_parameter<bool>(node_namespace + ".enabled", true);
-  node_->declare_parameter<int>(node_namespace + ".buffer_size", 128);
-  node_->declare_parameter<double>(node_namespace + ".storage_duration", 10.0);
-  node_->declare_parameter<std::string>(node_namespace + ".detection_topic",
+  node_->declare_parameter<bool>("enabled", true);
+  node_->declare_parameter<int>("buffer_size", 16);
+  node_->declare_parameter<double>("storage_duration", 1.5);
+  node_->declare_parameter<std::string>("detection_topic",
                                         "detection/visual_detection");
-  node_->declare_parameter<std::string>(node_namespace + ".aggregation_topic",
+  node_->declare_parameter<std::string>("aggregation_topic",
                                         "detection/aggregated_detections_image");
-  node_->declare_parameter<std::string>(node_namespace + ".aggregation_mode", "NEWEST");
+  node_->declare_parameter<std::string>("aggregation_mode", "NEWEST");
 
-  enabled_callback_handle_ = param_subscriber_->add_parameter_callback(node_namespace + ".enabled",
+  enabled_callback_handle_ = param_subscriber_->add_parameter_callback("enabled",
     [this](const rclcpp::Parameter& parameter)->void
     {
       RCLCPP_DEBUG(this->node_->get_logger(), "Parameter callback for \"enabled\" called");
       this->enabledCallback(parameter.as_bool());
     });
-  detection_topic_ = node_->get_parameter(node_namespace + ".detection_topic").as_string();
-  const std::string aggregation_topic = node_->get_parameter(node_namespace + ".aggregation_topic").as_string();
+  detection_topic_ = node_->get_parameter("detection_topic").as_string();
+  real_detection_topic_ = detection_topic_;
+  const std::string aggregation_topic = node_->get_parameter("aggregation_topic").as_string();
   robot_namespace_ = node_->get_parameter_or<std::string>("robot_namespace", "");
 
   // Color mappings A color for "unknown" is required to exist
@@ -73,20 +72,20 @@ DetectionAggregatorNode::DetectionAggregatorNode(const rclcpp::Node::SharedPtr& 
     "detection_aggregator/enabled_status", 10);
 
   // Create detection aggregator
-  std::string aggregation_mode = node_->get_parameter(node_namespace + ".aggregation_mode").as_string();
+  std::string aggregation_mode = node_->get_parameter("aggregation_mode").as_string();
   std::transform( aggregation_mode.begin(), aggregation_mode.end(), aggregation_mode.begin(), ::toupper );
   if (aggregation_mode == "COMPLETE")
   {
     std::vector<rclcpp::TopicEndpointInfo> publisher_info =
-      node_->get_publishers_info_by_topic( detection_topic_ );
-    size_t buffer_size = node_->get_parameter(node_namespace + ".buffer_size").as_int();
+      node_->get_publishers_info_by_topic( real_detection_topic_ );
+    size_t buffer_size = node_->get_parameter("buffer_size").as_int();
     detection_aggregator_ = std::make_shared<CompleteDataDetectionAggregator>(
       node_, buffer_size, publisher_info);
   }
   else
   {
     rclcpp::Duration storage_duration = durationFromDouble(
-      node_->get_parameter(node_namespace + ".storage_duration").as_double());
+      node_->get_parameter("storage_duration").as_double());
     detection_aggregator_ = std::make_shared<NewestDataDetectionAggregator>(
       node_, storage_duration);
   }
@@ -214,6 +213,8 @@ void DetectionAggregatorNode::startSubscribers()
   image_percept_sub_ = node_->create_subscription<Detection2DArray>(
     robot_namespace_ + "/" + detection_topic_, 1,
     std::bind(&DetectionAggregatorNode::imageDetectionCallback, this, std::placeholders::_1, std::placeholders::_2));
+
+  real_detection_topic_ = image_percept_sub_->get_topic_name();
 }
 
 void DetectionAggregatorNode::stopSubscribers()
@@ -245,10 +246,11 @@ void DetectionAggregatorNode::checkPublisherSubscriptions()
   }
 }
 
-void DetectionAggregatorNode::checkEnvironmentCallback(){
+void DetectionAggregatorNode::checkEnvironmentCallback()
+{
   checkPublisherSubscriptions();
   const std::vector<rclcpp::TopicEndpointInfo> detector_info =
-      node_->get_publishers_info_by_topic( detection_topic_ );
+      node_->get_publishers_info_by_topic( real_detection_topic_ );
   detection_aggregator_->UpdatePublishers( detector_info );
 }
 

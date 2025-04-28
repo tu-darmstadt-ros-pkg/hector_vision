@@ -4,7 +4,8 @@
   <version>0.0.0</version>
   <description>The hector_detection_aggregator package</description>
 
-  <maintainer email="kevin.daun@stud.tu-darmstadt.de">Kevin Daun</maintainer>
+  <author email="kevin.daun@stud.tu-darmstadt.de">Kevin Daun</author>
+  <maintainer email="finn.winter@stud.tu-darmstadt.de">Finn Winter</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -16,7 +17,6 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>vision_msgs</depend>
-  <depend>hector_ros2_utils</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

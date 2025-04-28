@@ -29,7 +29,10 @@ private:
   bool enabled_;
   bool has_subscribers_;
   std::string robot_namespace_;
+  /// Detection topic chosen by parameter
   std::string detection_topic_;
+  /// Detection topic overridden by remapping
+  std::string real_detection_topic_;
   // rclcpp::Duration storage_duration_;
 
   std::shared_ptr<DetectionAggregatorBase> detection_aggregator_;

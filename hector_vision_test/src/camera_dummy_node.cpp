@@ -18,7 +18,8 @@
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
-CameraDummyNode::CameraDummyNode(const rclcpp::Node::SharedPtr& node) : current_image_(0), node_(node), image_transport_(node)
+CameraDummyNode::CameraDummyNode(const rclcpp::Node::SharedPtr& node)
+: current_image_(0), node_(node), image_transport_(node), current_image_frame_(0)
 {
   RCLCPP_INFO(node_->get_logger(), "Starting Node");
 
@@ -27,11 +28,11 @@ CameraDummyNode::CameraDummyNode(const rclcpp::Node::SharedPtr& node) : current_
   node_->declare_parameter("image_dir",
     ament_index_cpp::get_package_share_directory( "hector_vision_test" ) + "/images");
   node_->declare_parameter("image_frequency", 0.2);
-  node_->declare_parameter("update_frequency", 5.0);
+  node_->declare_parameter("image_frames", 25);
 
   image_dir_ = node_->get_parameter("image_dir").as_string();
   const double image_frequency = node_->get_parameter("image_frequency").as_double();
-  const double update_frequency = node_->get_parameter("update_frequency").as_double();
+  image_frames_ = static_cast<int>(node_->get_parameter("image_frames").as_int());
 
   uint file_count = 0;
   for (const auto& file : fs::directory_iterator(image_dir_))
@@ -60,9 +61,8 @@ CameraDummyNode::CameraDummyNode(const rclcpp::Node::SharedPtr& node) : current_
 
   camera_publisher_ = image_transport_.advertiseCamera("image", 10);
 
-  image_timer_ = node_->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1000 / image_frequency)),
-    std::bind(&CameraDummyNode::iterateImage, this));
-  publish_timer_ = node_->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1000 / update_frequency)),
+  publish_timer_ = node_->create_wall_timer(
+    std::chrono::milliseconds(static_cast<int>(1000 / (image_frequency * static_cast<double>(image_frames_)))),
     std::bind(&CameraDummyNode::publishImage, this));
 
   RCLCPP_INFO(node_->get_logger(), "Node Started");
@@ -78,8 +78,13 @@ void CameraDummyNode::iterateImage()
 }
 
 
-void CameraDummyNode::publishImage() const
+void CameraDummyNode::publishImage()
 {
+  if (current_image_frame_ == image_frames_) {
+    iterateImage();
+    current_image_frame_ = 0;
+  }
+
   std_msgs::msg::Header header;
   header.frame_id = "dummy_camera";
   header.stamp = node_->now();
@@ -93,6 +98,8 @@ void CameraDummyNode::publishImage() const
   image.header = header;
 
   camera_publisher_.publish(image, camera_info);
+
+  ++current_image_frame_;
 }
 
 int main( int argc, char **argv )

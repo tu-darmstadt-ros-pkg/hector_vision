@@ -10,7 +10,6 @@ find_package(cv_bridge REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(vision_msgs REQUIRED)
-find_package(hector_ros2_utils REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(include)
@@ -25,7 +24,6 @@ ament_target_dependencies(detection_aggregator PUBLIC
   std_msgs
   sensor_msgs
   vision_msgs
-  hector_ros2_utils
 )
 
 install(TARGETS detection_aggregator

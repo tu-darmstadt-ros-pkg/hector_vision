@@ -3,7 +3,8 @@
   <name>hector_tag_detection</name>
   <version>1.0.0</version>
   <description>hector_tag_detection searches for QR codes in images using the</description>
-  <maintainer email="kohlbrecher@sim.tu-darmstadt.de">Stefan Kohlbrecher</maintainer>
+  <author email="kohlbrecher@sim.tu-darmstadt.de">Stefan Kohlbrecher</author>
+  <maintainer email="finn.winter@stud.tu-darmstadt.de">Finn Winter</maintainer>
 
   <license>LGPL</license>
 
@@ -22,7 +23,7 @@
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>apriltag</depend>
-  <depend>zbar</depend>
+  <depend>zbar-ros</depend>
   <depend>vision_msgs</depend>
 
   <export>

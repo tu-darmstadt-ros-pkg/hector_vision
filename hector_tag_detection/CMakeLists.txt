@@ -35,20 +35,4 @@ install(
   DESTINATION share/${PROJECT_NAME}/
 )
 
-if (BUILD_TESTING)
-  add_executable(camera_dummy_node src/camera_dummy_node.cpp)
-  ament_target_dependencies(camera_dummy_node
-    rclcpp
-    cv_bridge
-    image_transport
-  )
-  install(TARGETS camera_dummy_node
-    DESTINATION lib/${PROJECT_NAME}
-  )
-  install(
-    DIRECTORY test
-    DESTINATION share/${PROJECT_NAME}/
-  )
-endif ()
-
 ament_package()

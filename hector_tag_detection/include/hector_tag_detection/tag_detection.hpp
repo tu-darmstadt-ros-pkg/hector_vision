@@ -29,26 +29,28 @@
 #ifndef HECTOR_TAG_DETECTION_H
 #define HECTOR_TAG_DETECTION_H
 
-#include <zbar.h>
 #include <apriltag/apriltag.h>
-#include <rclcpp/rclcpp.hpp>
-#include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.hpp>
-#include <std_msgs/msg/bool.hpp>
+#include <image_transport/image_transport.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
+#include <zbar.h>
 
 typedef vision_msgs::msg::Detection2DArray Detection2DArray;
 
-namespace hector_tag_detection {
+namespace hector_tag_detection
+{
 
-class TagDetectionImpl {
+class TagDetectionImpl
+{
 public:
-  explicit TagDetectionImpl(const rclcpp::Node::SharedPtr& node);
-  TagDetectionImpl(TagDetectionImpl& td) = delete;
-  TagDetectionImpl(TagDetectionImpl&& td) = delete;
+  explicit TagDetectionImpl( const rclcpp::Node::SharedPtr &node );
+  TagDetectionImpl( TagDetectionImpl &td ) = delete;
+  TagDetectionImpl( TagDetectionImpl &&td ) = delete;
   ~TagDetectionImpl() = default;
-  
+
 private:
   bool enabled_;
   bool has_subscribers_;
@@ -73,13 +75,13 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
 
   /**
- * Called when an image is received.
- * Performs tag detection on received image and publishes detected tags.
- * @param image The tag detection is performed on this image
- * @param camera_info The camera info is replicated for the debug crops but is otherwise unused
- */
-  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image,
-                     const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
+   * Called when an image is received.
+   * Performs tag detection on received image and publishes detected tags.
+   * @param image The tag detection is performed on this image
+   * @param camera_info The camera info is replicated for the debug crops but is otherwise unused
+   */
+  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image,
+                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info );
 
   /**
    * Publishes whether the node is enabled. Called once on startup and by enabledCallback
@@ -90,29 +92,27 @@ private:
    * Called either by parameter change or topic callback via msgEnabledCallback.
    * @param enabled Enables or disables the node
    */
-  void enabledCallback(const bool& enabled);
+  void enabledCallback( const bool &enabled );
   /**
    * Enables or disables the node via enabledCallback
    * @param enabled Enables or disables the node
    */
-  void msgEnabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled) const;
+  void msgEnabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled ) const;
 
   /**
    * Find qr-codes in an image
    * @param image The image
    * @param perceptions Detected qr-codes are appended here
    */
-  void detectQRCodes(const cv_bridge::CvImageConstPtr& image,
-                     Detection2DArray& perceptions) const;
+  void detectQRCodes( const cv_bridge::CvImageConstPtr &image, Detection2DArray &perceptions ) const;
 
   /**
    * Find apriltags in an image
    * @param image The image
    * @param perceptions Detected apriltags are appended here
    */
-  void detectApriltags(const cv_bridge::CvImageConstPtr& image,
-                       Detection2DArray& perceptions) const;
-  
+  void detectApriltags( const cv_bridge::CvImageConstPtr &image, Detection2DArray &perceptions ) const;
+
   /**
    * Starts the node's subscriptions when the node is enabled and has subscriber of its own.
    */

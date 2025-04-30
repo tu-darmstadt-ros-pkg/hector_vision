@@ -1,118 +1,123 @@
-//Author: Matej Zecevic
+// Author: Matej Zecevic
 #include <hector_motion_detection/motion_detection.h>
 
-namespace hector_motion_detection {
-
-MotionDetection::MotionDetection(ros::NodeHandle &nh, ros::NodeHandle& pnh)
-  : nh_(nh), first_image_received_(false), it_(pnh), dyn_rec_server_(pnh)
+namespace hector_motion_detection
 {
-    bg_subtractor_ = cv::createBackgroundSubtractorMOG2();
 
-    pnh.param("enabled", enabled_, false);
+MotionDetection::MotionDetection( ros::NodeHandle &nh, ros::NodeHandle &pnh )
+    : nh_( nh ), first_image_received_( false ), it_( pnh ), dyn_rec_server_( pnh )
+{
+  bg_subtractor_ = cv::createBackgroundSubtractorMOG2();
 
-    // Dynamic reconfigure
-    dyn_rec_type_ = boost::bind(&MotionDetection::dynRecParamCallback, this, _1, _2);
-    dyn_rec_server_.setCallback(dyn_rec_type_);
+  pnh.param( "enabled", enabled_, false );
 
-    ROS_INFO("Starting Motion Detection with MOG2");
-    ROS_INFO("debug_contours: %i", debug_contours_);
-    ROS_INFO("shadows: %i", shadows_);
-    ROS_INFO("max area: %d", max_area_);
-    ROS_INFO("min area: %d", min_area_);
-    ROS_INFO("detection limit: %d", detectionLimit_);
+  // Dynamic reconfigure
+  dyn_rec_type_ = boost::bind( &MotionDetection::dynRecParamCallback, this, _1, _2 );
+  dyn_rec_server_.setCallback( dyn_rec_type_ );
 
-    // Subscriber (always-on)
-    enabled_sub_ = pnh.subscribe("enabled", 10, &MotionDetection::enabledCallback, this);
+  ROS_INFO( "Starting Motion Detection with MOG2" );
+  ROS_INFO( "debug_contours: %i", debug_contours_ );
+  ROS_INFO( "shadows: %i", shadows_ );
+  ROS_INFO( "max area: %d", max_area_ );
+  ROS_INFO( "min area: %d", min_area_ );
+  ROS_INFO( "detection limit: %d", detectionLimit_ );
 
-    // Publishers
-    enabled_pub_ = pnh.advertise<std_msgs::Bool>("enabled_status", 10, true);
-    publishEnableStatus();
-    image_percept_pub_ = pnh.advertise<hector_worldmodel_msgs::ImagePercept>("image_percept", 20);
-    image_motion_pub_ = it_.advertiseCamera("image_motion", 10);
-    image_detected_pub_ = it_.advertiseCamera("image_detected", 10);
-    image_background_subtracted_pub_ = it_.advertiseCamera("image_background_subtracted", 10);
-    ros::SubscriberStatusCallback connect_cb = boost::bind(&MotionDetection::connectCb, this);
-    boost::lock_guard<boost::mutex> lock(connect_mutex_);
-    image_perception_pub = pnh.advertise<hector_perception_msgs::PerceptionDataArray>("detection/image_detection", 10, connect_cb, connect_cb, ros::VoidConstPtr(), false);
+  // Subscriber (always-on)
+  enabled_sub_ = pnh.subscribe( "enabled", 10, &MotionDetection::enabledCallback, this );
+
+  // Publishers
+  enabled_pub_ = pnh.advertise<std_msgs::Bool>( "enabled_status", 10, true );
+  publishEnableStatus();
+  image_percept_pub_ = pnh.advertise<hector_worldmodel_msgs::ImagePercept>( "image_percept", 20 );
+  image_motion_pub_ = it_.advertiseCamera( "image_motion", 10 );
+  image_detected_pub_ = it_.advertiseCamera( "image_detected", 10 );
+  image_background_subtracted_pub_ = it_.advertiseCamera( "image_background_subtracted", 10 );
+  ros::SubscriberStatusCallback connect_cb = boost::bind( &MotionDetection::connectCb, this );
+  boost::lock_guard<boost::mutex> lock( connect_mutex_ );
+  image_perception_pub = pnh.advertise<hector_perception_msgs::PerceptionDataArray>(
+      "detection/image_detection", 10, connect_cb, connect_cb, ros::VoidConstPtr(), false );
 }
 
-void MotionDetection::enabledCallback(const std_msgs::BoolConstPtr& enabled) {
+void MotionDetection::enabledCallback( const std_msgs::BoolConstPtr &enabled )
+{
   enabled_ = enabled->data;
   publishEnableStatus();
 }
 
-void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
+void MotionDetection::imageCallback( const sensor_msgs::ImageConstPtr &img )
 {
-  if (!enabled_) {
+  if ( !enabled_ ) {
     return;
   }
   cv_bridge::CvImageConstPtr cv_ptr;
-  cv_ptr = cv_bridge::toCvShare(img, sensor_msgs::image_encodings::BGR8);
-  cv::Mat frame(cv_ptr->image);
+  cv_ptr = cv_bridge::toCvShare( img, sensor_msgs::image_encodings::BGR8 );
+  cv::Mat frame( cv_ptr->image );
 
   cv::Mat fgimg;
-  if (automatic_learning_rate_) {
-    bg_subtractor_->apply(frame, fgimg);
+  if ( automatic_learning_rate_ ) {
+    bg_subtractor_->apply( frame, fgimg );
   } else {
-    bg_subtractor_->apply(frame, fgimg, learning_rate_);
+    bg_subtractor_->apply( frame, fgimg, learning_rate_ );
   }
 
   cv::Mat fgimg_orig;
-  fgimg.copyTo(fgimg_orig);   //for debugging/tuning purposes
+  fgimg.copyTo( fgimg_orig ); // for debugging/tuning purposes
 
-  cv::morphologyEx(fgimg, fgimg, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)));
+  cv::morphologyEx( fgimg, fgimg, cv::MORPH_CLOSE,
+                    cv::getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( 3, 3 ) ) );
 
-  //controlable iterations for morphological operations
-  for(int i=0; i < erosion_iterations_; i++) {
-    cv::erode(fgimg, fgimg, cv::Mat());
-  }
-  for(int i=0; i < dilation_iterations_; i++) {
-    cv::dilate(fgimg, fgimg, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3,3)));
-    //alternatively (tuning): other kernels: e.g. cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10,10))
+  // controlable iterations for morphological operations
+  for ( int i = 0; i < erosion_iterations_; i++ ) { cv::erode( fgimg, fgimg, cv::Mat() ); }
+  for ( int i = 0; i < dilation_iterations_; i++ ) {
+    cv::dilate( fgimg, fgimg, cv::getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( 3, 3 ) ) );
+    // alternatively (tuning): other kernels: e.g. cv::getStructuringElement(cv::MORPH_RECT, cv::Size(10,10))
   }
 
   // moving average of fg image
-  if (!first_image_received_) {
-    fgimg.copyTo(accumulated_image_);
+  if ( !first_image_received_ ) {
+    fgimg.copyTo( accumulated_image_ );
     first_image_received_ = true;
   } else {
-    cv::addWeighted(accumulated_image_, (1 - moving_average_weight_), fgimg, moving_average_weight_, 0.0, accumulated_image_);
+    cv::addWeighted( accumulated_image_, ( 1 - moving_average_weight_ ), fgimg,
+                     moving_average_weight_, 0.0, accumulated_image_ );
   }
   cv::Mat thresholded;
-  cv::threshold(accumulated_image_, thresholded, activation_threshold_, 255, cv::THRESH_BINARY);
+  cv::threshold( accumulated_image_, thresholded, activation_threshold_, 255, cv::THRESH_BINARY );
 
   // Find contours
-  std::vector<std::vector<cv::Point> > contours;
-  cv::findContours (thresholded, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-  if (debug_contours_) {
-    cv::drawContours(frame, contours, -1, cv::Scalar (0, 0, 255), 2);
+  std::vector<std::vector<cv::Point>> contours;
+  cv::findContours( thresholded, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE );
+  if ( debug_contours_ ) {
+    cv::drawContours( frame, contours, -1, cv::Scalar( 0, 0, 255 ), 2 );
   }
 
   //========Detection of g largest contours=====
-  int largest_area=0;
-  int largest_contour_index=0;
+  int largest_area = 0;
+  int largest_contour_index = 0;
   cv::Rect bounding_rect;
   std::vector<double> areas( contours.size() );
 
-  for( int i = 0; i < contours.size(); i++ ) {
-    double area = cv::contourArea( contours[i] );  //  Find the area of contour
+  for ( int i = 0; i < contours.size(); i++ ) {
+    double area = cv::contourArea( contours[i] ); //  Find the area of contour
     areas[i] = area;
   }
 
   std::vector<hector_perception_msgs::PerceptionData> polygonGroup;
-  if(contours.size() != 0) {
-    for(int k=0; k < detectionLimit_; k++) {
-      for(int j=0; j < areas.size(); j++) {
-        if( areas[j] > largest_area ) {
+  if ( contours.size() != 0 ) {
+    for ( int k = 0; k < detectionLimit_; k++ ) {
+      for ( int j = 0; j < areas.size(); j++ ) {
+        if ( areas[j] > largest_area ) {
           largest_area = areas[j];
-          largest_contour_index = j;               //Store the index of largest contour
-          bounding_rect = cv::boundingRect( contours[j] ); // Find the bounding rectangle for biggest contour
+          largest_contour_index = j; // Store the index of largest contour
+          bounding_rect =
+              cv::boundingRect( contours[j] ); // Find the bounding rectangle for biggest contour
         }
       }
-      if(areas[largest_contour_index] >= min_area_ && areas[largest_contour_index] <= max_area_) {
-        cv::rectangle( frame, bounding_rect.tl(), bounding_rect.br(), cv::Scalar( 0, 0, 255 ), 2, 8, 0 );
+      if ( areas[largest_contour_index] >= min_area_ && areas[largest_contour_index] <= max_area_ ) {
+        cv::rectangle( frame, bounding_rect.tl(), bounding_rect.br(), cv::Scalar( 0, 0, 255 ), 2, 8,
+                       0 );
 
-        //Create a Polygon consisting of Point32 points for publishing
+        // Create a Polygon consisting of Point32 points for publishing
         geometry_msgs::Point32 p1, p2, p3, p4;
         p1.x = bounding_rect.tl().x;
         p1.y = bounding_rect.tl().y;
@@ -124,78 +129,79 @@ void MotionDetection::imageCallback(const sensor_msgs::ImageConstPtr& img)
         p3.y = p4.y;
 
         std::vector<geometry_msgs::Point32> recPoints;
-        recPoints.push_back(p1);
-        recPoints.push_back(p2);
-        recPoints.push_back(p4);
-        recPoints.push_back(p3);
+        recPoints.push_back( p1 );
+        recPoints.push_back( p2 );
+        recPoints.push_back( p4 );
+        recPoints.push_back( p3 );
 
         geometry_msgs::Polygon polygon;
         polygon.points = recPoints;
         hector_perception_msgs::PerceptionData perceptionData;
-        perceptionData.percept_name = "motion" + boost::lexical_cast<std::string>(k);
+        perceptionData.percept_name = "motion" + boost::lexical_cast<std::string>( k );
         perceptionData.polygon = polygon;
 
-        polygonGroup.push_back(perceptionData);
+        polygonGroup.push_back( perceptionData );
       }
       areas[largest_contour_index] = -1;
       largest_area = 0;
     }
-    if (image_perception_pub.getNumSubscribers() > 0) {
+    if ( image_perception_pub.getNumSubscribers() > 0 ) {
       hector_perception_msgs::PerceptionDataArray polygonPerceptionArray;
       polygonPerceptionArray.header.stamp = ros::Time::now();
       polygonPerceptionArray.perceptionType = "motion";
       polygonPerceptionArray.perceptionList = polygonGroup;
-      image_perception_pub.publish(polygonPerceptionArray);
+      image_perception_pub.publish( polygonPerceptionArray );
     }
   }
   sensor_msgs::CameraInfo::Ptr info;
-  info.reset(new sensor_msgs::CameraInfo());
+  info.reset( new sensor_msgs::CameraInfo() );
   info->header = img->header;
 
-  if(image_background_subtracted_pub_.getNumSubscribers() > 0) {
+  if ( image_background_subtracted_pub_.getNumSubscribers() > 0 ) {
     cv_bridge::CvImage cvImg;
     cvImg.image = fgimg_orig;
     cvImg.header = img->header;
     cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-    image_background_subtracted_pub_.publish(cvImg.toImageMsg(), info);
+    image_background_subtracted_pub_.publish( cvImg.toImageMsg(), info );
   }
 
-  if(image_motion_pub_.getNumSubscribers() > 0) {
+  if ( image_motion_pub_.getNumSubscribers() > 0 ) {
     cv_bridge::CvImage cvImg;
     cvImg.image = thresholded;
     cvImg.header = img->header;
     cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-    image_motion_pub_.publish(cvImg.toImageMsg(), info);
+    image_motion_pub_.publish( cvImg.toImageMsg(), info );
   }
 
-  if(image_detected_pub_.getNumSubscribers() > 0) {
+  if ( image_detected_pub_.getNumSubscribers() > 0 ) {
     cv_bridge::CvImage cvImg;
     cvImg.image = frame;
     cvImg.header = img->header;
     cvImg.encoding = sensor_msgs::image_encodings::BGR8;
-    image_detected_pub_.publish(cvImg.toImageMsg(), info);
+    image_detected_pub_.publish( cvImg.toImageMsg(), info );
   }
 }
 
-void MotionDetection::publishEnableStatus() {
+void MotionDetection::publishEnableStatus()
+{
   std_msgs::Bool bool_msg;
   bool_msg.data = enabled_;
-  enabled_pub_.publish(bool_msg);
+  enabled_pub_.publish( bool_msg );
 
   std::string enabled_string;
-  if (enabled_) {
+  if ( enabled_ ) {
     enabled_string = "Enabled";
   } else {
     enabled_string = "Disabled";
   }
-  ROS_INFO_STREAM(enabled_string << " hector_motion_detection.");
+  ROS_INFO_STREAM( enabled_string << " hector_motion_detection." );
 }
 
-void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_t level)
+void MotionDetection::dynRecParamCallback( MotionDetectionConfig &config, uint32_t level )
 {
-  bg_subtractor_->setNMixtures(3);
+  bg_subtractor_->setNMixtures( 3 );
   shadows_ = config.motion_detect_shadows;
-  bg_subtractor_->setDetectShadows(shadows_);
+  bg_subtractor_->setDetectShadows( shadows_ );
   min_area_ = config.motion_detect_min_area;
   max_area_ = config.motion_detect_max_area;
   detectionLimit_ = config.motion_detect_detectionLimit;
@@ -210,25 +216,22 @@ void MotionDetection::dynRecParamCallback(MotionDetectionConfig &config, uint32_
 
 void MotionDetection::connectCb()
 {
-  boost::lock_guard<boost::mutex> lock(connect_mutex_);
+  boost::lock_guard<boost::mutex> lock( connect_mutex_ );
 
-  if (image_perception_pub.getNumSubscribers() == 0) {
+  if ( image_perception_pub.getNumSubscribers() == 0 ) {
     shutdownSubscribers();
-//    ROS_INFO_STREAM("Stopping subscribers..");
+    //    ROS_INFO_STREAM("Stopping subscribers..");
   } else {
     startSubscribers();
-//    ROS_INFO_STREAM("Starting subscribers..");
+    //    ROS_INFO_STREAM("Starting subscribers..");
   }
 }
 
 void MotionDetection::startSubscribers()
 {
-  image_sub_ = it_.subscribe("image", 1 , &MotionDetection::imageCallback, this);
+  image_sub_ = it_.subscribe( "image", 1, &MotionDetection::imageCallback, this );
 }
 
-void MotionDetection::shutdownSubscribers()
-{
-  image_sub_.shutdown();
-}
+void MotionDetection::shutdownSubscribers() { image_sub_.shutdown(); }
 
-}
+} // namespace hector_motion_detection

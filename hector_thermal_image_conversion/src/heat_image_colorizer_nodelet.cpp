@@ -29,7 +29,8 @@
 #include <hector_thermal_image_conversion/heat_image_colorizer.h>
 #include <nodelet/nodelet.h>
 
-namespace hector_image_proc{
+namespace hector_image_proc
+{
 
 class HeatImageColorizerNodelet : public nodelet::Nodelet
 {
@@ -41,11 +42,11 @@ protected:
 
 void HeatImageColorizerNodelet::onInit()
 {
-  dg_.reset(new HeatImageColorizer(getNodeHandle(), getPrivateNodeHandle()));
+  dg_.reset( new HeatImageColorizer( getNodeHandle(), getPrivateNodeHandle() ) );
 }
 
-} //namespace
+} // namespace hector_image_proc
 
 // Register nodelet
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatImageColorizerNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatImageColorizerNodelet, nodelet::Nodelet )

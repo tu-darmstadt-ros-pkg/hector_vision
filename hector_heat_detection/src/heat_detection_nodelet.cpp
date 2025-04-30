@@ -31,7 +31,8 @@
 #include "heat_detection.h"
 #include <nodelet/nodelet.h>
 
-namespace hector_image_proc{
+namespace hector_image_proc
+{
 
 class HeatDetectionNodelet : public nodelet::Nodelet
 {
@@ -43,11 +44,11 @@ protected:
 
 void HeatDetectionNodelet::onInit()
 {
-  hd_.reset(new HeatDetection(getNodeHandle(), getPrivateNodeHandle()));
+  hd_.reset( new HeatDetection( getNodeHandle(), getPrivateNodeHandle() ) );
 }
 
-} //namespace
+} // namespace hector_image_proc
 
 // Register nodelet
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatDetectionNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatDetectionNodelet, nodelet::Nodelet )

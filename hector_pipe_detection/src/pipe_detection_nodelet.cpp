@@ -20,17 +20,16 @@
 namespace hector_pipe_detection
 {
 
-
 class PipeDetectionNodelet : public nodelet::Nodelet
 {
 public:
   PipeDetectionNodelet();
 
 protected:
-
   void onInit() override;
 
-  void detectCallback( const sensor_msgs::ImageConstPtr &image, const sensor_msgs::CameraInfoConstPtr &camera_info );
+  void detectCallback( const sensor_msgs::ImageConstPtr &image,
+                       const sensor_msgs::CameraInfoConstPtr &camera_info );
 
   void enableCallback();
 
@@ -48,37 +47,27 @@ protected:
   std::shared_ptr<DebugInfo> debug_info_;
 };
 
-PipeDetectionNodelet::PipeDetectionNodelet() : subscriber_count_( 0 )
-{
-}
+PipeDetectionNodelet::PipeDetectionNodelet() : subscriber_count_( 0 ) { }
 
 void PipeDetectionNodelet::onInit()
 {
   ros::NodeHandle &nh = getNodeHandle();
   image_transport_ = std::make_shared<image_transport::ImageTransport>( nh );
   ros::NodeHandle &pnh = getPrivateNodeHandle();
-  pose_publisher_ = pnh.advertise<geometry_msgs::PoseStamped>( "pose", 1,
-                                                               boost::bind( &PipeDetectionNodelet::enableCallback,
-                                                                            this ),
-                                                               boost::bind( &PipeDetectionNodelet::disableCallback,
-                                                                            this ),
-                                                               ros::VoidConstPtr(),
-                                                               true );
-  pose_2d_publisher = pnh.advertise<geometry_msgs::PoseStamped>( "pose_2d", 1,
-                                                                 boost::bind( &PipeDetectionNodelet::enableCallback,
-                                                                              this ),
-                                                                 boost::bind( &PipeDetectionNodelet::disableCallback,
-                                                                              this ),
-                                                                 ros::VoidConstPtr(),
-                                                                 true );
+  pose_publisher_ = pnh.advertise<geometry_msgs::PoseStamped>(
+      "pose", 1, boost::bind( &PipeDetectionNodelet::enableCallback, this ),
+      boost::bind( &PipeDetectionNodelet::disableCallback, this ), ros::VoidConstPtr(), true );
+  pose_2d_publisher = pnh.advertise<geometry_msgs::PoseStamped>(
+      "pose_2d", 1, boost::bind( &PipeDetectionNodelet::enableCallback, this ),
+      boost::bind( &PipeDetectionNodelet::disableCallback, this ), ros::VoidConstPtr(), true );
 
   // TODO: Make param for this
-  if (pnh.param("debug", false))
-  {
-    debug_info_ = std::make_shared<DebugInfo>( std::make_shared<image_transport::ImageTransport>( pnh ));
+  if ( pnh.param( "debug", false ) ) {
+    debug_info_ =
+        std::make_shared<DebugInfo>( std::make_shared<image_transport::ImageTransport>( pnh ) );
   }
 
-  circle_radius_ = pnh.param("circle_radius", 0.025);
+  circle_radius_ = pnh.param( "circle_radius", 0.025 );
   NODELET_INFO( "PipeDetection initialized." );
 }
 
@@ -86,33 +75,29 @@ void PipeDetectionNodelet::detectCallback( const sensor_msgs::ImageConstPtr &msg
                                            const sensor_msgs::CameraInfoConstPtr &camera_info )
 {
   cv_bridge::CvImageConstPtr image;
-  try
-  {
+  try {
     image = cv_bridge::toCvShare( msg, "rgb8" );
+  } catch ( cv_bridge::Exception &ex ) {
+    NODELET_ERROR( "Could not convert from '%s' to 'bgr8'", msg->encoding.c_str() );
   }
-  catch ( cv_bridge::Exception &ex )
-  {
-    NODELET_ERROR( "Could not convert from '%s' to 'bgr8'", msg->encoding.c_str());
-  }
-  if (camera_model_ == nullptr || camera_model_->cameraInfo().header.frame_id != camera_info->header.frame_id)
-  {
-    camera_model_.reset( new image_geometry::PinholeCameraModel());
+  if ( camera_model_ == nullptr ||
+       camera_model_->cameraInfo().header.frame_id != camera_info->header.frame_id ) {
+    camera_model_.reset( new image_geometry::PinholeCameraModel() );
     camera_model_->fromCameraInfo( camera_info );
   }
   cv::Point2d center;
   double radius;
 
-//  hector_profiling::Timer timer("CDM", hector_profiling::Timer::Microseconds);
-//  timer.start();
-  if (!findOuterCircle( image->image, 1, center, radius, debug_info_ ))
-  {
-//    timer.stop();
+  //  hector_profiling::Timer timer("CDM", hector_profiling::Timer::Microseconds);
+  //  timer.start();
+  if ( !findOuterCircle( image->image, 1, center, radius, debug_info_ ) ) {
+    //    timer.stop();
     std::cout << "No circle." << std::endl;
-//    std::cout << timer.toString() <<std::endl;
+    //    std::cout << timer.toString() <<std::endl;
     return;
   }
-//  timer.stop();
-//  std::cout << timer.toString() <<std::endl;
+  //  timer.stop();
+  //  std::cout << timer.toString() <<std::endl;
 
   geometry_msgs::PoseStamped pose_2d;
   pose_2d.header.frame_id = image->header.frame_id;
@@ -125,8 +110,8 @@ void PipeDetectionNodelet::detectCallback( const sensor_msgs::ImageConstPtr &msg
 
   // K[0] is top left entry of K matrix which is focal length in x which is the pixel to meter ratio
   double distance = camera_info->K[0] * circle_radius_ / radius;
-  cv::Point3d ray = camera_model_->projectPixelTo3dRay(center);
-  ray = ray * distance / cv::norm(ray);
+  cv::Point3d ray = camera_model_->projectPixelTo3dRay( center );
+  ray = ray * distance / cv::norm( ray );
   geometry_msgs::PoseStamped pose;
   pose.header.frame_id = image->header.frame_id;
   pose.header.stamp = image->header.stamp;
@@ -140,24 +125,23 @@ void PipeDetectionNodelet::detectCallback( const sensor_msgs::ImageConstPtr &msg
 void PipeDetectionNodelet::enableCallback()
 {
   int count = subscriber_count_++;
-  NODELET_INFO_STREAM("Subscriber count " << count);
-  if ( count == 0 )
-  {
+  NODELET_INFO_STREAM( "Subscriber count " << count );
+  if ( count == 0 ) {
     NODELET_INFO( "Starting detection." );
-    image_subscriber_ = image_transport_->subscribeCamera( "image", 1, &PipeDetectionNodelet::detectCallback, this );
+    image_subscriber_ =
+        image_transport_->subscribeCamera( "image", 1, &PipeDetectionNodelet::detectCallback, this );
   }
 }
 
 void PipeDetectionNodelet::disableCallback()
 {
   int count = subscriber_count_--;
-  if ( count == 1 )
-  {
+  if ( count == 1 ) {
     NODELET_INFO( "Stopping detection." );
     image_subscriber_.shutdown();
   }
 }
-}
+} // namespace hector_pipe_detection
 
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(hector_pipe_detection::PipeDetectionNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( hector_pipe_detection::PipeDetectionNodelet, nodelet::Nodelet )

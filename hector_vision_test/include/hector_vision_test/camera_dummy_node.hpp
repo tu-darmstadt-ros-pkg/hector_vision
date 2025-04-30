@@ -5,8 +5,8 @@
 #ifndef CAMERA_DUMMY_NODE_HPP
 #define CAMERA_DUMMY_NODE_HPP
 
-#include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 class CameraDummyNode
 {
@@ -24,7 +24,7 @@ private:
   image_transport::CameraPublisher camera_publisher_;
 
 public:
-  explicit CameraDummyNode(const rclcpp::Node::SharedPtr& node);
+  explicit CameraDummyNode( const rclcpp::Node::SharedPtr &node );
 
 private:
   void publishImage();
@@ -32,4 +32,4 @@ private:
   void iterateImage();
 };
 
-#endif //CAMERA_DUMMY_NODE_HPP
+#endif // CAMERA_DUMMY_NODE_HPP

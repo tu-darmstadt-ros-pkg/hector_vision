@@ -31,7 +31,8 @@
 #include <hector_thermal_image_conversion/heat_image_translator.h>
 #include <nodelet/nodelet.h>
 
-namespace hector_image_proc{
+namespace hector_image_proc
+{
 
 class HeatImageTranslatorNodelet : public nodelet::Nodelet
 {
@@ -43,11 +44,11 @@ protected:
 
 void HeatImageTranslatorNodelet::onInit()
 {
-  dg_.reset(new HeatImageTranslator(getNodeHandle(), getPrivateNodeHandle()));
+  dg_.reset( new HeatImageTranslator( getNodeHandle(), getPrivateNodeHandle() ) );
 }
 
-} //namespace
+} // namespace hector_image_proc
 
 // Register nodelet
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatImageTranslatorNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( hector_image_proc::HeatImageTranslatorNodelet, nodelet::Nodelet )

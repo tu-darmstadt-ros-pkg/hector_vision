@@ -17,6 +17,6 @@ void calculateThresholds( const cv::Mat &image, double &upper, double &lower, do
 cv::Mat threshold( const cv::Mat &image, double threshold );
 
 cv::Mat threshold( const cv::Mat &image, double upper, double lower );
-}
+} // namespace hector_vision_algorithms
 
-#endif //HECTOR_VISION_ALGORITHMS_THESHOLDING_H
+#endif // HECTOR_VISION_ALGORITHMS_THESHOLDING_H

@@ -26,32 +26,31 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-
 #ifndef HEAT_IMAGE_TRANSLATOR_H__
 #define HEAT_IMAGE_TRANSLATOR_H__
 
 #include <ros/ros.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <hector_thermal_image_conversion/ThermalImageConversionConfig.h>
+#include <image_transport/camera_subscriber.h>
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
-#include <image_transport/camera_subscriber.h>
-#include <hector_thermal_image_conversion/ThermalImageConversionConfig.h>
-#include <dynamic_reconfigure/server.h>
 
 class HeatImageTranslator
 {
 public:
   typedef hector_thermal_image_conversion::ThermalImageConversionConfig DynRecConfig;
 
-  HeatImageTranslator(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
+  HeatImageTranslator( ros::NodeHandle &nh_, ros::NodeHandle &pnh_ );
 
   void connectCb();
 
-  void imageCb(const sensor_msgs::ImageConstPtr& image_msg);
+  void imageCb( const sensor_msgs::ImageConstPtr &image_msg );
 
-  void convertImage(const sensor_msgs::ImageConstPtr& image_msg);
+  void convertImage( const sensor_msgs::ImageConstPtr &image_msg );
 
-  void dynRecCallback(DynRecConfig &config, uint32_t level);
+  void dynRecCallback( DynRecConfig &config, uint32_t level );
 
 protected:
   bool mappingDefined_;
@@ -62,16 +61,15 @@ protected:
 
   boost::mutex connect_mutex_;
 
-  boost::shared_ptr<image_transport::ImageTransport> it_;//, it_out_;
+  boost::shared_ptr<image_transport::ImageTransport> it_; //, it_out_;
   image_transport::Subscriber image_sub_;
-  //image_transport::CameraSubscriber sub_;
+  // image_transport::CameraSubscriber sub_;
 
-  //ros::Subscriber image_sub_;
+  // ros::Subscriber image_sub_;
   image_transport::Publisher converted_image_pub_;
 
   dynamic_reconfigure::Server<DynRecConfig> dyn_rec_server_;
   dynamic_reconfigure::Server<DynRecConfig>::CallbackType dyn_rec_callback_type_;
-
 };
 
 #endif

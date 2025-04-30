@@ -14,4 +14,4 @@ cv::Mat calculateColorDifferenceMap( const cv::Mat &image );
 
 }
 
-#endif //HECTOR_VISION_ALGORITHMS_COLOR_DIFFERENCE_MAP_H
+#endif // HECTOR_VISION_ALGORITHMS_COLOR_DIFFERENCE_MAP_H

@@ -3,13 +3,12 @@
 
 #include "detection_aggregator_base.hpp"
 
-
-#include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/bool.hpp>
 #include <image_transport/image_transport.hpp>
+#include <opencv2/opencv.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
 typedef vision_msgs::msg::Detection2DArray Detection2DArray;
@@ -19,9 +18,9 @@ namespace hector_detection_aggregator
 class DetectionAggregatorNode
 {
 public:
-  explicit DetectionAggregatorNode(const rclcpp::Node::SharedPtr& node);
-  DetectionAggregatorNode(DetectionAggregatorNode& da) = delete;
-  DetectionAggregatorNode(DetectionAggregatorNode&& da) = delete;
+  explicit DetectionAggregatorNode( const rclcpp::Node::SharedPtr &node );
+  DetectionAggregatorNode( DetectionAggregatorNode &da ) = delete;
+  DetectionAggregatorNode( DetectionAggregatorNode &&da ) = delete;
   ~DetectionAggregatorNode();
   void createImage();
 
@@ -58,18 +57,19 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
 
   void updateDetections();
-  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image,
-                     const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
-  void imageDetectionCallback(const Detection2DArray::ConstSharedPtr& percept, const rclcpp::MessageInfo& info);
+  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image,
+                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info );
+  void imageDetectionCallback( const Detection2DArray::ConstSharedPtr &percept,
+                               const rclcpp::MessageInfo &info );
 
   void publishEnableStatus() const;
-  void enabledCallback(const bool& enabled);
-  void msgEnabledCallback(const std_msgs::msg::Bool::ConstSharedPtr& enabled) const;
+  void enabledCallback( const bool &enabled );
+  void msgEnabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled ) const;
 
   void startSubscribers();
   void stopSubscribers();
   void checkPublisherSubscriptions();
   void checkEnvironmentCallback();
 };
-}
+} // namespace hector_detection_aggregator
 #endif

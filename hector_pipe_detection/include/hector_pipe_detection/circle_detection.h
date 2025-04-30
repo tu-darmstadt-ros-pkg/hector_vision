@@ -5,10 +5,10 @@
 #ifndef HECTOR_PIPE_DETECTION_CIRCLE_DETECTION_H
 #define HECTOR_PIPE_DETECTION_CIRCLE_DETECTION_H
 
-#include <opencv2/core/core.hpp>
-#include <memory>
-#include <image_transport/publisher.h>
 #include <image_transport/image_transport.h>
+#include <image_transport/publisher.h>
+#include <memory>
+#include <opencv2/core/core.hpp>
 
 namespace hector_pipe_detection
 {
@@ -24,7 +24,8 @@ public:
 
   void publishSubEdgeImage( const cv::Mat &sub_edge_image );
 
-  void publishSubImageContours( const cv::Mat &sub_image, std::vector<std::vector<cv::Point>> contours,
+  void publishSubImageContours( const cv::Mat &sub_image,
+                                std::vector<std::vector<cv::Point>> contours,
                                 const cv::Point &offset );
 
   void publishDetection( const cv::Mat &image, const cv::Point2d &center, double radius );
@@ -39,8 +40,8 @@ private:
 
 void cdm( const cv::Mat &image, cv::Mat &out );
 
-bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &center, double &radius,
-                      std::shared_ptr<DebugInfo> debug_info = nullptr );
-}
+bool findOuterCircle( const cv::Mat &image, int downsample_passes, cv::Point2d &center,
+                      double &radius, std::shared_ptr<DebugInfo> debug_info = nullptr );
+} // namespace hector_pipe_detection
 
-#endif //HECTOR_PIPE_DETECTION_CIRCLE_DETECTION_H
+#endif // HECTOR_PIPE_DETECTION_CIRCLE_DETECTION_H

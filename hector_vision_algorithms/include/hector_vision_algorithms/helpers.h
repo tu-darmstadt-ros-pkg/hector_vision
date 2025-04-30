@@ -13,4 +13,4 @@ namespace hector_vision_algorithms
 void applyFilterAndMaxChannel( const cv::Mat &mat, cv::Mat &out, const cv::Mat &filter );
 }
 
-#endif //HECTOR_VISION_ALGORITHMS_HELPERS_H
+#endif // HECTOR_VISION_ALGORITHMS_HELPERS_H

@@ -1,50 +1,47 @@
 // Author: Sudeep Pillai (spillai@csail.mit.edu)
 // Note: Stripped from Opencv (opencv/modules/python/src2/cv2.cpp)
 
-# ifndef __COVERSION_OPENCV_H__
-# define __COVERSION_OPENCV_H__
+#ifndef __COVERSION_OPENCV_H__
+#define __COVERSION_OPENCV_H__
 
 #include <Python.h>
-#include <opencv2/opencv.hpp>
+#include <numpy/ndarrayobject.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
-#include <numpy/ndarrayobject.h>
+#include <opencv2/opencv.hpp>
 
-static PyObject* opencv_error = 0;
+static PyObject *opencv_error = 0;
 
-static int failmsg(const char *fmt, ...);
+static int failmsg( const char *fmt, ... );
 
 class PyAllowThreads;
 
 class PyEnsureGIL;
 
-#define ERRWRAP2(expr) \
-try \
-{ \
-    PyAllowThreads allowThreads; \
-    expr; \
-} \
-catch (const cv::Exception &e) \
-{ \
-    PyErr_SetString(opencv_error, e.what()); \
-    return 0; \
-}
+#define ERRWRAP2( expr )                                                                           \
+  try {                                                                                            \
+    PyAllowThreads allowThreads;                                                                   \
+    expr;                                                                                          \
+  } catch ( const cv::Exception &e ) {                                                             \
+    PyErr_SetString( opencv_error, e.what() );                                                     \
+    return 0;                                                                                      \
+  }
 
-static PyObject* failmsgp(const char *fmt, ...);
+static PyObject *failmsgp( const char *fmt, ... );
 
-static size_t REFCOUNT_OFFSET = (size_t)&(((PyObject*)0)->ob_refcnt) +
-                                         (0x12345678 != *(const size_t*)"\x78\x56\x34\x12\0\0\0\0\0")*sizeof(int);
+static size_t REFCOUNT_OFFSET =
+    ( size_t ) & ( ( (PyObject *)0 )->ob_refcnt ) +
+                     ( 0x12345678 != *(const size_t *)"\x78\x56\x34\x12\0\0\0\0\0" ) * sizeof( int );
 
-static inline PyObject* pyObjectFromRefcount(const int* refcount)
+static inline PyObject *pyObjectFromRefcount( const int *refcount )
 {
-  return (PyObject*)((size_t)refcount - REFCOUNT_OFFSET);
+  return (PyObject *)( (size_t)refcount - REFCOUNT_OFFSET );
 }
 
-static inline int* refcountFromPyObject(const PyObject* obj)
+static inline int *refcountFromPyObject( const PyObject *obj )
 {
-  return (int*)((size_t)obj + REFCOUNT_OFFSET);
+  return (int *)( (size_t)obj + REFCOUNT_OFFSET );
 }
-
 
 class NumpyAllocator;
 
@@ -54,10 +51,11 @@ class NDArrayConverter
 {
 private:
   void init();
+
 public:
   NDArrayConverter();
-  cv::Mat toMat(const PyObject* o);
-  PyObject* toNDArray(const cv::Mat& mat);
+  cv::Mat toMat( const PyObject *o );
+  PyObject *toNDArray( const cv::Mat &mat );
 };
 
-# endif
+#endif

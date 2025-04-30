@@ -89,14 +89,17 @@ Currently supported are QR-Codes and Apriltags of the 41h12 standart.
 | Topic                           | Type                                 | Description                                                        |
 | ------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
 | `/perception/image_percept`     | `vision_msgs/msg/detection2_d_array` | An array of all tags detected on the input image                   |
-| `/image/tag`                    | `sensor_msgs/msg/image`              | A cropped image for each detected tag                              |
+| `/perception/debug`             | `sensor_msgs/msg/image`              | A cropped image for each detected tag                              |
 | `/tag_detection/enabled_status` | `std_msgs/msg/bool`                  | The node will publish it's state here after being enabled/disabled |
 
 #### Parameters
 
-| Parameter | Type   | Default | Description               |
-| --------- | ------ | ------- | ------------------------- |
-| `enabled` | `bool` | `true`  | Enables/disables the node |
+| Parameter         | Type     | Default                      | Description                            |
+| ----------------- | -------- | ---------------------------- | -------------------------------------- |
+| `enabled`         | `bool`   | `true`                       | Enables/disables the node              |
+| `image_topic`     | `string` | `"image"`                    | Changes input topic for camera images  |
+| `detection_topic` | `string` | `"perception/image_percept"` | Changes output topic for detected tags |
+| `debug_topic`     | `string` | `"perception/debug"`         | Changes output topic for debug images  |
 
 ## hector_vision_test
 

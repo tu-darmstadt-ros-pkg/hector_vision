@@ -53,7 +53,15 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
   parameter_event_handler_ = std::make_shared<rclcpp::ParameterEventHandler>( node_ );
 
   node_->declare_parameter<bool>( "enabled", true );
+  node_->declare_parameter<std::string>( "image_topic", "image" );
+  node_->declare_parameter<std::string>( "detection_topic", "perception/image_percept" );
+  node_->declare_parameter<std::string>( "debug_topic", "perception/debug" );
+
   enabled_ = node->get_parameter( "enabled" ).as_bool();
+  image_topic_ = node_->get_parameter( "image_topic" ).as_string();
+  const std::string detection_topic = node_->get_parameter( "detection_topic" ).as_string();
+  const std::string debug_topic = node_->get_parameter( "debug_topic" ).as_string();
+
   enabled_callback_handle_ = parameter_event_handler_->add_parameter_callback(
       "enabled",
       [this]( const rclcpp::Parameter &p ) -> void { this->enabledCallback( p.as_bool() ); } );
@@ -67,10 +75,10 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
   apriltag_family_.reset( tagStandard41h12_create(), tagStandard41h12_destroy );
   apriltag_detector_add_family( apriltag_detector_.get(), apriltag_family_.get() );
 
-  tag_image_publisher_ = image_transport_.advertiseCamera( "image/tag", 10 );
+  // Set up detection publishers
+  aggregator_percept_publisher_ = node_->create_publisher<Detection2DArray>( detection_topic, 10 );
+  tag_image_publisher_ = image_transport_.advertiseCamera( debug_topic, 10 );
   rclcpp::PublisherOptions aggregator_percept_pub_options;
-  aggregator_percept_publisher_ =
-      node_->create_publisher<Detection2DArray>( "perception/image_percept", 10 );
 
   check_subscribers_timer_ =
       node_->create_wall_timer( std::chrono::seconds( 1 ),

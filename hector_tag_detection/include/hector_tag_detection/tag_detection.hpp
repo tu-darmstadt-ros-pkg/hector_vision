@@ -54,6 +54,7 @@ public:
 private:
   bool enabled_;
   bool has_subscribers_;
+  std::string image_topic_;
 
   zbar::ImageScanner *qrcode_detector_;
   std::shared_ptr<apriltag_detector_t> apriltag_detector_;

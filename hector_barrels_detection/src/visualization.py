@@ -21,10 +21,10 @@ def color_to_gray(img):
 
 def show_gray(img, title=""):
     plt.figure()
-    plt.imshow(img, cmap='gray')
+    plt.imshow(img, cmap="gray")
     if title != "":
         plt.title(title)
-    plt.axis('off')
+    plt.axis("off")
 
 
 def show_color(img, title=""):
@@ -32,7 +32,7 @@ def show_color(img, title=""):
     plt.imshow(img)
     if title != "":
         plt.title(title)
-    plt.axis('off')
+    plt.axis("off")
 
 
 def draw_matches(img1, kp1, img2, kp2, matches, mask, thickness=1):
@@ -65,7 +65,7 @@ def draw_matches(img1, kp1, img2, kp2, matches, mask, thickness=1):
     rows2 = img2.shape[0]
     cols2 = img2.shape[1]
 
-    out = np.zeros((max([rows1, rows2]), cols1 + cols2, 3), dtype='uint8')
+    out = np.zeros((max([rows1, rows2]), cols1 + cols2, 3), dtype="uint8")
 
     # Place the first image to the left
     out[:rows1, :cols1] = np.dstack([img1, img1, img1])
@@ -98,8 +98,13 @@ def draw_matches(img1, kp1, img2, kp2, matches, mask, thickness=1):
         # Draw a line in between the two points
         # thickness = 1
         # colour blue
-        cv2.line(out, (int(x1), int(y1)), (int(x2) + cols1, int(y2)), (255, 0, 0), thickness=thickness)
-
+        cv2.line(
+            out,
+            (int(x1), int(y1)),
+            (int(x2) + cols1, int(y2)),
+            (255, 0, 0),
+            thickness=thickness,
+        )
 
     # Show the image
     # cv2.imshow('Matched Features', out)

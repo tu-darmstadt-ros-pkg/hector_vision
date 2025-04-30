@@ -34,22 +34,21 @@ class DebugInfo:
 def cdm(image, threshold=None, auto_threshold_multiplier=0.5):
     image_mem = image
     mean_filtered = cv2.filter2D(image, cv2.CV_16S, np.ones((5, 5)) / 25)
-    filters = np.array([[[1, 0, 0],
-                         [0, 0, 0],
-                         [0, 0, -1]],
-                        [[0, 1, 0],
-                         [0, 0, 0],
-                         [0, -1, 0]],
-                        [[0, 0, 1],
-                         [0, 0, 0],
-                         [-1, 0, 0]],
-                        [[0, 0, 0],
-                         [1, 0, -1],
-                         [0, 0, 0]]])
+    filters = np.array(
+        [
+            [[1, 0, 0], [0, 0, 0], [0, 0, -1]],
+            [[0, 1, 0], [0, 0, 0], [0, -1, 0]],
+            [[0, 0, 1], [0, 0, 0], [-1, 0, 0]],
+            [[0, 0, 0], [1, 0, -1], [0, 0, 0]],
+        ]
+    )
     max_response = np.zeros((image_mem.shape[0], image_mem.shape[1]))
     for i in range(len(filters)):
         response = cv2.filter2D(mean_filtered, cv2.CV_16S, filters[i, :, :])
-        response = np.max(np.abs(response.get() if isinstance(response, cv2.UMat) else response), axis=2)
+        response = np.max(
+            np.abs(response.get() if isinstance(response, cv2.UMat) else response),
+            axis=2,
+        )
         max_response = np.maximum(response, max_response)
     if threshold is None:
         mean = np.mean(max_response[max_response > 0])
@@ -67,11 +66,15 @@ def __find_circles(contours, downsample_passes, debug_info=None):
         c *= 2**downsample_passes
         approx = cv2.approxPolyDP(c, 0.005 * cv2.arcLength(c, True), True)
         area = cv2.contourArea(approx)
-        if area < 100 or abs(cv2.arcLength(c, True) ** 2 / (4 * np.pi * cv2.contourArea(c)) - 1) > 0.2:
+        if (
+            area < 100
+            or abs(cv2.arcLength(c, True) ** 2 / (4 * np.pi * cv2.contourArea(c)) - 1)
+            > 0.2
+        ):
             continue
         moments = cv2.moments(approx)
-        cx = moments['m10'] / moments['m00']
-        cy = moments['m01'] / moments['m00']
+        cx = moments["m10"] / moments["m00"]
+        cy = moments["m01"] / moments["m00"]
         inserted = False
         for i in range(len(centers)):
             if centers[i][0] > cx:
@@ -91,7 +94,13 @@ def __find_circles(contours, downsample_passes, debug_info=None):
 
     groups = [[0]]
     for i in range(1, len(centers)):
-        if np.sqrt((centers[i][0] - centers[i - 1][0]) ** 2 + (centers[i][1] - centers[i - 1][1]) ** 2) < 20:
+        if (
+            np.sqrt(
+                (centers[i][0] - centers[i - 1][0]) ** 2
+                + (centers[i][1] - centers[i - 1][1]) ** 2
+            )
+            < 20
+        ):
             groups[-1].append(i)
             continue
         groups.append([i])
@@ -126,7 +135,9 @@ def euclidean_distance(a, b):
 
 def circlify(contour):
     moments = cv2.moments(contour)
-    center = np.array([moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]])
+    center = np.array(
+        [moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]]
+    )
     distance = np.sqrt(np.sum((contour[:, 0, :] - center) ** 2, axis=1))
     mean, stddev = cv2.meanStdDev(distance)
 
@@ -134,7 +145,9 @@ def circlify(contour):
     filtered_contour = contour[close_enough, :, :]
     # print("Full %d -> Filtered %d" % (len(contour), len(filtered_contour)))
     moments = cv2.moments(filtered_contour)
-    center = np.array([moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]])
+    center = np.array(
+        [moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]]
+    )
     distance = np.sqrt(np.sum((contour[:, 0, :] - center) ** 2, axis=1))
     mean, stddev = cv2.meanStdDev(distance[close_enough])
 
@@ -145,7 +158,9 @@ def circlify(contour):
         contour[i, 0, :] = center + (contour[i, 0, :] - center) * mean / distance[i]
 
     moments = cv2.moments(contour)
-    center = np.array([moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]])
+    center = np.array(
+        [moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]]
+    )
     distance = np.sqrt(np.sum((filtered_contour[:, 0, :] - center) ** 2, axis=1))
     mean = np.mean(distance)
 
@@ -176,7 +191,11 @@ def find_outer_circle(image, debug_info=None):
             largest = filtered_contours[ind]
     rect = cv2.boundingRect(largest)
     margin = 10
-    sub_image = image[rect[1]-margin:rect[1]+rect[3]+margin, rect[0]-margin:rect[0]+rect[2]+margin, :]
+    sub_image = image[
+        rect[1] - margin : rect[1] + rect[3] + margin,
+        rect[0] - margin : rect[0] + rect[2] + margin,
+        :,
+    ]
 
     edges = cdm(sub_image, auto_threshold_multiplier=1.0)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -187,15 +206,17 @@ def find_outer_circle(image, debug_info=None):
     largest_area = 0
     largest = None
     for i in range(len(contours)):
-        approx = cv2.approxPolyDP(contours[i], 0.005 * cv2.arcLength(contours[i], True), True)
+        approx = cv2.approxPolyDP(
+            contours[i], 0.005 * cv2.arcLength(contours[i], True), True
+        )
         if len(approx) == 8:
             continue
         area = cv2.contourArea(contours[i])
         if area > largest_area:
             largest_area = area
             largest = contours[i]
-    #center, radius = cv2.minEnclosingCircle(largest)
+    # center, radius = cv2.minEnclosingCircle(largest)
     center, radius = circlify(largest)
     center = (center[0] + rect[0] - margin, center[1] + rect[1] - margin)
 
-    return  center, radius
+    return center, radius

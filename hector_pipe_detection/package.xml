@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>hector_pipe_detection</name>
   <version>0.0.0</version>
   <description>The hector_pipe_detection package</description>

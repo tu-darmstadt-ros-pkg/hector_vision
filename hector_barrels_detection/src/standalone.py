@@ -7,10 +7,11 @@ from barrels_detection import BarrelsDetection
 from visualization import show_color
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Barrels Detection')
-    parser.add_argument('barrel_type', metavar='STRING', help='type of barrel, e.g. blue')
-    parser.add_argument('images', metavar='IMAGE', help='image path', nargs="+")
-
+    parser = argparse.ArgumentParser(description="Barrels Detection")
+    parser.add_argument(
+        "barrel_type", metavar="STRING", help="type of barrel, e.g. blue"
+    )
+    parser.add_argument("images", metavar="IMAGE", help="image path", nargs="+")
 
     args = parser.parse_args()
 

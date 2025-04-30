@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>hector_detection_aggregator</name>
   <version>0.0.0</version>
   <description>The hector_detection_aggregator package</description>
-
-  <author email="kevin.daun@stud.tu-darmstadt.de">Kevin Daun</author>
   <maintainer email="finn.winter@stud.tu-darmstadt.de">Finn Winter</maintainer>
   <license>BSD</license>
+
+  <author email="kevin.daun@stud.tu-darmstadt.de">Kevin Daun</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

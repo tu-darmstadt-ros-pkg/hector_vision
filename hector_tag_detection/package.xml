@@ -21,7 +21,7 @@
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>apriltag</depend>
-  <depend>zbar-ros</depend>
+  <depend>zbar_ros</depend>
   <depend>vision_msgs</depend>
 
   <export>

@@ -31,7 +31,7 @@ install(TARGETS tag_detection
   DESTINATION lib/${PROJECT_NAME}
 )
 install(
-  DIRECTORY include
+  DIRECTORY config include
   DESTINATION share/${PROJECT_NAME}/
 )
 

@@ -1,0 +1,6 @@
+tag_detection:
+  ros__parameters:
+    enabled: true
+    image_topic: image
+    detection_topic: perception/image_percept
+    debug_topic: perception/debug

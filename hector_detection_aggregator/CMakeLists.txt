@@ -30,7 +30,7 @@ install(TARGETS detection_aggregator
   DESTINATION lib/${PROJECT_NAME}
 )
 install(
-  DIRECTORY config include launch
+  DIRECTORY config include
   DESTINATION share/${PROJECT_NAME}/
 )
 

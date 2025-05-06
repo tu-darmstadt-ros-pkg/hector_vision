@@ -1,5 +1,0 @@
-/**:
-  ros__parameters:
-    detection_aggregator:
-      detection_topic: "detection/visual_detection"
-      aggregation_topic: "detection/aggregated_detections_image"

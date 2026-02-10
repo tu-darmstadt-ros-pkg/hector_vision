@@ -53,12 +53,10 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
   parameter_event_handler_ = std::make_shared<rclcpp::ParameterEventHandler>( node_ );
 
   node_->declare_parameter<bool>( "enabled", true );
-  node_->declare_parameter<std::string>( "image_topic", "image" );
   node_->declare_parameter<std::string>( "detection_topic", "perception/image_percept" );
   node_->declare_parameter<std::string>( "debug_topic", "perception/debug" );
 
   enabled_ = node->get_parameter( "enabled" ).as_bool();
-  image_topic_ = node_->get_parameter( "image_topic" ).as_string();
   const std::string detection_topic = node_->get_parameter( "detection_topic" ).as_string();
   const std::string debug_topic = node_->get_parameter( "debug_topic" ).as_string();
 
@@ -77,7 +75,7 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
 
   // Set up detection publishers
   aggregator_percept_publisher_ = node_->create_publisher<Detection2DArray>( detection_topic, 10 );
-  tag_image_publisher_ = image_transport_.advertiseCamera( debug_topic, 10 );
+  tag_image_publisher_ = image_transport_.advertise( debug_topic, 10 );
   rclcpp::PublisherOptions aggregator_percept_pub_options;
 
   check_subscribers_timer_ =
@@ -95,8 +93,7 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
                camera_subscriber_.getTopic().c_str() );
 }
 
-void TagDetectionImpl::imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info )
+void TagDetectionImpl::imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image )
 {
   const cv_bridge::CvImageConstPtr cv_image = cv_bridge::toCvShare( image, "mono8" );
   cv::Mat rotation_matrix = cv::Mat::eye( 2, 3, CV_32FC1 );
@@ -127,7 +124,7 @@ void TagDetectionImpl::imageCallback( const sensor_msgs::msg::Image::ConstShared
 
         sensor_msgs::msg::Image debug_image;
         debug_cv->toImageMsg( debug_image );
-        tag_image_publisher_.publish( debug_image, *camera_info );
+        tag_image_publisher_.publish( debug_image );
       } catch ( cv::Exception &e ) {
         RCLCPP_ERROR( node_->get_logger(), "cv::Exception: %s", e.what() );
       }
@@ -317,7 +314,7 @@ void TagDetectionImpl::startSubscribers()
 {
   RCLCPP_INFO( node_->get_logger(), "Starting subscribers" );
   camera_subscriber_ =
-      image_transport_.subscribeCamera( "image", 10, &TagDetectionImpl::imageCallback, this );
+      image_transport_.subscribe( "image", 10, &TagDetectionImpl::imageCallback, this );
 }
 
 void TagDetectionImpl::stopSubscribers()

@@ -67,9 +67,9 @@ private:
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   rclcpp::TimerBase::SharedPtr check_subscribers_timer_;
 
-  image_transport::CameraSubscriber camera_subscriber_;
+  image_transport::Subscriber camera_subscriber_;
 
-  image_transport::CameraPublisher tag_image_publisher_;
+  image_transport::Publisher tag_image_publisher_;
   rclcpp::Publisher<Detection2DArray>::SharedPtr aggregator_percept_publisher_;
 
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
@@ -81,8 +81,7 @@ private:
    * @param image The tag detection is performed on this image
    * @param camera_info The camera info is replicated for the debug crops but is otherwise unused
    */
-  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info );
+  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image );
 
   /**
    * Publishes whether the node is enabled. Called once on startup and by enabledCallback

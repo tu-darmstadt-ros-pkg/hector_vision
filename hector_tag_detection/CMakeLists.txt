@@ -14,8 +14,7 @@ find_package(vision_msgs REQUIRED)
 
 include_directories(include)
 
-add_executable(tag_detection src/tag_detection.cpp
-  include/hector_tag_detection/tag_detection.hpp)
+add_executable(tag_detection src/tag_detection.cpp)
 ament_target_dependencies(tag_detection
   rclcpp
   tf2

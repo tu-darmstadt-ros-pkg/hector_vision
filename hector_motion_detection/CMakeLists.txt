@@ -1,62 +1,65 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(hector_motion_detection)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 
-# Load catkin and all dependencies required for this package
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  image_transport
-  camera_info_manager
-  hector_worldmodel_msgs
-  sensor_msgs
-  cv_bridge
-  std_msgs
-  dynamic_reconfigure
-  geometry_msgs
-  hector_perception_msgs
-  nodelet
-)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
+find_package(ament_cmake REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(hector_ros2_utils REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(vision_msgs REQUIRED)
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${OpenCV_INCLUDE_DIRS})
 
-generate_dynamic_reconfigure_options(cfg/MotionDetection.cfg)
+add_library(motion_detection_component SHARED src/motion_detection.cpp)
 
-#common commands for building c++ executables and libraries
-add_library(${PROJECT_NAME}
-  include/${PROJECT_NAME}/motion_detection.h
-  src/motion_detection.cpp
-  src/motion_detection_nodelet.cpp)
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS})
-
-
-add_executable(motion_detection_node src/motion_detection_node.cpp)
-add_dependencies(motion_detection_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_link_libraries(motion_detection_node ${PROJECT_NAME})
-
-catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS
-      roscpp
-      rospy
-      image_transport
-      camera_info_manager
-      hector_worldmodel_msgs
-      sensor_msgs
-      cv_bridge
-      std_msgs
-      dynamic_reconfigure
-      geometry_msgs
-      hector_perception_msgs
-      nodelet
+target_include_directories(
+  motion_detection_component
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
-install(TARGETS ${PROJECT_NAME} motion_detection_node DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-install(DIRECTORY cfg config launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-install(FILES nodelet_plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+ament_target_dependencies(motion_detection_component PUBLIC
+  OpenCV
+  rclcpp
+  rclcpp_components
+  hector_ros2_utils
+  cv_bridge
+  image_transport
+  sensor_msgs
+  std_msgs
+  vision_msgs
+)
+
+rclcpp_components_register_node(
+  motion_detection_component PLUGIN
+  "hector_motion_detection::MotionDetection" EXECUTABLE
+  motion_detection
+)
+ament_export_targets(export_motion_detection_component)
+install(
+  TARGETS motion_detection_component
+  EXPORT export_motion_detection_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY config launch
+  DESTINATION share/${PROJECT_NAME}
+  OPTIONAL
+)
+
+ament_package()

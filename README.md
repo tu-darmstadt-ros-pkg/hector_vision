@@ -11,7 +11,7 @@
 | [hector_detection_aggregator](#hector_detection_aggregator) | <span style="color:green">Ported</span>   |
 | hector_head_detection                                       | <span style="color:red">Not Ported</span> |
 | hector_image_rotate                                         | <span style="color:red">Not Ported</span> |
-| hector_motion_detection                                     | <span style="color:red">Not Ported</span> |
+| [hector_motion_detection](#hector_motion_detection)         | <span style="color:green">Ported</span>   |
 | hector_pipe_detection                                       | <span style="color:red">Not Ported</span> |
 | hector_stair_detection                                      | <span style="color:red">Not Ported</span> |
 | [hector_tag_detection](#hector_tag_detection)               | <span style="color:green">Ported</span>   |
@@ -67,6 +67,47 @@ Detections are colored according to their type:
 | `storage_duration`  | `double` | `1.5`                                     | Time after which detections are disregarded in seconds. Newer detections of the same objects replace the old. Only used if `aggregation_mode` is `NEWEST` |
 | `buffer_size`       | `int`    | `16`                                      | Number of frames (both detections and images) that can be buffered. Only used when `aggregation_mode` is `COMPLETE`                                       |
 | `robot_namespace`   | `string` | `""`                                      | Parameter to enforce namespacing of topics                                                                                                                |
+
+## hector_motion_detection
+
+The package for the `motion_detection` node
+
+### motion_detection
+
+The motion_detection node can detect multiple moving objects in an image sequence.
+
+#### Subscribed Topics
+
+| Topic     | Type                     | Description                             |
+| --------- | ------------------------ | --------------------------------------- |
+| `/enable` | `std_msgs/msg/bool`      | Enables or disables the node            |
+| `/image`  | `image_transport/camera` | The image that tags will be searched on |
+
+#### Published Topics
+
+| Topic                         | Type                                 | Description                 |
+| ----------------------------- | ------------------------------------ | --------------------------- |
+| `enabled_status`              | `std_msgs/msg/bool`                  | Whether the node is enabled |
+| `detection/image_detection`   | `vision_msgs/msg/detection2_d_array` | The detected moving objects |
+| `image_motion`                | `sensor_msgs/msg/image`              | TODO                        |
+| `image_detected`              | `sensor_msgs/msg/image`              | TODO                        |
+| `image_background_subtracted` | `sensor_msgs/msg/image`              | TODO                        |
+
+#### Parameters
+
+| Parameter                       | Type     | Default | Description                                   |
+| ------------------------------- | -------- | ------- | --------------------------------------------- |
+| `moving_average_weight`         | `double` | 1.0     | Weight of the new image                       |
+| `activation_threshold`          | `int`    | 170     | Threshold for a pixel to be considered moving |
+| `automatic_learning_rate`       | `bool`   | `false` | Automatic learning rate                       |
+| `learning_rate`                 | `double` | 0.7     | Learning rate for background subtraction      |
+| `motion_detect_detection_limit` | `int`    | 4       | Maximum number of motions to detect           |
+| `motion_detect_min_area`        | `int`    | 60      | Minimal area of detected motions              |
+| `motion_detect_max_area`        | `int`    | 5000    | Maximal area of detected motions              |
+| `motion_detect_erosion`         | `int`    | 2       | Iterations for erosion on fgimg               |
+| `motion_detect_dilation`        | `int`    | 10      | Iterations for dilation on fgimg              |
+| `motion_detect_shadows`         | `bool`   | `false` | Whether shadows should be tracked             |
+| `motion_detect_debug_contours`  | `bool`   | `false` | Whether contours should be tracked            |
 
 ## hector_tag_detection
 

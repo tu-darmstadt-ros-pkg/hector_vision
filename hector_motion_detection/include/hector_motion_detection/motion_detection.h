@@ -1,81 +1,66 @@
-#ifndef _HECTOR_MOTION_DETECTION_H_
-#define _HECTOR_MOTION_DETECTION_H_
+#ifndef HECTOR_MOTION_DETECTION_HPP
+#define HECTOR_MOTION_DETECTION_HPP
 
-#include <ros/callback_queue.h>
-#include <ros/ros.h>
+#include <hector_ros2_utils/node.hpp>
+#include <rclcpp/rclcpp.hpp>
 
-#include <hector_perception_msgs/PerceptionDataArray.h>
-#include <hector_worldmodel_msgs/ImagePercept.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/String.h>
+#include <image_transport/image_transport.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <vision_msgs/msg/detection2_d_array.hpp>
 
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.hpp>
 #include <opencv2/opencv.hpp>
-
-#include <dynamic_reconfigure/server.h>
-#include <hector_motion_detection/MotionDetectionConfig.h>
-
-using hector_motion_detection::MotionDetectionConfig;
 
 namespace hector_motion_detection
 {
 
-class MotionDetection
+class MotionDetection : public hector::Node
 {
 public:
-  MotionDetection( ros::NodeHandle &nh, ros::NodeHandle &pnh );
-  void publishEnableStatus();
+  MotionDetection( const rclcpp::NodeOptions &options );
+  void publishEnableStatus() const;
 
 private:
-  void imageCallback(
-      const sensor_msgs::ImageConstPtr &img ); //, const sensor_msgs::CameraInfoConstPtr& info);
-  void enabledCallback( const std_msgs::BoolConstPtr &enabled );
-  void dynRecParamCallback( MotionDetectionConfig &config, uint32_t level );
+  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr
+                          &img ); //, const sensor_msgs::CameraInfoConstPtr& info);
+  void enabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled );
+  void publisherSubscriptionCallback();
 
-  void connectCb();
   void startSubscribers();
-  void shutdownSubscribers();
+  void stopSubscribers();
 
-  boost::mutex connect_mutex_;
-
-  ros::NodeHandle nh_;
   image_transport::ImageTransport it_;
 
   bool enabled_;
+  bool has_subscribers_;
 
-  ros::Publisher image_percept_pub_;
-  ros::Publisher image_perception_pub;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
+
   image_transport::Subscriber image_sub_;
-  ros::Subscriber enabled_sub_;
-  ros::Publisher enabled_pub_;
 
-  image_transport::CameraSubscriber camera_sub_;
+  rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr image_perception_pub_;
+
   image_transport::CameraPublisher image_motion_pub_;
   image_transport::CameraPublisher image_detected_pub_;
-
-  dynamic_reconfigure::Server<MotionDetectionConfig> dyn_rec_server_;
-  dynamic_reconfigure::Server<MotionDetectionConfig>::CallbackType dyn_rec_type_;
+  // For publishing subtracted image
+  image_transport::CameraPublisher image_background_subtracted_pub_;
 
   bool first_image_received_;
   cv::Mat accumulated_image_;
 
-  cv::Ptr<cv::BackgroundSubtractorMOG2> bg_subtractor_; // with regards to shadows
-  int detectionLimit_;           // the maximal number of detections to make/objects to track
-  int min_area_;                 // to filter smaller areas
-  int max_area_;                 // to filter bigger areas
-  double learning_rate_;         // learning rate of bg subtractor
-  bool automatic_learning_rate_; // set learning rate automatically
-  int erosion_iterations_,
-      dilation_iterations_; // for controlling the iterations of erosion/deliation
-  bool shadows_;            // control if shadows should be tracked
-  bool debug_contours_;
-  double moving_average_weight_;
-  int activation_threshold_;
-
-  image_transport::CameraPublisher image_background_subtracted_pub_; // for publishing subtracted image
+  cv::Ptr<cv::BackgroundSubtractorMOG2> bg_subtractor_; // With regard to shadows
+  double moving_average_weight_ = 1.0;
+  int activation_threshold_ = 170;
+  bool automatic_learning_rate_ = false; // Set learning rate automatically
+  double learning_rate_ = 0.7;           // Learning rate of bg subtractor
+  int detectionLimit_ = 4; // The maximal number of detections to make/objects to track
+  int min_area_ = 60;      // To filter smaller areas
+  int max_area_ = 5000;    // To filter bigger areas
+  int erosion_iterations_ = 2;
+  int dilation_iterations_ = 10; // For controlling the iterations of erosion/dilation
+  bool shadows_ = false;         // Control if shadows should be tracked
+  bool debug_contours_ = false;
 };
 
 } // namespace hector_motion_detection

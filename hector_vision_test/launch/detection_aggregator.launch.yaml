@@ -1,0 +1,37 @@
+launch:
+- arg:
+    name: "image_topic"
+    default: "/ec_swift/front_rgbd/color/image_raw"
+- arg:
+    name: "camera_info_topic"
+    default: "/ec_swift/front_rgbd/color/camera_info"
+- arg:
+    name: "aggregation_mode"
+    default: "NEWEST"
+
+- node:
+    pkg: "hector_tag_detection"
+    exec: "tag_detection"
+    remap:
+    - from: "perception/image_percept"
+      to: "detection/visual_detection"
+    - from: "/image"
+      to: "$(var image_topic)"
+    - from: "/camera_info"
+      to: "$(var camera_info_topic)"
+
+- node:
+    pkg: "hector_detection_aggregator"
+    exec: "detection_aggregator"
+    param:
+    - name: "aggregation_mode"
+      value: "$(var aggregation_mode)"
+    remap:
+    - from: "/image"
+      to: "$(var image_topic)"
+    - from: "/camera_info"
+      to: "$(var camera_info_topic)"
+
+- node:
+    pkg: "rqt_image_view"
+    exec: "rqt_image_view"

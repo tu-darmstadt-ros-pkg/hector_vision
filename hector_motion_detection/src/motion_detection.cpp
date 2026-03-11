@@ -74,6 +74,10 @@ MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
   image_motion_pub_ = it_.advertiseCamera( "image_motion", 10 );
   image_detected_pub_ = it_.advertiseCamera( "image_detected", 10 );
   image_background_subtracted_pub_ = it_.advertiseCamera( "image_background_subtracted", 10 );
+
+  using std::chrono_literals::operator""s;
+  check_subscriptions_timer_ =
+      create_wall_timer( 1s, std::bind( &MotionDetection::publisherSubscriptionCallback, this ) );
 }
 
 void MotionDetection::publishEnableStatus() const
@@ -84,15 +88,16 @@ void MotionDetection::publishEnableStatus() const
 
   std::string enabled_string;
   if ( enabled_ ) {
-    enabled_string = "Enabled";
+    enabled_string = "Enabled ";
   } else {
-    enabled_string = "Disabled";
+    enabled_string = "Disabled ";
   }
-  RCLCPP_INFO_STREAM( get_logger(), enabled_string << " hector_motion_detection." );
+  RCLCPP_INFO_STREAM( get_logger(), enabled_string << get_name() );
 }
 
 void MotionDetection::imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &img )
 {
+  RCLCPP_DEBUG( get_logger(), "Received image on topic %s", image_sub_.getTopic().c_str() );
   cv_bridge::CvImageConstPtr cv_ptr;
   cv_ptr = cv_bridge::toCvShare( img, sensor_msgs::image_encodings::BGR8 );
   cv::Mat frame( cv_ptr->image );
@@ -222,6 +227,9 @@ void MotionDetection::publisherSubscriptionCallback()
       image_perception_pub_->get_subscription_count() + image_motion_pub_.getNumSubscribers() +
       image_detected_pub_.getNumSubscribers() + image_background_subtracted_pub_.getNumSubscribers();
 
+  RCLCPP_DEBUG( get_logger(), "Node has %3lu subscriber%s and previously %s subscribers",
+                subscribers, subscribers == 1 ? "" : "s", has_subscribers_ ? "had" : "didn't have" );
+
   // Changed to no subscribers
   if ( subscribers == 0 && has_subscribers_ ) {
     has_subscribers_ = false;
@@ -238,10 +246,15 @@ void MotionDetection::publisherSubscriptionCallback()
 
 void MotionDetection::startSubscribers()
 {
-  image_sub_ = it_.subscribe( "image", 1, &MotionDetection::imageCallback, this );
+  RCLCPP_INFO( get_logger(), "Starting subscriber" );
+  image_sub_ = it_.subscribe( "image", 10, &MotionDetection::imageCallback, this );
 }
 
-void MotionDetection::stopSubscribers() { image_sub_.shutdown(); }
+void MotionDetection::stopSubscribers()
+{
+  RCLCPP_INFO( get_logger(), "Stopping subscriber" );
+  image_sub_.shutdown();
+}
 
 } // namespace hector_motion_detection
 

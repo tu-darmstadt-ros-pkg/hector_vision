@@ -26,6 +26,8 @@ private:
   void enabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled );
   void publisherSubscriptionCallback();
 
+  rclcpp::TimerBase::SharedPtr check_subscriptions_timer_;
+
   void startSubscribers();
   void stopSubscribers();
 

@@ -1,5 +1,3 @@
-# Catkin User Guide: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/user_guide.html
-# Catkin CMake Standard: http://www.ros.org/doc/groovy/api/catkin/html/user_guide/standards.html
 cmake_minimum_required(VERSION 3.5)
 project(hector_tag_detection)
 
@@ -14,7 +12,14 @@ find_package(vision_msgs REQUIRED)
 
 include_directories(include)
 
+<<<<<<< Updated upstream
 add_executable(tag_detection src/tag_detection.cpp)
+=======
+add_executable(tag_detection src/tag_detection.cpp
+  include/hector_tag_detection/tag_detection.hpp
+)
+
+>>>>>>> Stashed changes
 ament_target_dependencies(tag_detection
   rclcpp
   tf2

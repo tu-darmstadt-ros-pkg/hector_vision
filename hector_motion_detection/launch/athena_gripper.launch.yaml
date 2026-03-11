@@ -1,0 +1,9 @@
+launch:
+- node:
+    pkg: "hector_motion_detection"
+    exec: "motion_detection"
+    param:
+      - name: "activation_threshold"
+        value: 50
+      - name: "automatic_learning_rate"
+        value: true

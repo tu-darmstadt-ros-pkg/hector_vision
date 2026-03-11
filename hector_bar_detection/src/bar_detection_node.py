@@ -127,7 +127,6 @@ class BarDetectionNode:
             image_cv = self.bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
             detected_img, detections = self.detector.detect(image_cv)
             if len(detections) != 0:
-
                 step_size_1 = detections[0].length / self.number_line_points
                 step_size_2 = detections[1].length / self.number_line_points
 
@@ -227,7 +226,6 @@ class BarDetectionNode:
         return np.array([x[0], y[0]]), np.array([vx[0], vy[0]])
 
     def debug_add_marker(self, base1, dir1, base2, dir2):
-
         points = [base1 + n * 0.1 * dir1 for n in range(-10, 10)]
         points.extend([base2 + n * 0.1 * dir2 for n in range(-10, 10)])
         marker_array = MarkerArray()

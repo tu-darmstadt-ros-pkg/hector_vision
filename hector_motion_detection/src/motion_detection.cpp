@@ -9,15 +9,14 @@
 #include <cv_bridge/cv_bridge.hpp>
 #include <opencv2/opencv.hpp>
 
-#include <hector_motion_detection/motion_detection.h>
+#include <hector_motion_detection/motion_detection.hpp>
 
 namespace hector_motion_detection
 {
 
 MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
-    : Node( "motion_detection_node", options ),
-      it_( std::make_shared<rclcpp::Node>( "motion_detection_image_node" ) ), // TODO Does this work?
-      enabled_( true ), has_subscribers_( false ), first_image_received_( false )
+    : Node( "motion_detection_node", options ), enabled_( true ), has_subscribers_( false ),
+      first_image_received_( false )
 {
   bg_subtractor_ = cv::createBackgroundSubtractorMOG2();
 
@@ -61,6 +60,9 @@ MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
   RCLCPP_INFO( get_logger(), "min area: %d", min_area_ );
   RCLCPP_INFO( get_logger(), "detection limit: %d", detectionLimit_ );
 
+  // image_node_ = rclcpp::Node::make_shared("motion_detection_image_node", options);
+  image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
+
   using namespace std::placeholders;
   // Subscriber (always-on)
   enabled_sub_ = create_subscription<std_msgs::msg::Bool>(
@@ -71,9 +73,10 @@ MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
   image_perception_pub_ =
       create_publisher<vision_msgs::msg::Detection2DArray>( "detection/image_detection", 10 );
   publishEnableStatus();
-  image_motion_pub_ = it_.advertiseCamera( "image_motion", 10 );
-  image_detected_pub_ = it_.advertiseCamera( "image_detected", 10 );
-  image_background_subtracted_pub_ = it_.advertiseCamera( "image_background_subtracted", 10 );
+  image_motion_pub_ = image_transport_->advertiseCamera( "image_motion", 10 );
+  image_detected_pub_ = image_transport_->advertiseCamera( "image_detected", 10 );
+  image_background_subtracted_pub_ =
+      image_transport_->advertiseCamera( "image_background_subtracted", 10 );
 
   using std::chrono_literals::operator""s;
   check_subscriptions_timer_ =
@@ -247,7 +250,7 @@ void MotionDetection::publisherSubscriptionCallback()
 void MotionDetection::startSubscribers()
 {
   RCLCPP_INFO( get_logger(), "Starting subscriber" );
-  image_sub_ = it_.subscribe( "image", 10, &MotionDetection::imageCallback, this );
+  image_sub_ = image_transport_->subscribe( "image", 10, &MotionDetection::imageCallback, this );
 }
 
 void MotionDetection::stopSubscribers()

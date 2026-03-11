@@ -58,7 +58,7 @@ private:
 
   zbar::ImageScanner *qrcode_detector_;
   std::shared_ptr<apriltag_detector_t> apriltag_detector_;
-  std::shared_ptr<apriltag_family_t> apriltag_family_;
+  std::vector<std::shared_ptr<apriltag_family_t>> apriltag_families_;
 
   rclcpp::Node::SharedPtr node_;
   std::shared_ptr<rclcpp::ParameterEventHandler> parameter_event_handler_;

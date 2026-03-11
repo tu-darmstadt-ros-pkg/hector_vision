@@ -31,7 +31,7 @@ private:
   void startSubscribers();
   void stopSubscribers();
 
-  image_transport::ImageTransport it_;
+  std::shared_ptr<image_transport::ImageTransport> image_transport_;
 
   bool enabled_;
   bool has_subscribers_;

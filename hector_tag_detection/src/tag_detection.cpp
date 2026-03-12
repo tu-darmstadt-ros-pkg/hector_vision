@@ -32,7 +32,6 @@
 
 #include <apriltag/apriltag.h>
 #include <apriltag/tagStandard41h12.h>
-#include <apriltag/tagStandard52h13.h>
 #include <cv_bridge/cv_bridge.hpp>
 #include <image_transport/image_transport.hpp>
 #include <opencv2/opencv.hpp>
@@ -71,11 +70,8 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
 
   // Set up Apriltag detector
   apriltag_detector_.reset( apriltag_detector_create(), apriltag_detector_destroy );
-  apriltag_families_.emplace_back( tagStandard41h12_create(), tagStandard41h12_destroy );
-  // apriltag_families_.emplace_back( tagStandard52h13_create(), tagStandard52h13_destroy );
-  for ( const auto &family : apriltag_families_ ) {
-    apriltag_detector_add_family( apriltag_detector_.get(), family.get() );
-  }
+  apriltag_family_.reset( tagStandard41h12_create(), tagStandard41h12_destroy );
+  apriltag_detector_add_family( apriltag_detector_.get(), apriltag_family_.get() );
 
   // Set up detection publishers
   aggregator_percept_publisher_ = node_->create_publisher<Detection2DArray>( detection_topic, 10 );

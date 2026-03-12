@@ -6,13 +6,22 @@
 #define DETECTION_AGGREGATOR_BASE_HPP
 
 #include <cv_bridge/cv_bridge.hpp>
-#include <hector_detection_aggregator/detection_entry.hpp>
 #include <image_transport/image_transport.hpp>
-#include <utility>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
 namespace hector_detection_aggregator
 {
+struct DetectionEntry {
+  std::string type;
+  std::string id;
+  vision_msgs::msg::Detection2D detection;
+
+  DetectionEntry( const std::string &type, const std::string &id,
+                  const vision_msgs::msg::Detection2D &detection )
+      : type( type ), id( id ), detection( detection )
+  {
+  }
+};
 
 /// Base class for different aggregation methods
 class DetectionAggregatorBase

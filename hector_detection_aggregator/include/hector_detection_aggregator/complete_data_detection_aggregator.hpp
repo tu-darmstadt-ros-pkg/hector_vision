@@ -27,9 +27,11 @@ struct ImageDetections {
 
   bool DetectionsValid()
   {
-    return std::all_of(
-        detectors_detections.begin(), detectors_detections.end(),
-        []( const DetectorDetections &detector_detections ) { return detector_detections.valid; } );
+    for ( const auto &detector_detections : detectors_detections )
+      if ( !detector_detections.valid )
+        return false;
+
+    return true;
   }
 
   void InsertDetections( const size_t detector_index, const std::vector<DetectionEntry> &detections )
@@ -57,7 +59,7 @@ struct ImageDetections {
 };
 
 /**
- * This aggregator synchronizes received detections with the image frames they were detected on
+ * This aggregator synchronizes received detections with the image frames they  were detected on
  * so that every detection is displayed in the right place even if the view is moving quickly.
  * To guarantee that every detection is paired with the matching image this aggregator awaits
  * a detection from every detector before making it available.
@@ -81,7 +83,7 @@ private:
 
 public:
   /**
-   * This aggregator synchronizes received detections with the image frames they were detected on
+   * This aggregator synchronizes received detections with the image frames they  were detected on
    * so that every detection is displayed in the right place even if the view is moving quickly.
    * To guarantee that every detection is paired with the matching image this aggregator awaits
    * a detection from every detector before making it available.
@@ -139,15 +141,15 @@ public:
   bool AddDetection( const vision_msgs::msg::Detection2DArray::ConstSharedPtr &detections,
                      const rclcpp::MessageInfo &info ) override
   {
-    const rclcpp::Time detections_time = { detections->header.stamp };
+    rclcpp::Time detections_time = { detections->header.stamp };
     std::array<uint8_t, 16> gid_array{};
     const uint8_t *gid = info.get_rmw_message_info().publisher_gid.data;
     for ( size_t i = 0; i < 16; ++i ) gid_array[i] = gid[i];
 
     // Determine from which detector the detection came
-    size_t detector_index;
+    size_t detector_index = known_detectors_.size();
     std::string detector_name;
-    if ( const auto detector_entry = known_detectors_.find( gid_array );
+    if ( auto detector_entry = known_detectors_.find( gid_array );
          detector_entry != known_detectors_.end() ) {
       detector_name = detector_entry->second;
       detector_index = detector_indexes_.find( gid_array )->second;

@@ -106,8 +106,7 @@ public:
     CompleteDataDetectionAggregator::UpdatePublishers( publisher_info );
   }
 
-  bool AddImage( const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                 const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info ) override
+  bool AddImage( const sensor_msgs::msg::Image::ConstSharedPtr &image ) override
   {
     const rclcpp::Time image_time = { image->header.stamp };
 

@@ -55,6 +55,8 @@ TagDetectionImpl::TagDetectionImpl( const rclcpp::Node::SharedPtr &node )
   node_->declare_parameter<bool>( "enabled", true );
   node_->declare_parameter<std::string>( "detection_topic", "perception/image_percept" );
   node_->declare_parameter<std::string>( "debug_topic", "perception/debug" );
+  // Parameter for image transport
+  node_->declare_parameter<std::string>( "image_transport", "raw" );
 
   enabled_ = node->get_parameter( "enabled" ).as_bool();
   const std::string detection_topic = node_->get_parameter( "detection_topic" ).as_string();

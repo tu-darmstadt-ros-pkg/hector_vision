@@ -15,21 +15,23 @@ namespace hector_motion_detection
 {
 
 MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
-    : Node( "motion_detection_node", options ), enabled_( true ), has_subscribers_( false ),
+    : Node( "motion_detection_node", options ), has_subscribers_( false ),
       first_image_received_( false )
 {
+  using namespace std::placeholders;
   bg_subtractor_ = cv::createBackgroundSubtractorMOG2();
 
   declare_reconfigurable_parameter(
       "moving_average_weight", std::ref<double>( moving_average_weight_ ),
       "Weight of the new image", hector::ParameterOptions<double>().setRange( 0.0, 1.0, 0.01 ) );
-  declare_reconfigurable_parameter( "activation_threshold", std::ref<int>( activation_threshold_ ),
+  declare_reconfigurable_parameter( "motion_detect_activation_threshold",
+                                    std::ref<int>( activation_threshold_ ),
                                     "Threshold for a pixel to be considered 'moving'",
                                     hector::ParameterOptions<int>().setRange( 0, 255, 1 ) );
-  declare_reconfigurable_parameter( "automatic_learning_rate",
+  declare_reconfigurable_parameter( "motion_detect_automatic_learning_rate",
                                     std::ref<bool>( automatic_learning_rate_ ),
                                     "Automatic learning rate", hector::ParameterOptions<bool>() );
-  declare_reconfigurable_parameter( "learning_rate", std::ref<double>( learning_rate_ ),
+  declare_reconfigurable_parameter( "motion_detect_learning_rate", std::ref<double>( learning_rate_ ),
                                     "Learning rate for background subtraction",
                                     hector::ParameterOptions<double>().setRange( 0.7, 1.0, 0.0 ) );
   declare_reconfigurable_parameter( "motion_detect_detection_limit", std::ref<int>( detectionLimit_ ),
@@ -52,6 +54,13 @@ MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
                                     hector::ParameterOptions<bool>() );
   declare_reconfigurable_parameter( "motion_detect_debug_contours", std::ref<bool>( debug_contours_ ),
                                     "For tracking the contours", hector::ParameterOptions<bool>() );
+  declare_reconfigurable_parameter(
+      "motion_detect_debug_images", std::ref<bool>( debug_images_ ),
+      "Whether to advertise debug image topics",
+      hector::ParameterOptions<bool>().onUpdate(
+          [this]( const bool &enabled ) { debugPublisherCallback( enabled ); } ) );
+  // Parameter for image transport
+  declare_parameter<std::string>( "image_transport", "raw" );
 
   RCLCPP_INFO( get_logger(), "Starting Motion Detection with MOG2" );
   RCLCPP_INFO( get_logger(), "debug_contours: %i", debug_contours_ );
@@ -63,39 +72,14 @@ MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
   // image_node_ = rclcpp::Node::make_shared("motion_detection_image_node", options);
   image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
 
-  using namespace std::placeholders;
-  // Subscriber (always-on)
-  enabled_sub_ = create_subscription<std_msgs::msg::Bool>(
-      "enabled", 10, std::bind( &MotionDetection::enabledCallback, this, _1 ) );
+  debugPublisherCallback( debug_images_ );
 
-  // Publishers
-  enabled_pub_ = create_publisher<std_msgs::msg::Bool>( "enabled_status", 10 );
   image_perception_pub_ =
       create_publisher<vision_msgs::msg::Detection2DArray>( "detection/image_detection", 10 );
-  publishEnableStatus();
-  image_motion_pub_ = image_transport_->advertiseCamera( "image_motion", 10 );
-  image_detected_pub_ = image_transport_->advertiseCamera( "image_detected", 10 );
-  image_background_subtracted_pub_ =
-      image_transport_->advertiseCamera( "image_background_subtracted", 10 );
 
   using std::chrono_literals::operator""s;
   check_subscriptions_timer_ =
       create_wall_timer( 1s, std::bind( &MotionDetection::publisherSubscriptionCallback, this ) );
-}
-
-void MotionDetection::publishEnableStatus() const
-{
-  std_msgs::msg::Bool bool_msg;
-  bool_msg.data = enabled_;
-  enabled_pub_->publish( bool_msg );
-
-  std::string enabled_string;
-  if ( enabled_ ) {
-    enabled_string = "Enabled ";
-  } else {
-    enabled_string = "Disabled ";
-  }
-  RCLCPP_INFO_STREAM( get_logger(), enabled_string << get_name() );
 }
 
 void MotionDetection::imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &img )
@@ -155,6 +139,10 @@ void MotionDetection::imageCallback( const sensor_msgs::msg::Image::ConstSharedP
   }
 
   std::vector<vision_msgs::msg::Detection2D> polygonGroup;
+  vision_msgs::msg::ObjectHypothesisWithPose hypothesis;
+  hypothesis.hypothesis.class_id = "motion";
+  hypothesis.hypothesis.score = 1.0;
+
   if ( contours.size() != 0 ) {
     for ( int k = 0; k < detectionLimit_; k++ ) {
       for ( size_t j = 0; j < areas.size(); j++ ) {
@@ -172,6 +160,9 @@ void MotionDetection::imageCallback( const sensor_msgs::msg::Image::ConstSharedP
 
         vision_msgs::msg::Detection2D perceptionData;
         perceptionData.id = "motion_" + std::to_string( k );
+        perceptionData.header = img->header;
+        perceptionData.results.push_back( hypothesis );
+
         perceptionData.bbox.center.position.x = ( bounding_rect.tl().x + bounding_rect.br().x ) / 2;
         perceptionData.bbox.center.position.y = ( bounding_rect.tl().y + bounding_rect.tl().y ) / 2;
         perceptionData.bbox.size_x = bounding_rect.width;
@@ -193,42 +184,57 @@ void MotionDetection::imageCallback( const sensor_msgs::msg::Image::ConstSharedP
   info.reset( new sensor_msgs::msg::CameraInfo() );
   info->header = img->header;
 
-  if ( image_background_subtracted_pub_.getNumSubscribers() > 0 ) {
-    cv_bridge::CvImage cvImg;
-    cvImg.image = fgimg_orig;
-    cvImg.header = img->header;
-    cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-    image_background_subtracted_pub_.publish( cvImg.toImageMsg(), info );
-  }
+  if ( debug_images_ ) {
+    if ( image_background_subtracted_pub_.getNumSubscribers() > 0 ) {
+      cv_bridge::CvImage cvImg;
+      cvImg.image = fgimg_orig;
+      cvImg.header = img->header;
+      cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+      image_background_subtracted_pub_.publish( cvImg.toImageMsg(), info );
+    }
 
-  if ( image_motion_pub_.getNumSubscribers() > 0 ) {
-    cv_bridge::CvImage cvImg;
-    cvImg.image = thresholded;
-    cvImg.header = img->header;
-    cvImg.encoding = sensor_msgs::image_encodings::MONO8;
-    image_motion_pub_.publish( cvImg.toImageMsg(), info );
-  }
+    if ( image_motion_pub_.getNumSubscribers() > 0 ) {
+      cv_bridge::CvImage cvImg;
+      cvImg.image = thresholded;
+      cvImg.header = img->header;
+      cvImg.encoding = sensor_msgs::image_encodings::MONO8;
+      image_motion_pub_.publish( cvImg.toImageMsg(), info );
+    }
 
-  if ( image_detected_pub_.getNumSubscribers() > 0 ) {
-    cv_bridge::CvImage cvImg;
-    cvImg.image = frame;
-    cvImg.header = img->header;
-    cvImg.encoding = sensor_msgs::image_encodings::BGR8;
-    image_detected_pub_.publish( cvImg.toImageMsg(), info );
+    if ( image_detected_pub_.getNumSubscribers() > 0 ) {
+      cv_bridge::CvImage cvImg;
+      cvImg.image = frame;
+      cvImg.header = img->header;
+      cvImg.encoding = sensor_msgs::image_encodings::BGR8;
+      image_detected_pub_.publish( cvImg.toImageMsg(), info );
+    }
   }
 }
 
-void MotionDetection::enabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled )
+void MotionDetection::debugPublisherCallback( const bool &enabled )
 {
-  enabled_ = enabled->data;
-  publishEnableStatus();
+  if ( enabled ) {
+    RCLCPP_INFO( get_logger(), "Enabling debug publishers" );
+
+    image_motion_pub_ = image_transport_->advertiseCamera( "image_motion", 10 );
+    image_detected_pub_ = image_transport_->advertiseCamera( "image_detected", 10 );
+    image_background_subtracted_pub_ =
+        image_transport_->advertiseCamera( "image_background_subtracted", 10 );
+  } else {
+    RCLCPP_INFO( get_logger(), "Disabling debug publishers" );
+
+    image_motion_pub_.shutdown();
+    image_detected_pub_.shutdown();
+    image_background_subtracted_pub_.shutdown();
+  }
 }
 
 void MotionDetection::publisherSubscriptionCallback()
 {
-  const size_t subscribers =
-      image_perception_pub_->get_subscription_count() + image_motion_pub_.getNumSubscribers() +
-      image_detected_pub_.getNumSubscribers() + image_background_subtracted_pub_.getNumSubscribers();
+  size_t subscribers = image_perception_pub_->get_subscription_count();
+  if ( debug_images_ )
+    subscribers += image_motion_pub_.getNumSubscribers() + image_detected_pub_.getNumSubscribers() +
+                   image_background_subtracted_pub_.getNumSubscribers();
 
   RCLCPP_DEBUG( get_logger(), "Node has %3lu subscriber%s and previously %s subscribers",
                 subscribers, subscribers == 1 ? "" : "s", has_subscribers_ ? "had" : "didn't have" );
@@ -236,14 +242,12 @@ void MotionDetection::publisherSubscriptionCallback()
   // Changed to no subscribers
   if ( subscribers == 0 && has_subscribers_ ) {
     has_subscribers_ = false;
-    if ( enabled_ )
-      stopSubscribers();
+    stopSubscribers();
   }
   // Changed from no subscribers
   if ( subscribers > 0 && !has_subscribers_ ) {
     has_subscribers_ = true;
-    if ( enabled_ )
-      startSubscribers();
+    startSubscribers();
   }
 }
 

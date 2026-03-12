@@ -42,11 +42,9 @@ public:
   /**
    * Add new camera image to the aggregator
    * @param image The newest camera image
-   * @param camera_info Not used by this aggregator
    * @return Whether the collected data is ready to be displayed (always true)
    */
-  bool AddImage( const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                 const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info ) override
+  bool AddImage( const sensor_msgs::msg::Image::ConstSharedPtr &image ) override
   {
     current_image_ = cv_bridge::toCvShare( image, sensor_msgs::image_encodings::BGR8 );
 

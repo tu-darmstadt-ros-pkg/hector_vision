@@ -35,8 +35,6 @@ private:
   // rclcpp::Duration storage_duration_;
 
   std::shared_ptr<DetectionAggregatorBase> detection_aggregator_;
-  // cv_bridge::CvImageConstPtr current_color_image_;
-  sensor_msgs::msg::CameraInfo::ConstSharedPtr current_camera_info_;
 
   rclcpp::Node::SharedPtr node_;
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
@@ -48,17 +46,16 @@ private:
   // std::map<std::pair<std::string, std::string>, vision_msgs::msg::Detection2D> detection_map_;
   std::map<std::string, cv::Scalar> color_map_;
 
-  image_transport::CameraPublisher image_detected_pub_;
+  image_transport::Publisher image_detected_pub_;
 
   rclcpp::Subscription<Detection2DArray>::SharedPtr image_percept_sub_;
-  image_transport::CameraSubscriber camera_subscriber_;
+  image_transport::Subscriber image_subscriber_;
 
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
 
   void updateDetections();
-  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info );
+  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image );
   void imageDetectionCallback( const Detection2DArray::ConstSharedPtr &percept,
                                const rclcpp::MessageInfo &info );
 

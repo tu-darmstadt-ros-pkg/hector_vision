@@ -33,6 +33,8 @@ DetectionAggregatorNode::DetectionAggregatorNode( const rclcpp::Node::SharedPtr 
   node_->declare_parameter<std::string>( "aggregation_topic",
                                          "detection/aggregated_detections_image" );
   node_->declare_parameter<std::string>( "aggregation_mode", "NEWEST" );
+  // Parameter for image transport
+  node_->declare_parameter<std::string>( "image_transport", "raw" );
 
   enabled_callback_handle_ = param_subscriber_->add_parameter_callback(
       "enabled", [this]( const rclcpp::Parameter &parameter ) -> void {
@@ -54,8 +56,7 @@ DetectionAggregatorNode::DetectionAggregatorNode( const rclcpp::Node::SharedPtr 
 
   image_transport_ = std::make_shared<image_transport::ImageTransport>( node_ );
 
-  image_detected_pub_ =
-      image_transport_->advertiseCamera( robot_namespace_ + "/" + aggregation_topic, 10 );
+  image_detected_pub_ = image_transport_->advertise( robot_namespace_ + "/" + aggregation_topic, 10 );
 
   check_environment_timer_ = node_->create_wall_timer(
       std::chrono::seconds( 1 ),
@@ -146,7 +147,7 @@ void DetectionAggregatorNode::createImage()
 
   RCLCPP_DEBUG( node_->get_logger(), "Publishing detection image" );
 
-  image_detected_pub_.publish( cvImg.toImageMsg(), current_camera_info_ );
+  image_detected_pub_.publish( cvImg.toImageMsg() );
 }
 
 void DetectionAggregatorNode::imageDetectionCallback( const Detection2DArray::ConstSharedPtr &percept,
@@ -164,13 +165,9 @@ void DetectionAggregatorNode::imageDetectionCallback( const Detection2DArray::Co
     createImage();
 }
 
-void DetectionAggregatorNode::imageCallback(
-    const sensor_msgs::msg::Image::ConstSharedPtr &image,
-    const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info )
+void DetectionAggregatorNode::imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image )
 {
-  current_camera_info_ = camera_info;
-
-  if ( detection_aggregator_->AddImage( image, camera_info ) )
+  if ( detection_aggregator_->AddImage( image ) )
     createImage();
 }
 
@@ -213,8 +210,8 @@ void DetectionAggregatorNode::startSubscribers()
   std::vector<rclcpp::TopicEndpointInfo> publishers =
       node_->get_publishers_info_by_topic( "/image" );
   RCLCPP_INFO( node_->get_logger(), "Starting subscribers" );
-  camera_subscriber_ =
-      image_transport_->subscribeCamera( "/image", 1, &DetectionAggregatorNode::imageCallback, this );
+  image_subscriber_ =
+      image_transport_->subscribe( "/image", 1, &DetectionAggregatorNode::imageCallback, this );
   image_percept_sub_ = node_->create_subscription<Detection2DArray>(
       robot_namespace_ + "/" + detection_topic_, 1,
       std::bind( &DetectionAggregatorNode::imageDetectionCallback, this, std::placeholders::_1,
@@ -226,7 +223,7 @@ void DetectionAggregatorNode::startSubscribers()
 void DetectionAggregatorNode::stopSubscribers()
 {
   RCLCPP_INFO( node_->get_logger(), "Stopping subscribers" );
-  camera_subscriber_.shutdown();
+  image_subscriber_.shutdown();
   image_percept_sub_.reset();
 }
 

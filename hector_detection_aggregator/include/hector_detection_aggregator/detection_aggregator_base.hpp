@@ -31,8 +31,7 @@ public:
 
   /// Called whenever a new camera image is received
   /// @return Indicates whether new aggregated data is available
-  virtual bool AddImage( const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                         const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info ) = 0;
+  virtual bool AddImage( const sensor_msgs::msg::Image::ConstSharedPtr &image ) = 0;
 
   /// Called whenever a new detection message is received
   /// @return Indicates whether new aggregated data is available

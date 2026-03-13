@@ -26,33 +26,34 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef HECTOR_TAG_DETECTION_H
-#define HECTOR_TAG_DETECTION_H
+#ifndef HECTOR_TAG_DETECTION_HPP
+#define HECTOR_TAG_DETECTION_HPP
 
 #include <apriltag/apriltag.h>
 #include <cv_bridge/cv_bridge.hpp>
-#include <image_transport/image_transport.hpp>
+#include <zbar.h>
+
+#include <hector_ros2_utils/node.hpp>
 #include <rclcpp/rclcpp.hpp>
+
+#include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
-#include <zbar.h>
 
 typedef vision_msgs::msg::Detection2DArray Detection2DArray;
 
 namespace hector_tag_detection
 {
 
-class TagDetectionImpl
+class TagDetection : public hector::Node
 {
 public:
-  explicit TagDetectionImpl( const rclcpp::Node::SharedPtr &node );
-  TagDetectionImpl( TagDetectionImpl &td ) = delete;
-  TagDetectionImpl( TagDetectionImpl &&td ) = delete;
-  ~TagDetectionImpl() = default;
+  explicit TagDetection( const rclcpp::NodeOptions &options );
+  TagDetection( TagDetection &td ) = delete;
+  TagDetection( TagDetection &&td ) = delete;
 
 private:
-  bool enabled_;
   bool has_subscribers_;
   std::string image_topic_;
 
@@ -60,44 +61,23 @@ private:
   std::shared_ptr<apriltag_detector_t> apriltag_detector_;
   std::shared_ptr<apriltag_family_t> apriltag_family_;
 
-  rclcpp::Node::SharedPtr node_;
-  std::shared_ptr<rclcpp::ParameterEventHandler> parameter_event_handler_;
-  rclcpp::ParameterCallbackHandle::SharedPtr enabled_callback_handle_;
-  image_transport::ImageTransport image_transport_;
+  std::shared_ptr<image_transport::ImageTransport> image_transport_;
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
+  rclcpp::TimerBase::SharedPtr setup_node_timer_;
   rclcpp::TimerBase::SharedPtr check_subscribers_timer_;
 
   image_transport::Subscriber camera_subscriber_;
-
   image_transport::Publisher tag_image_publisher_;
   rclcpp::Publisher<Detection2DArray>::SharedPtr aggregator_percept_publisher_;
 
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
+  void setupNode();
 
   /**
    * Called when an image is received.
    * Performs tag detection on received image and publishes detected tags.
    * @param image The tag detection is performed on this image
-   * @param camera_info The camera info is replicated for the debug crops but is otherwise unused
    */
   void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image );
-
-  /**
-   * Publishes whether the node is enabled. Called once on startup and by enabledCallback
-   */
-  void publishEnableStatus() const;
-  /**
-   * Enables or disables the node, stopping or starting subscribers.
-   * Called either by parameter change or topic callback via msgEnabledCallback.
-   * @param enabled Enables or disables the node
-   */
-  void enabledCallback( const bool &enabled );
-  /**
-   * Enables or disables the node via enabledCallback
-   * @param enabled Enables or disables the node
-   */
-  void msgEnabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled ) const;
 
   /**
    * Find qr-codes in an image
@@ -117,10 +97,12 @@ private:
    * Starts the node's subscriptions when the node is enabled and has subscriber of its own.
    */
   void startSubscribers();
+
   /**
    * Stops the node's subscribers when the node is disabled or has no subscribers of its own.
    */
   void stopSubscribers();
+
   /**
    * Called periodically to check if the node's publishers have any subscribers,
    * starting or stopping the node's own subscription accordingly.
@@ -130,4 +112,4 @@ private:
 
 } // namespace hector_tag_detection
 
-#endif // HECTOR_TAG_DETECTION_H
+#endif // HECTOR_TAG_DETECTION_HPP

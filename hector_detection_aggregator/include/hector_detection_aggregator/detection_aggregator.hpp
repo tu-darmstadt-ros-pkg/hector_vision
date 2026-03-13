@@ -1,31 +1,29 @@
-#ifndef HECTOR_DETECTION_AGGREGATOR_NODE_HPP_
-#define HECTOR_DETECTION_AGGREGATOR_NODE_HPP_
+#ifndef HECTOR_DETECTION_AGGREGATOR_HPP_
+#define HECTOR_DETECTION_AGGREGATOR_HPP_
 
 #include "detection_aggregator_base.hpp"
 
-#include <cv_bridge/cv_bridge.hpp>
-#include <image_transport/image_transport.hpp>
+#include <hector_ros2_utils/node.hpp>
 #include <opencv2/opencv.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/image_encodings.hpp>
-#include <std_msgs/msg/bool.hpp>
+
+#include <image_transport/image_transport.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
 typedef vision_msgs::msg::Detection2DArray Detection2DArray;
 
 namespace hector_detection_aggregator
 {
-class DetectionAggregatorNode
+class DetectionAggregator : public hector::Node
 {
 public:
-  explicit DetectionAggregatorNode( const rclcpp::Node::SharedPtr &node );
-  DetectionAggregatorNode( DetectionAggregatorNode &da ) = delete;
-  DetectionAggregatorNode( DetectionAggregatorNode &&da ) = delete;
-  ~DetectionAggregatorNode();
+  DetectionAggregator( const rclcpp::NodeOptions &options );
+  // DetectionAggregator( DetectionAggregator &da ) = delete;
+  // DetectionAggregator( DetectionAggregator &&da ) = delete;
+
   void createImage();
 
 private:
-  bool enabled_;
   bool has_subscribers_;
   std::string robot_namespace_;
   /// Detection topic chosen by parameter
@@ -36,10 +34,9 @@ private:
 
   std::shared_ptr<DetectionAggregatorBase> detection_aggregator_;
 
-  rclcpp::Node::SharedPtr node_;
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
-  rclcpp::ParameterCallbackHandle::SharedPtr enabled_callback_handle_;
   rclcpp::ParameterCallbackHandle::SharedPtr storage_duration_callback_handle_;
+  rclcpp::TimerBase::SharedPtr start_image_transfer_timer_;
   rclcpp::TimerBase::SharedPtr check_environment_timer_;
   std::shared_ptr<image_transport::ImageTransport> image_transport_;
 
@@ -51,17 +48,10 @@ private:
   rclcpp::Subscription<Detection2DArray>::SharedPtr image_percept_sub_;
   image_transport::Subscriber image_subscriber_;
 
-  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enabled_sub_;
-  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr enabled_pub_;
-
-  void updateDetections();
+  void startImageTransferCallback();
   void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image );
   void imageDetectionCallback( const Detection2DArray::ConstSharedPtr &percept,
                                const rclcpp::MessageInfo &info );
-
-  void publishEnableStatus() const;
-  void enabledCallback( const bool &enabled );
-  void msgEnabledCallback( const std_msgs::msg::Bool::ConstSharedPtr &enabled ) const;
 
   void startSubscribers();
   void stopSubscribers();

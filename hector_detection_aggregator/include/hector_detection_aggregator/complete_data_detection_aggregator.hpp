@@ -146,7 +146,7 @@ public:
     for ( size_t i = 0; i < 16; ++i ) gid_array[i] = gid[i];
 
     // Determine from which detector the detection came
-    size_t detector_index = known_detectors_.size();
+    size_t detector_index;
     std::string detector_name;
     if ( auto detector_entry = known_detectors_.find( gid_array );
          detector_entry != known_detectors_.end() ) {
@@ -206,8 +206,8 @@ public:
     std::pair data = { frame->second.first, frame->second.second.CollectDetections() };
     const rclcpp::Time frame_time = latest_valid_frame_;
 
-    int frame_index = 0;
-    for ( int i = 0; i < buffer_size_; ++i ) {
+    size_t frame_index = 0;
+    for ( size_t i = 0; i < buffer_size_; ++i ) {
       if ( current_buffers_[i] == latest_valid_frame_ ) {
         frame_index = i;
         break;

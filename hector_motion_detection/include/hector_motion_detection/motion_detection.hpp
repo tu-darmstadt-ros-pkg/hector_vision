@@ -16,34 +16,34 @@ class MotionDetection : public hector::Node
 {
 public:
   MotionDetection( const rclcpp::NodeOptions &options );
+  MotionDetection( MotionDetection &md ) = delete;
+  MotionDetection( MotionDetection &&md ) = delete;
 
 private:
-  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr
-                          &img ); //, const sensor_msgs::CameraInfoConstPtr& info);
+  void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &img );
   void debugPublisherCallback( const bool &enabled );
   void publisherSubscriptionCallback();
-
-  rclcpp::TimerBase::SharedPtr check_subscriptions_timer_;
 
   void startSubscribers();
   void stopSubscribers();
 
-  std::shared_ptr<image_transport::ImageTransport> image_transport_;
-
   bool has_subscribers_;
+  bool first_image_received_;
+  cv::Mat accumulated_image_;
 
+  std::shared_ptr<image_transport::ImageTransport> image_transport_;
   image_transport::Subscriber image_sub_;
 
   rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr image_perception_pub_;
+
+  rclcpp::TimerBase::SharedPtr check_subscriptions_timer_;
 
   // Debug image publishers
   image_transport::CameraPublisher image_motion_pub_;
   image_transport::CameraPublisher image_detected_pub_;
   image_transport::CameraPublisher image_background_subtracted_pub_;
 
-  bool first_image_received_;
-  cv::Mat accumulated_image_;
-
+  // Reconfigurable properties
   cv::Ptr<cv::BackgroundSubtractorMOG2> bg_subtractor_; // With regard to shadows
   double moving_average_weight_ = 1.0;
   int activation_threshold_ = 170;

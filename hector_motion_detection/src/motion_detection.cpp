@@ -69,7 +69,6 @@ MotionDetection::MotionDetection( const rclcpp::NodeOptions &options )
   RCLCPP_INFO( get_logger(), "min area: %d", min_area_ );
   RCLCPP_INFO( get_logger(), "detection limit: %d", detectionLimit_ );
 
-  // image_node_ = rclcpp::Node::make_shared("motion_detection_image_node", options);
   image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
 
   debugPublisherCallback( debug_images_ );

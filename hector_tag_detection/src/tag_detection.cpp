@@ -62,6 +62,7 @@ TagDetection::TagDetection( const rclcpp::NodeOptions &options )
   qrcode_detector_ = new zbar::ImageScanner;
   qrcode_detector_->set_config( zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1 );
 
+  // Set up node after constructor has run so the shared pointer becomes valid
   setup_node_timer_ =
       create_wall_timer( std::chrono::milliseconds( 0 ), [this] { this->setupNode(); } );
 }

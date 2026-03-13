@@ -42,23 +42,16 @@ DetectionAggregator::DetectionAggregator( const rclcpp::NodeOptions &options )
   color_map_["hazmat"] = cv::Scalar( 255, 255, 0 );   // Turquoise
   color_map_["unknown"] = cv::Scalar( 50, 50, 50 );   // Grey
 
-  RCLCPP_INFO( get_logger(), "Node started" );
-
-  start_image_transfer_timer_ = create_wall_timer( std::chrono::milliseconds( 500 ),
-                                                   [this] { this->startImageTransferCallback(); } );
+  // Set up node after constructor has run so the shared pointer becomes valid
+  setup_node_timer_ =
+      create_wall_timer( std::chrono::milliseconds( 0 ), [this] { this->setupNode(); } );
 }
 
-void DetectionAggregator::startImageTransferCallback()
+void DetectionAggregator::setupNode()
 {
-  start_image_transfer_timer_.reset();
-
-  const std::string aggregation_topic = get_parameter( "aggregation_topic" ).as_string();
+  setup_node_timer_.reset();
 
   image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
-  image_detected_pub_ = image_transport_->advertise( "detection/aggregated_detections_image", 10 );
-
-  image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
-
   image_detected_pub_ = image_transport_->advertise( "detection/aggregated_detections_image", 10 );
 
   // Create detection aggregator
@@ -80,6 +73,8 @@ void DetectionAggregator::startImageTransferCallback()
 
   check_environment_timer_ =
       create_wall_timer( std::chrono::seconds( 1 ), [this] { this->checkEnvironmentCallback(); } );
+
+  RCLCPP_INFO( get_logger(), "Node started" );
 }
 
 void DetectionAggregator::createImage()

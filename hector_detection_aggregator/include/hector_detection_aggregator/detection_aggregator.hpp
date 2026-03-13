@@ -36,7 +36,7 @@ private:
 
   std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
   rclcpp::ParameterCallbackHandle::SharedPtr storage_duration_callback_handle_;
-  rclcpp::TimerBase::SharedPtr start_image_transfer_timer_;
+  rclcpp::TimerBase::SharedPtr setup_node_timer_;
   rclcpp::TimerBase::SharedPtr check_environment_timer_;
   std::shared_ptr<image_transport::ImageTransport> image_transport_;
 
@@ -48,7 +48,7 @@ private:
   rclcpp::Subscription<Detection2DArray>::SharedPtr image_percept_sub_;
   image_transport::Subscriber image_subscriber_;
 
-  void startImageTransferCallback();
+  void setupNode();
   void imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image );
   void imageDetectionCallback( const Detection2DArray::ConstSharedPtr &percept,
                                const rclcpp::MessageInfo &info );

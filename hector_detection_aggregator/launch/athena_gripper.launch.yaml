@@ -20,7 +20,7 @@ launch:
 
   - node_container:
       pkg: "rclcpp_components"
-      exec: "component_container"
+      exec: "component_container_mt"
       name: "gripper_recognition_container"
       namespace: ""
       composable_node:

@@ -49,8 +49,6 @@ jobs:
         setup:
           - rosdistro: jazzy
             os: ubuntu-24.04
-          - rosdistro: rolling
-            os: ubuntu-latest
     runs-on: ${{ matrix.setup.os }}
     container:
       image: ros:${{ matrix.setup.rosdistro }}-ros-base

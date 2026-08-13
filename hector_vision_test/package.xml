@@ -1,23 +1,24 @@
-<?xml version="1.0"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <package format="3">
   <name>hector_vision_test</name>
   <version>1.0.0</version>
   <description>hector_vision_test is intended for use in testing of various packages in hector_vision</description>
   <maintainer email="finn.winter@stud.tu-darmstadt.de">Finn Winter</maintainer>
-
   <license>LGPL</license>
-
   <author>Finn Winter</author>
 
   <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>ament_index_cpp</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
   <!-- Dependencies needed to compile this package. -->
   <depend>rclcpp</depend>
-  <depend>image_transport</depend>
-  <depend>cv_bridge</depend>
   <depend>rqt_image_view</depend>
-  <depend>ament_index_cpp</depend>
+
+  <exec_depend>hector_detection_aggregator</exec_depend>
+  <exec_depend>hector_tag_detection</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -22,3 +22,17 @@ repos:
       - id: black
         name: Black
         language_version: python3
+
+    # Package XML
+  - repo: https://github.com/Joschi3/package_xml_validation.git
+    rev: v1.8.0
+    hooks:
+    - id: format-package-xml
+      name: Validate and Format package.xml
+
+  # Yaml launch and config files
+  - repo: https://github.com/Joschi3/launch_config_validator.git
+    rev: v0.5.1
+    hooks:
+    - id: format-yaml-launch-and-configs
+      name: Validate ROS2 launch and config YAML files

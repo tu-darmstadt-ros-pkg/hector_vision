@@ -1,12 +1,10 @@
-<?xml version="1.0"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <package format="3">
   <name>hector_motion_detection</name>
   <version>1.0.0</version>
   <description>hector_motion_detection</description>
   <maintainer email="kohlbrecher@sim.tu-darmstadt.de">Stefan Kohlbrecher</maintainer>
-
   <license>BSD</license>
-
   <url type="website">http://ros.org/wiki/hector_motion_detection</url>
   <!-- <url type="bugtracker"></url> -->
 
@@ -15,12 +13,14 @@
   <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>cv_bridge</depend>
+  <depend>hector_ros2_utils</depend>
+  <depend>image_transport</depend>
+  <depend>libopencv-dev</depend>
+
   <!-- Dependencies needed to compile this package. -->
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
-  <depend>hector_ros2_utils</depend>
-  <depend>cv_bridge</depend>
-  <depend>image_transport</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>vision_msgs</depend>

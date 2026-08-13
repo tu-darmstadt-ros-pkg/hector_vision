@@ -1,29 +1,26 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>hector_detection_aggregator</name>
   <version>0.0.0</version>
   <description>The hector_detection_aggregator package</description>
-
-  <maintainer email="kevin.daun@stud.tu-darmstadt.de">Kevin Daun</maintainer>
-
-
+  <maintainer email="finn.winter@stud.tu-darmstadt.de">Finn Winter</maintainer>
   <license>BSD</license>
 
+  <author email="kevin.daun@stud.tu-darmstadt.de">Kevin Daun</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>roscpp</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>hector_ros2_utils</depend>
   <depend>image_transport</depend>
   <depend>camera_info_manager</depend>
-  <depend>hector_worldmodel_msgs</depend>
-  <depend>hector_perception_msgs</depend>
-  <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>std_msgs</depend>
-  <depend>dynamic_reconfigure</depend>
-  <depend>nodelet</depend>
+  <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
 
   <export>
-    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

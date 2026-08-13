@@ -16,7 +16,8 @@ namespace hector_vision_algorithms
  * http://www.mathworks.com/matlabcentral/fileexchange/28114-fast-edges-of-a-color-image-actual-color-not-converting-to-grayscale/content/coloredges.m
  * @param image The input image. Usually CV_8UC3 (RGB8) but may also be CV_32FC3.
  * @param edges The output edge image. Format: CV_32FC3.
- * @param orientation The orientation of the edges. Format: CV_32F. Values: 0 to 360 where 0 is the positive x-axis and values increase counter-clockwise.
+ * @param orientation The orientation of the edges. Format: CV_32F. Values: 0 to 360 where 0 is the
+ * positive x-axis and values increase counter-clockwise.
  */
 void calculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat &orientation );
 
@@ -26,6 +27,6 @@ void calculateColorEdges( const cv::Mat &image, cv::Mat &edges, cv::Mat &orienta
  * @param edges The output edge image. Format: CV_32FC3.
  */
 void calculateColorEdges( const cv::Mat &image, cv::Mat &edges );
-}
+} // namespace hector_vision_algorithms
 
-#endif //HECTOR_VISION_ALGORITHMS_COLOR_EDGES_H
+#endif // HECTOR_VISION_ALGORITHMS_COLOR_EDGES_H

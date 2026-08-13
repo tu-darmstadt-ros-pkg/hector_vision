@@ -30,13 +30,13 @@
 
 #include <hector_thermal_image_conversion/heat_image_colorizer.h>
 
-int main(int argc, char** argv)
+int main( int argc, char **argv )
 {
-  ros::init(argc, argv, "heat_image_translator");
+  ros::init( argc, argv, "heat_image_translator" );
 
-  ros::NodeHandle nh_("");
-  ros::NodeHandle pnh_("~");
-  HeatImageColorizer dg(nh_, pnh_);
+  ros::NodeHandle nh_( "" );
+  ros::NodeHandle pnh_( "~" );
+  HeatImageColorizer dg( nh_, pnh_ );
   ros::spin();
 
   return 0;

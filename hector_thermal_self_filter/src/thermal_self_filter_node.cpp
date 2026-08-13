@@ -31,54 +31,53 @@
 #include <hector_thermal_self_filter/hector_thermal_self_filter.h>
 #include <hector_worldmodel_msgs/VerifyPercept.h>
 
-namespace hector_thermal_self_filter{
+namespace hector_thermal_self_filter
+{
 
 class ThermalSelfFilter
 {
 public:
   ThermalSelfFilter()
   {
-    ros::NodeHandle pnh("~");
-    self_filter_ = new HectorThermalSelfFilter(pnh, &tfL_);
+    ros::NodeHandle pnh( "~" );
+    self_filter_ = new HectorThermalSelfFilter( pnh, &tfL_ );
 
-    ooi_verification_service_ = pnh.advertiseService("verify_percept", &ThermalSelfFilter::verifyPerceptCallBack, this);
+    ooi_verification_service_ =
+        pnh.advertiseService( "verify_percept", &ThermalSelfFilter::verifyPerceptCallBack, this );
   }
 
-  ~ThermalSelfFilter()
-  {
-    delete self_filter_;
-  }
+  ~ThermalSelfFilter() { delete self_filter_; }
 
-  bool verifyPerceptCallBack(hector_worldmodel_msgs::VerifyPercept::Request  &req,
-                            hector_worldmodel_msgs::VerifyPercept::Response &res )
+  bool verifyPerceptCallBack( hector_worldmodel_msgs::VerifyPercept::Request &req,
+                              hector_worldmodel_msgs::VerifyPercept::Response &res )
   {
-    bool belongsToRobot = self_filter_->pointBelongsToRobot(req.percept.pose.pose.position, req.percept.header);
-    if (req.percept.info.class_id == "qrcode"){
-       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
-       return true;
+    bool belongsToRobot =
+        self_filter_->pointBelongsToRobot( req.percept.pose.pose.position, req.percept.header );
+    if ( req.percept.info.class_id == "qrcode" ) {
+      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
+      return true;
     }
-    if (belongsToRobot){
-       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::DISCARD;
-    }else{
-       res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
+    if ( belongsToRobot ) {
+      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::DISCARD;
+    } else {
+      res.response = hector_worldmodel_msgs::VerifyPerceptResponse::UNKNOWN;
     }
 
     return true;
   }
 
 protected:
-  HectorThermalSelfFilter* self_filter_;
+  HectorThermalSelfFilter *self_filter_;
   tf::TransformListener tfL_;
 
   ros::ServiceServer ooi_verification_service_;
-
 };
 
-}
+} // namespace hector_thermal_self_filter
 
-int main(int argc, char** argv)
+int main( int argc, char **argv )
 {
-  ros::init(argc, argv, "thermal_self_filter");
+  ros::init( argc, argv, "thermal_self_filter" );
 
   hector_thermal_self_filter::ThermalSelfFilter sf;
 

@@ -1,4 +1,4 @@
-<package>
+<package format="3">
   <name>hector_heat_detection</name>
   <version>1.0.0</version>
   <description>hector_heat_detection searches for image regions within a specific temperature range.
@@ -32,19 +32,19 @@
 
 
   <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>roscpp</run_depend>
-  <run_depend>rospy</run_depend>
-  <run_depend>image_transport</run_depend>
-  <run_depend>camera_info_manager</run_depend>
-  <run_depend>hector_worldmodel_msgs</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>cv_bridge</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>image_transport</run_depend>
-  <!--<run_depend>thermaleye_msgs</run_depend>-->
-  <run_depend>dynamic_reconfigure</run_depend>
-  <run_depend>nodelet</run_depend>
-  <run_depend>rostopic</run_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>camera_info_manager</exec_depend>
+  <exec_depend>hector_worldmodel_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <!--<exec_depend>thermaleye_msgs</exec_depend>-->
+  <exec_depend>dynamic_reconfigure</exec_depend>
+  <exec_depend>nodelet</exec_depend>
+  <exec_depend>rostopic</exec_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />

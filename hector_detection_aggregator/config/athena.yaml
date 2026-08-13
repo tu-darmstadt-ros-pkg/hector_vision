@@ -1,0 +1,8 @@
+detection_aggregator:
+  ros__parameters:
+    enabled: "true"
+    detection_topic: "detection/visual_detection"
+    aggregation_topic: "detection/aggregated_detections_image"
+    aggregation_mode: "NEWEST"
+    buffer_size: "64"
+    robot_namespace: "athena"

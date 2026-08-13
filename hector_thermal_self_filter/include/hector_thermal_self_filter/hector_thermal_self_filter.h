@@ -30,89 +30,80 @@
 #define __HectorThermalSelfFilter_h_
 
 #include <pcl_conversions/pcl_conversions.h>
-#include <tf/transform_listener.h>
 #include <robot_self_filter/self_see_filter.h>
+#include <tf/transform_listener.h>
 
-class HectorThermalSelfFilter{
+class HectorThermalSelfFilter
+{
 public:
-
-  HectorThermalSelfFilter(ros::NodeHandle& nh, tf::TransformListener* tfl_in)
-    : tfL_(tfl_in)
+  HectorThermalSelfFilter( ros::NodeHandle &nh, tf::TransformListener *tfl_in ) : tfL_( tfl_in )
   {
-    self_filter_ = new filters::SelfFilter<pcl::PointCloud<pcl::PointXYZI> > (nh);
+    self_filter_ = new filters::SelfFilter<pcl::PointCloud<pcl::PointXYZI>>( nh );
 
+    self_filter_->getSelfMask()->getLinkNames( frames_ );
+    if ( frames_.empty() ) {
+      ROS_ERROR( "No valid frames have been passed into the self filter." );
+    } else {
+      ROS_INFO( "Self filter uses the following links to filter:" );
 
-    self_filter_->getSelfMask()->getLinkNames(frames_);
-    if (frames_.empty()){
-      ROS_ERROR ("No valid frames have been passed into the self filter.");
-    }else{
-      ROS_INFO ("Self filter uses the following links to filter:");
-
-      for (size_t i = 0; i < frames_.size(); ++i){
-        ROS_INFO("Filtered frame %u : %s", static_cast<unsigned int>(i), frames_[i].c_str());
+      for ( size_t i = 0; i < frames_.size(); ++i ) {
+        ROS_INFO( "Filtered frame %u : %s", static_cast<unsigned int>( i ), frames_[i].c_str() );
       }
     }
   }
 
-  virtual ~HectorThermalSelfFilter(){
-    delete self_filter_;
-  }
+  virtual ~HectorThermalSelfFilter() { delete self_filter_; }
 
-  bool pointBelongsToRobot(const geometry_msgs::Point& point_in, const std_msgs::Header& header)//Define argument types)
+  bool pointBelongsToRobot( const geometry_msgs::Point &point_in,
+                            const std_msgs::Header &header ) // Define argument types)
   {
     pcl::PointCloud<pcl::PointXYZI> cloud_in;
-    pcl_conversions::toPCL(header, cloud_in.header);
+    pcl_conversions::toPCL( header, cloud_in.header );
 
     pcl::PointXYZI point;
     point.x = point_in.x;
     point.y = point_in.y;
     point.z = point_in.z;
 
-    cloud_in.push_back(point);
+    cloud_in.push_back( point );
 
     pcl::PointCloud<pcl::PointXYZI> cloud_filtered;
 
-    if (waitForRelevantTransforms(header)){
-      self_filter_->updateWithSensorFrame (cloud_in, cloud_filtered, header.frame_id);
+    if ( waitForRelevantTransforms( header ) ) {
+      self_filter_->updateWithSensorFrame( cloud_in, cloud_filtered, header.frame_id );
 
-      if(cloud_filtered.size() > 0){
+      if ( cloud_filtered.size() > 0 ) {
         return false;
-      }else{
+      } else {
         return true;
       }
-    }else{
+    } else {
       return false;
     }
   }
 
   // Returns false if waiting failed with a tf exception
-  bool waitForRelevantTransforms(const std_msgs::Header& header)
+  bool waitForRelevantTransforms( const std_msgs::Header &header )
   {
-    try{
+    try {
       size_t num_frames = frames_.size();
-      ros::Duration waitDuration(0.5);
+      ros::Duration waitDuration( 0.5 );
 
-      for (size_t i = 0; i < num_frames; ++i){
-        tfL_->waitForTransform(header.frame_id, frames_[i], header.stamp, waitDuration);
+      for ( size_t i = 0; i < num_frames; ++i ) {
+        tfL_->waitForTransform( header.frame_id, frames_[i], header.stamp, waitDuration );
       }
-    } catch (tf::TransformException ex) {
-      ROS_ERROR("Self filter failed waiting for necessary transforms: %s", ex.what());
+    } catch ( tf::TransformException ex ) {
+      ROS_ERROR( "Self filter failed waiting for necessary transforms: %s", ex.what() );
       return false;
     }
     return true;
   }
 
-
-
-
-
 protected:
-  filters::SelfFilter<pcl::PointCloud<pcl::PointXYZI> > *self_filter_;
+  filters::SelfFilter<pcl::PointCloud<pcl::PointXYZI>> *self_filter_;
   std::vector<std::string> frames_;
 
-  tf::TransformListener* tfL_;
-
-
+  tf::TransformListener *tfL_;
 };
 
 #endif

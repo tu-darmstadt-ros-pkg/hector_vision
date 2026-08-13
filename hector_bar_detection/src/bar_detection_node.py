@@ -22,7 +22,6 @@ import cv2
 from image_geometry import PinholeCameraModel
 
 
-
 class BarDetectionErrorType(Enum):
     NoError = 0
     NoImageError = 1
@@ -51,21 +50,36 @@ class BarDetectionNode:
         self.last_back_image = None
         self.bridge = cv_bridge.CvBridge()
         self.detector = bar_detection.BarDetection()
-        self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
-        self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
-                                              queue_size=10)
+        self.detection_image_pub = rospy.Publisher(
+            "~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True
+        )
+        self.perception_pub = rospy.Publisher(
+            "image_percept",
+            hector_perception_msgs.msg.PerceptionDataArray,
+            queue_size=10,
+        )
 
-        self.front_image_sub = rospy.Subscriber("~front_image", sensor_msgs.msg.Image, self.front_image_cb)
-        self.back_image_sub = rospy.Subscriber("~back_image", sensor_msgs.msg.Image, self.back_image_cb)
+        self.front_image_sub = rospy.Subscriber(
+            "~front_image", sensor_msgs.msg.Image, self.front_image_cb
+        )
+        self.back_image_sub = rospy.Subscriber(
+            "~back_image", sensor_msgs.msg.Image, self.back_image_cb
+        )
 
         # Debug stuff
-        self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
+        self.detection_image_pub = rospy.Publisher(
+            "~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True
+        )
         self.debug = rospy.get_param("~debug", False)
-        self.debug_maker_pub = rospy.Publisher("~debug_marker", MarkerArray, queue_size=10)
+        self.debug_maker_pub = rospy.Publisher(
+            "~debug_marker", MarkerArray, queue_size=10
+        )
         self.max_marker_count = 2
 
         # Action Server
-        self.server = actionlib.SimpleActionServer("~run_detector", LocalizeBarsAction, self.execute_action, False)
+        self.server = actionlib.SimpleActionServer(
+            "~run_detector", LocalizeBarsAction, self.execute_action, False
+        )
         self.server.start()
 
         rospy.loginfo("Waiting for Camera info")
@@ -73,16 +87,17 @@ class BarDetectionNode:
         self.pinhole_camera_model = PinholeCameraModel()
         self.pinhole_camera_model.fromCameraInfo(camera_info)
         # Init Services
-        #project_pixel_to_ray_srv = "project_pixel_to_ray"
-        #rospy.loginfo("Waiting for service " + project_pixel_to_ray_srv)
-        #rospy.wait_for_service(project_pixel_to_ray_srv)
-        #self.project_pixel_to_ray = rospy.ServiceProxy(project_pixel_to_ray_srv,
+        # project_pixel_to_ray_srv = "project_pixel_to_ray"
+        # rospy.loginfo("Waiting for service " + project_pixel_to_ray_srv)
+        # rospy.wait_for_service(project_pixel_to_ray_srv)
+        # self.project_pixel_to_ray = rospy.ServiceProxy(project_pixel_to_ray_srv,
         #                                               hector_perception_msgs.srv.ProjectPixelTo3DRay)
         get_distance_to_obstacle_srv = "/move_group/get_distance_to_obstacle"
         rospy.loginfo("Waiting for service " + get_distance_to_obstacle_srv)
         rospy.wait_for_service(get_distance_to_obstacle_srv)
-        self.get_distance_to_obstacle = rospy.ServiceProxy(get_distance_to_obstacle_srv,
-                                                           hector_nav_msgs.srv.GetDistanceToObstacle)
+        self.get_distance_to_obstacle = rospy.ServiceProxy(
+            get_distance_to_obstacle_srv, hector_nav_msgs.srv.GetDistanceToObstacle
+        )
         rospy.loginfo("Found all services.")
 
     def front_image_cb(self, image):
@@ -112,7 +127,6 @@ class BarDetectionNode:
             image_cv = self.bridge.imgmsg_to_cv2(img, desired_encoding="rgb8")
             detected_img, detections = self.detector.detect(image_cv)
             if len(detections) != 0:
-
                 step_size_1 = detections[0].length / self.number_line_points
                 step_size_2 = detections[1].length / self.number_line_points
 
@@ -120,11 +134,15 @@ class BarDetectionNode:
                 global_points2 = np.zeros((self.number_line_points, 3))
                 try:
                     for n in range(self.number_line_points):
-                        global_points1[n, :] = self.get_global_point(detections[0].start + n * step_size_1 * detections[0].dir)
-                        global_points2[n:, :] = self.get_global_point(detections[1].start + n * step_size_2 * detections[1].dir)
+                        global_points1[n, :] = self.get_global_point(
+                            detections[0].start + n * step_size_1 * detections[0].dir
+                        )
+                        global_points2[n:, :] = self.get_global_point(
+                            detections[1].start + n * step_size_2 * detections[1].dir
+                        )
                 except BarDetectionError as e:
                     return bar_location, e.error, e.message
-                
+
                 """
                 global_points1 = np.zeros((detections[0].contour.shape[0], 3))
                 global_points2 = np.zeros((detections[1].contour.shape[0], 3))
@@ -151,14 +169,18 @@ class BarDetectionNode:
                 base2, dir2 = self.fit_line(global_points2)
 
                 if self.debug:
-                    detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="rgb8")
+                    detection_image_msg = self.bridge.cv2_to_imgmsg(
+                        detected_img, encoding="rgb8"
+                    )
                     self.detection_image_pub.publish(detection_image_msg)
                     self.debug_add_marker(base1, dir1, base2, dir2)
             else:
                 error_msg = "No bars detected"
                 error = BarDetectionErrorType.NoBarsDetected
                 if self.debug:
-                    detection_image_msg = self.bridge.cv2_to_imgmsg(detected_img, encoding="rgb8")
+                    detection_image_msg = self.bridge.cv2_to_imgmsg(
+                        detected_img, encoding="rgb8"
+                    )
                     self.detection_image_pub.publish(detection_image_msg)
         else:
             error_msg = "Detection skipped, because no image has been received yet."
@@ -173,20 +195,28 @@ class BarDetectionNode:
         point_msg.point.y = image_point[1]
 
         try:
-            #point_resp_project = self.project_pixel_to_ray(point_msg)
-            point_resp_project = self.pinhole_camera_model.projectPixelTo3dRay(point_msg)
+            # point_resp_project = self.project_pixel_to_ray(point_msg)
+            point_resp_project = self.pinhole_camera_model.projectPixelTo3dRay(
+                point_msg
+            )
         except rospy.ServiceException as e:
-            raise BarDetectionError("ProjectPixelTo3DRay Service Exception",
-                                    BarDetectionErrorType.ProjectPixelTo3DRayError)
+            raise BarDetectionError(
+                "ProjectPixelTo3DRay Service Exception",
+                BarDetectionErrorType.ProjectPixelTo3DRayError,
+            )
         try:
             point_resp_raycast = self.get_distance_to_obstacle(point_resp_project.ray)
         except rospy.ServiceException as e:
-            raise BarDetectionError("GetDistanceToObstacle Service Exception",
-                                    BarDetectionErrorType.GetDistanceToObstacleError)
+            raise BarDetectionError(
+                "GetDistanceToObstacle Service Exception",
+                BarDetectionErrorType.GetDistanceToObstacleError,
+            )
 
         if point_resp_raycast.distance == -1:
-            raise BarDetectionError("No intersection point found",
-                                    BarDetectionErrorType.NoIntersectionPointError)
+            raise BarDetectionError(
+                "No intersection point found",
+                BarDetectionErrorType.NoIntersectionPointError,
+            )
 
         global_point = point_resp_raycast.end_point.point
         return np.array([global_point.x, global_point.y, global_point.z])
@@ -196,7 +226,6 @@ class BarDetectionNode:
         return np.array([x[0], y[0]]), np.array([vx[0], vy[0]])
 
     def debug_add_marker(self, base1, dir1, base2, dir2):
-
         points = [base1 + n * 0.1 * dir1 for n in range(-10, 10)]
         points.extend([base2 + n * 0.1 * dir2 for n in range(-10, 10)])
         marker_array = MarkerArray()

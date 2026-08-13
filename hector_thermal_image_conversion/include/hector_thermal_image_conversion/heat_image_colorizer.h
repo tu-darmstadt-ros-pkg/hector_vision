@@ -26,37 +26,35 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-
 #ifndef HEAT_IMAGE_COLORIZER_H__
 #define HEAT_IMAGE_COLORIZER_H__
 
 #include <ros/ros.h>
 
+#include <image_transport/camera_subscriber.h>
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
-#include <image_transport/camera_subscriber.h>
 
+#include <boost/thread.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include <nodelet/nodelet.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
-#include <boost/thread.hpp>
-#include <nodelet/nodelet.h>
 
 #include "iron_bow_color_mapping.h"
 
 class HeatImageColorizer
 {
 public:
-    HeatImageColorizer(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
+  HeatImageColorizer( ros::NodeHandle &nh_, ros::NodeHandle &pnh_ );
 
   void connectCb();
 
-  void imageCb(const sensor_msgs::ImageConstPtr& image_msg);
+  void imageCb( const sensor_msgs::ImageConstPtr &image_msg );
 
-  void colorizeImage(const sensor_msgs::ImageConstPtr& image_msg);
+  void colorizeImage( const sensor_msgs::ImageConstPtr &image_msg );
 
 protected:
-
   cv::Mat color_mapping_;
 
   boost::mutex connect_mutex_;

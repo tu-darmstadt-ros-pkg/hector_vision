@@ -1,0 +1,79 @@
+name: Lint, Build & Test
+on:
+  push:
+    branches:
+      - jazzy
+  pull_request:
+    branches:
+      - jazzy
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  Linting:
+    name: Lint Code Base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup
+        run: |
+          sudo apt-get update && sudo apt-get install -y black clang-format cppcheck libxml2-utils
+      - name: Lint C++ code
+        run: |
+          echo "Linting C++ code..."
+          clang-format -Werror -n -style=file $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' -o -name '*.cc')
+
+      - name: Run cppcheck on C++ code
+        run: |
+          echo "Running cppcheck on C++ code..."
+          cppcheck --force --quiet --inline-suppr --error-exitcode=1 --language=c++ $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.c' -o -name '*.cc')
+
+      - name: Lint package.xml
+        run: |
+          xmllint --noout --schema http://download.ros.org/schema/package_format3.xsd $(find . -name 'package.xml')
+
+      - name: Lint Python code with black 
+        run: |
+          echo "Linting Python code..."
+          black --check .
+         
+
+  build-and-test:
+    needs: Linting
+    strategy:
+      matrix:
+        setup:
+          - rosdistro: jazzy
+            os: ubuntu-24.04
+    runs-on: ${{ matrix.setup.os }}
+    container:
+      image: ros:${{ matrix.setup.rosdistro }}-ros-base
+    steps:
+      - name: install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ros-dev-tools
+      - uses: actions/checkout@v4
+        with:
+          repository: tu-darmstadt-ros-pkg/hector_ros2_utils
+          path: src/hector_ros2_utils
+      - uses: actions/checkout@v4
+        with:
+          path: src/repo
+      - name: rosdep
+        run: |
+          rosdep update --rosdistro ${{ matrix.setup.rosdistro }} --include-eol-distros
+          rosdep install -y --from-paths src --ignore-src --rosdistro ${{ matrix.setup.rosdistro }} 
+      - name: build
+        run: |
+          source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
+          colcon build
+      - name: test
+        run: |
+          source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
+          colcon test
+          colcon test-result --verbose

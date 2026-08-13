@@ -1,62 +1,66 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(hector_detection_aggregator)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  image_transport
-  camera_info_manager
-  hector_worldmodel_msgs
-  hector_perception_msgs
-  sensor_msgs
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(hector_ros2_utils REQUIRED)
+find_package(image_transport REQUIRED)
+# find_package(camera_info_manager REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(vision_msgs REQUIRED)
+
+include_directories(include ${OpenCV_INCLUDE_DIRS})
+
+add_library(detection_aggregator_component SHARED src/detection_aggregator.cpp)
+
+target_include_directories(
+  detection_aggregator_component
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(detection_aggregator_component PUBLIC
+  OpenCV
+  rclcpp
+  rclcpp_components
+  hector_ros2_utils
   cv_bridge
+  # camera_info_manager
+  image_transport
   std_msgs
-  dynamic_reconfigure
-  nodelet
-)
-generate_dynamic_reconfigure_options(config/HectorDetectionAggregator.cfg)
-
-catkin_package(
-   INCLUDE_DIRS include
-   LIBRARIES ${PROJECT_NAME}
-   CATKIN_DEPENDS
-     roscpp
-     image_transport
-     camera_info_manager
-     hector_worldmodel_msgs
-     hector_perception_msgs
-     sensor_msgs
-     cv_bridge
-     std_msgs
-     dynamic_reconfigure
-#   DEPENDS system_lib
+  sensor_msgs
+  vision_msgs
 )
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
+rclcpp_components_register_node(
+  detection_aggregator_component PLUGIN
+  "hector_detection_aggregator::DetectionAggregator" EXECUTABLE
+  detection_aggregator
+)
+ament_export_targets(export_detection_aggregator_component)
+install(
+  TARGETS detection_aggregator_component
+  EXPORT export_detection_aggregator_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
-## Declare a cpp library
- add_library(${PROJECT_NAME}
-   src/detection_aggregator.cpp
-   src/detection_aggregator_nodelet.cpp
-   include/${PROJECT_NAME}/detection_aggregator.h
- )
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
-
-
-## Declare a cpp executable
-add_executable(${PROJECT_NAME}_node src/detection_aggregator_node.cpp)
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
-
-
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(DIRECTORY config include launch
+  DESTINATION share/${PROJECT_NAME}
 )
-install(DIRECTORY config launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-install(FILES nodelet_plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+ament_package()

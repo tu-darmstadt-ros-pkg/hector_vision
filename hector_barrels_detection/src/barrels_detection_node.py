@@ -22,30 +22,47 @@ class BarrelsDetectionNode:
         self.detector = barrels_detection.BarrelsDetection()
         self.barrel_type = rospy.get_param("~barrel_type", "blue")
 
-        self.image_projection_raycast_enabled = rospy.get_param("~image_projection_raycast", False)
+        self.image_projection_raycast_enabled = rospy.get_param(
+            "~image_projection_raycast", False
+        )
         if self.image_projection_raycast_enabled:
             project_pixel_to_ray_srv = "project_pixel_to_ray"
             rospy.loginfo("Waiting for service " + project_pixel_to_ray_srv)
             rospy.wait_for_service(project_pixel_to_ray_srv)
-            self.project_pixel_to_ray = rospy.ServiceProxy(project_pixel_to_ray_srv,
-                                                           image_projection_msgs.srv.ProjectPixelTo3DRay)
+            self.project_pixel_to_ray = rospy.ServiceProxy(
+                project_pixel_to_ray_srv, image_projection_msgs.srv.ProjectPixelTo3DRay
+            )
 
             get_distance_to_obstacle_srv = "/move_group/get_distance_to_obstacle"
             rospy.loginfo("Waiting for service " + get_distance_to_obstacle_srv)
             rospy.wait_for_service(get_distance_to_obstacle_srv)
-            self.get_distance_to_obstacle = rospy.ServiceProxy(get_distance_to_obstacle_srv,
-                                                               hector_nav_msgs.srv.GetDistanceToObstacle)
+            self.get_distance_to_obstacle = rospy.ServiceProxy(
+                get_distance_to_obstacle_srv, hector_nav_msgs.srv.GetDistanceToObstacle
+            )
             rospy.loginfo("Found all services.")
 
-        self.detection_image_pub = rospy.Publisher("~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True)
-        self.perception_pub = rospy.Publisher("image_percept", hector_perception_msgs.msg.PerceptionDataArray,
-                                              queue_size=10)
-        self.world_model_pub = rospy.Publisher("/worldmodel/pose_percept", hector_worldmodel_msgs.msg.PosePercept,
-                                               queue_size=10)
-        self.image_sub = rospy.Subscriber("~image", sensor_msgs.msg.Image, self.image_cb)
-        self.detect_as = actionlib.SimpleActionServer("/barrels_detection/run_detection",
-                                                      hector_perception_msgs.msg.DetectObjectAction,
-                                                      execute_cb=self.run_detection, auto_start=False)
+        self.detection_image_pub = rospy.Publisher(
+            "~detection_image", sensor_msgs.msg.Image, queue_size=10, latch=True
+        )
+        self.perception_pub = rospy.Publisher(
+            "image_percept",
+            hector_perception_msgs.msg.PerceptionDataArray,
+            queue_size=10,
+        )
+        self.world_model_pub = rospy.Publisher(
+            "/worldmodel/pose_percept",
+            hector_worldmodel_msgs.msg.PosePercept,
+            queue_size=10,
+        )
+        self.image_sub = rospy.Subscriber(
+            "~image", sensor_msgs.msg.Image, self.image_cb
+        )
+        self.detect_as = actionlib.SimpleActionServer(
+            "/barrels_detection/run_detection",
+            hector_perception_msgs.msg.DetectObjectAction,
+            execute_cb=self.run_detection,
+            auto_start=False,
+        )
         self.detect_as.start()
 
     def image_cb(self, image):
@@ -54,15 +71,21 @@ class BarrelsDetectionNode:
     def run_detection(self, goal=None):
         rospy.logdebug(" ### Starting detection")
         if self.last_image is not None:
-            image_cv = self.bridge.imgmsg_to_cv2(self.last_image, desired_encoding="rgb8")
+            image_cv = self.bridge.imgmsg_to_cv2(
+                self.last_image, desired_encoding="rgb8"
+            )
             detections, detect_image = self.detector.detect(image_cv, self.barrel_type)
             detect_image = cv2.cvtColor(detect_image, cv2.COLOR_BGR2RGB)
-            detection_image_msg = self.bridge.cv2_to_imgmsg(detect_image, encoding="bgr8")
+            detection_image_msg = self.bridge.cv2_to_imgmsg(
+                detect_image, encoding="bgr8"
+            )
             self.detection_image_pub.publish(detection_image_msg)
             self.publish_detections(detections)
             success = True
         else:
-            rospy.logwarn("Barrels detection skipped, because no image has been received yet.")
+            rospy.logwarn(
+                "Barrels detection skipped, because no image has been received yet."
+            )
             success = False
 
         if goal is not None:
@@ -72,7 +95,9 @@ class BarrelsDetectionNode:
             if success:
                 self.detect_as.set_succeeded(result)
             else:
-                self.detect_as.set_aborted(result, "Skipped, because has been image received.")
+                self.detect_as.set_aborted(
+                    result, "Skipped, because has been image received."
+                )
 
     def publish_detections(self, detections):
         array = hector_perception_msgs.msg.PerceptionDataArray()
@@ -106,9 +131,13 @@ class BarrelsDetectionNode:
                 except rospy.ServiceException as e:
                     rospy.logerr("GetDistanceToObstacle Service Exception: " + str(e))
                     continue
-                
+
                 # reject, if raycast failed
-                if resp_raycast.end_point.point.x == 0 and resp_raycast.end_point.point.y == 0 and resp_raycast.end_point.point.z == 0:
+                if (
+                    resp_raycast.end_point.point.x == 0
+                    and resp_raycast.end_point.point.y == 0
+                    and resp_raycast.end_point.point.z == 0
+                ):
                     continue
                 pose_msg = geometry_msgs.msg.PoseWithCovariance()
                 pose_msg.pose.position = resp_raycast.end_point.point
@@ -119,7 +148,7 @@ class BarrelsDetectionNode:
                 pose_percept_msg.header.frame_id = "world"
                 pose_percept_msg.header.stamp = self.last_image.header.stamp
 
-                #pose_percept_msg.info.name = detection.name
+                # pose_percept_msg.info.name = detection.name
                 pose_percept_msg.info.class_id = detection.name
                 pose_percept_msg.info.class_support = 1.0
                 # pose_percept_msg.info.object_id = detection.name

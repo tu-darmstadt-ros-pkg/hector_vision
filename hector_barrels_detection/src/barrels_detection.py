@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 
+
 class Detection:
     def __init__(self, name, center, points):
         self.name = name
@@ -18,7 +19,7 @@ class BarrelsDetection:
 
     def find_white_barrels(self, img):
         # cut off bottom
-        img_cut = img[:img.shape[0] - self.bottom_cut_off, :, :]
+        img_cut = img[: img.shape[0] - self.bottom_cut_off, :, :]
 
         # downscale
         img_lr = cv2.pyrDown(img)
@@ -33,7 +34,9 @@ class BarrelsDetection:
         mask = cv2.inRange(img_lab, lower, upper)
         img_lab_masked = cv2.bitwise_and(img_lab, img_lab, mask=mask)
         img_lab_gray = cv2.cvtColor(img_lab_masked, cv2.COLOR_LAB2RGB)
-        th, img_lab_thresh = cv2.threshold(img_lab_gray[:, :, 0], 100, 255, cv2.THRESH_BINARY)
+        th, img_lab_thresh = cv2.threshold(
+            img_lab_gray[:, :, 0], 100, 255, cv2.THRESH_BINARY
+        )
 
         # dilate
         ksize = 3
@@ -43,7 +46,7 @@ class BarrelsDetection:
 
     def find_blue_barrels(self, img):
         # cut off bottom
-        img_cut = img[:img.shape[0] - self.bottom_cut_off, :, :]
+        img_cut = img[: img.shape[0] - self.bottom_cut_off, :, :]
         # to float
         img_float = img_cut.astype(float) / 255.0
         # show_color(img_float)
@@ -56,7 +59,9 @@ class BarrelsDetection:
         # show_gray(img_only_blue)
 
         # thresholding
-        th, img_thresh = cv2.threshold(img_only_blue, self.threshold, 1, cv2.THRESH_BINARY)
+        th, img_thresh = cv2.threshold(
+            img_only_blue, self.threshold, 1, cv2.THRESH_BINARY
+        )
         # show_gray(img_thresh)
         # to uchar
         img_thresh = img_thresh.astype(np.uint8) * 255
@@ -65,13 +70,15 @@ class BarrelsDetection:
         kernel = np.ones((self.dilate_ksize, self.dilate_ksize), np.uint8)
         img_dilated = cv2.dilate(img_thresh, kernel, iterations=3)
         # show_gray(img_dilated)
-        #img_closing = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel)
+        # img_closing = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel)
 
         return img_dilated, img_cut, 1
 
     def contour_detection(self, img, detection_image, scaling):
         # Find contours in binary image
-        contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         # Filter contours by area
         contours_filtered = []
@@ -138,8 +145,13 @@ class BarrelsDetection:
         img_inv = 255 - img
         keypoints = detector.detect(img_inv)
 
-        detection_image = \
-            cv2.drawKeypoints(img, keypoints, np.array([]), (255, 0, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        detection_image = cv2.drawKeypoints(
+            img,
+            keypoints,
+            np.array([]),
+            (255, 0, 0),
+            cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
+        )
 
         detections = list()
         for k in keypoints:
@@ -167,5 +179,7 @@ class BarrelsDetection:
         else:
             print("Unknown barrel type '{}'".format(barrel_type))
             return [], img
-        detections, detection_image = self.contour_detection(img_pre, detection_image, scaling)
+        detections, detection_image = self.contour_detection(
+            img_pre, detection_image, scaling
+        )
         return detections, detection_image

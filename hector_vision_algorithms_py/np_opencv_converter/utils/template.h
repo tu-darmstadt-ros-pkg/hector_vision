@@ -10,22 +10,19 @@
  */
 
 template<typename TemplateType>
-struct expose_template_type
-{
+struct expose_template_type {
   // do nothing!
 };
 
 template<typename TemplateType>
-struct expose_template_type_base
-{
+struct expose_template_type_base {
   bool wrapped()
   {
     using namespace boost::python::converter;
     using namespace boost::python;
-    registration const * p = registry::query( type_id<TemplateType>() );
-    return p && (p->m_class_object || p->m_to_python);
+    registration const *p = registry::query( type_id<TemplateType>() );
+    return p && ( p->m_class_object || p->m_to_python );
   }
-
 };
 
 #endif

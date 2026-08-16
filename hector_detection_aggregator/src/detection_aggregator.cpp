@@ -1,97 +1,111 @@
-#include <cv_bridge/cv_bridge.hpp>
 #include <hector_detection_aggregator/detection_aggregator.hpp>
-#include <image_transport/image_transport.hpp>
-#include <memory>
-#include <rclcpp/rclcpp.hpp>
-#include <vision_msgs/msg/detection2_d_array.hpp>
-
-#include <hector_detection_aggregator/complete_data_detection_aggregator.hpp>
-#include <hector_detection_aggregator/detection_aggregator_base.hpp>
-#include <hector_detection_aggregator/newest_data_detection_aggregator.hpp>
-
-rclcpp::Duration durationFromDouble( const double &duration )
-{
-  const int duration_seconds = static_cast<int>( duration );
-  const uint32_t duration_nanoseconds = static_cast<int>( ( duration - duration_seconds ) * 1e9 );
-
-  return { duration_seconds, duration_nanoseconds };
-}
 
 namespace hector_detection_aggregator
 {
-DetectionAggregator::DetectionAggregator( const rclcpp::NodeOptions &options )
-    : Node( "detection_aggregator", options ), has_subscribers_( false )
+
+DetectionAggregator::DetectionAggregator() : Node( "detection_aggregator" )
 {
-  declare_parameter<int>( "buffer_size", 16 );
-  declare_parameter<double>( "storage_duration", 1.5 );
-  declare_parameter<std::string>( "detection_topic", "detection/visual_detection" );
-  declare_parameter<std::string>( "aggregation_topic", "detection/aggregated_detections_image" );
-  declare_parameter<std::string>( "aggregation_mode", "NEWEST" );
-  // Parameter for image transport
-  declare_parameter<std::string>( "image_transport", "raw" );
-
-  detection_topic_ = "detection/visual_detection";
-  real_detection_topic_ = detection_topic_;
-  robot_namespace_ = get_parameter_or<std::string>( "robot_namespace", "" );
-
   // Color mappings A color for "unknown" is required to exist
-  color_map_["motion"] = cv::Scalar( 0, 0, 255 );     // Red
-  color_map_["qr"] = cv::Scalar( 255, 0, 0 );         // Blue
-  color_map_["apriltag"] = cv::Scalar( 216, 0, 134 ); // Purple
-  color_map_["heat"] = cv::Scalar( 0, 255, 0 );       // Green
-  color_map_["hazmat"] = cv::Scalar( 255, 255, 0 );   // Turquoise
-  color_map_["unknown"] = cv::Scalar( 50, 50, 50 );   // Grey
-
-  // Set up node after constructor has run so the shared pointer becomes valid
-  setup_node_timer_ =
-      create_wall_timer( std::chrono::milliseconds( 0 ), [this] { this->setupNode(); } );
+  color_map_["motion"] = cv::Scalar( 0, 0, 255 );   // Red
+  color_map_["QR"] = cv::Scalar( 255, 0, 0 );       // Blue
+  color_map_["april"] = cv::Scalar( 216, 0, 134 );  // Purple
+  color_map_["thermal"] = cv::Scalar( 0, 255, 0 );  // Green
+  color_map_["hazmat"] = cv::Scalar( 255, 255, 0 ); // Turquoise
 }
 
-void DetectionAggregator::setupNode()
+void DetectionAggregator::ReadParameters()
 {
-  setup_node_timer_.reset();
+  param_listener_ = std::make_shared<detection_aggregator::ParamListener>( this );
+  if ( !param_listener_ ) {
+    RCLCPP_ERROR( get_logger(), "Parameters could be loaded" );
+    return;
+  }
+  params_ = std::make_shared<detection_aggregator::Params>( param_listener_->get_params() );
 
-  image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
-  image_detected_pub_ = image_transport_->advertise( "detection/aggregated_detections_image", 10 );
-
-  // Create detection aggregator
-  std::string aggregation_mode = get_parameter( "aggregation_mode" ).as_string();
-  std::transform( aggregation_mode.begin(), aggregation_mode.end(), aggregation_mode.begin(),
-                  ::toupper );
-  if ( aggregation_mode == "COMPLETE" ) {
-    std::vector<rclcpp::TopicEndpointInfo> publisher_info =
-        get_publishers_info_by_topic( real_detection_topic_ );
-    size_t buffer_size = get_parameter( "buffer_size" ).as_int();
-    detection_aggregator_ = std::make_shared<CompleteDataDetectionAggregator>(
-        shared_from_this(), buffer_size, publisher_info );
-  } else {
-    rclcpp::Duration storage_duration =
-        durationFromDouble( get_parameter( "storage_duration" ).as_double() );
-    detection_aggregator_ =
-        std::make_shared<NewestDataDetectionAggregator>( shared_from_this(), storage_duration );
+  if ( params_->visualization_topic.empty() ) {
+    RCLCPP_ERROR( get_logger(), "Visualization topic needs to be specified" );
+    return;
   }
 
-  check_environment_timer_ =
-      create_wall_timer( std::chrono::seconds( 1 ), [this] { this->checkEnvironmentCallback(); } );
+  if ( params_->cam_topic.empty() ) {
+    RCLCPP_ERROR( get_logger(), "Cam topic needs to be specified" );
+    return;
+  }
 
-  RCLCPP_INFO( get_logger(), "Node started" );
+  if ( params_->use_thermal && params_->thermal_topic.empty() ) {
+    RCLCPP_ERROR( get_logger(), "If using thermal, thermal topic can't be empty" );
+    return;
+  }
+
+  if ( params_->use_motion && params_->motion_topic.empty() ) {
+    RCLCPP_ERROR( get_logger(), "If using motion, motion topic can't be empty" );
+    return;
+  }
+
+  bool use_obj_detection = params_->use_hazmat || params_->use_qr || params_->use_april;
+  if ( use_obj_detection && params_->object_detection_topic.empty() ) {
+    RCLCPP_ERROR( get_logger(),
+                  "If using QR april tags or hazmat, object detection topic can't be empty" );
+    return;
+  }
 }
 
-void DetectionAggregator::createImage()
+void DetectionAggregator::Setup()
 {
-  auto [image, detections] = detection_aggregator_->GetAggregatedData();
+  ReadParameters();
 
-  RCLCPP_DEBUG( get_logger(), "Creating detection Image for %lu detections", detections.size() );
+  image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
+  time_sync_filter_.init( shared_from_this(),
+                          std::bind( &DetectionAggregator::processDetectionSet, this,
+                                     std::placeholders::_1, std::placeholders::_2,
+                                     std::placeholders::_3, std::placeholders::_4 ),
+                          params_, image_transport_ );
 
-  cv::Mat img_detected;
-  image->image.copyTo( img_detected );
+  vis_pub_ = image_transport_->advertise( params_->visualization_topic, 1 );
+}
 
-  for ( const auto &[type, id, detection] : detections ) {
-    const cv::Point detection_top_left_point(
-        static_cast<int>( detection.bbox.center.position.x - detection.bbox.size_x / 2 ),
-        static_cast<int>( detection.bbox.center.position.y - detection.bbox.size_y / 2 ) );
-    const cv::Size detection_size( static_cast<int>( detection.bbox.size_x ),
-                                   static_cast<int>( detection.bbox.size_y ) );
+void DetectionAggregator::processDetectionSet(
+    std::shared_ptr<const sensor_msgs::msg::Image> cam_img,
+    std::shared_ptr<const sensor_msgs::msg::Image> thermal_img,
+    std::shared_ptr<const Detection2DArray> motion_detections,
+    std::shared_ptr<const Detection2DArray> obj_detections )
+{
+
+  RCLCPP_INFO( get_logger(),
+               "Received full detection set for image timestamp: %d.%09u. Creating visualization.",
+               cam_img->header.stamp.sec, cam_img->header.stamp.nanosec );
+
+  cv::Mat vis_img;
+  try {
+    vis_img = cv_bridge::toCvShare( cam_img, sensor_msgs::image_encodings::BGR8 )->image.clone();
+  } catch ( const cv_bridge::Exception &e ) {
+    RCLCPP_ERROR( get_logger(), "cv_bridge exception converting camera image: %s", e.what() );
+    return;
+  }
+
+  // Combine obj and motions detections in a single list. Dummy results are just an empty list.
+  std::vector<Detection2D> combined_detections = std::vector<Detection2D>();
+  combined_detections.insert( combined_detections.begin(), obj_detections->detections.begin(),
+                              obj_detections->detections.end() );
+  combined_detections.insert( combined_detections.end(), motion_detections->detections.begin(),
+                              motion_detections->detections.end() );
+
+  for ( const auto &[header, id, type, score, bbox, _1, _2] : combined_detections ) {
+
+    // We need to check specifcally for usage of hazmat / april / QR since they will be published to
+    // the same topic by the semantic detection pipeline
+
+    if ( type == "QR" && !params_->use_qr )
+      continue;
+    if ( type == "april" && !params_->use_april )
+      continue;
+    if ( type == "hazmat" && !params_->use_hazmat )
+      continue;
+
+    const cv::Point detection_top_left_point( static_cast<int>( bbox.left ),
+                                              static_cast<int>( bbox.top ) );
+    const cv::Size detection_size( static_cast<int>( bbox.right - bbox.left ),
+                                   static_cast<int>( bbox.bottom - bbox.top ) );
 
     const cv::Rect rect( detection_top_left_point, detection_size );
 
@@ -106,104 +120,62 @@ void DetectionAggregator::createImage()
     const cv::Point text_point = detection_top_left_point + cv::Point( 0, -12 );
     int text_background_offset;
 
-    const std::string detection_text = type + ": " + id;
+    const std::string detection_text = type + ": " + std::to_string( id );
     cv::Size text_size = cv::getTextSize( detection_text, cv::FONT_HERSHEY_SIMPLEX, 0.75, 2,
                                           &text_background_offset );
     text_size.height *= 2;
 
     // Detection marker
-    cv::rectangle( img_detected, rect, detection_color, 2, cv::LINE_AA );
+    cv::rectangle( vis_img, rect, detection_color, 2, cv::LINE_AA );
     // Text background
-    cv::rectangle( img_detected,
+    cv::rectangle( vis_img,
                    cv::Rect( text_point + cv::Point( 0, -3 * text_background_offset ), text_size ),
                    cv::Scalar( 255, 255, 255 ), cv::FILLED );
     // Detection id text
-    cv::putText( img_detected, detection_text, text_point, cv::FONT_HERSHEY_SIMPLEX, 0.75,
+    cv::putText( vis_img, detection_text, text_point, cv::FONT_HERSHEY_SIMPLEX, 0.75,
                  detection_color, 2 );
   }
 
+  if ( params_->use_thermal ) {
+
+    cv::Mat cv_thermal_img;
+    try {
+      cv_thermal_img =
+          cv_bridge::toCvShare( thermal_img, sensor_msgs::image_encodings::BGR8 )->image.clone();
+    } catch ( const cv_bridge::Exception &e ) {
+      RCLCPP_ERROR( get_logger(), "cv_bridge exception converting camera image: %s", e.what() );
+      return;
+    }
+
+    // Canvas grows to fit both images at their native resolution — neither is resized.
+    const int canvas_width = vis_img.cols + cv_thermal_img.cols;
+    const int canvas_height = std::max( vis_img.rows, cv_thermal_img.rows );
+
+    cv::Mat split_screen( canvas_height, canvas_width, vis_img.type(), cv::Scalar( 0, 0, 0 ) );
+
+    // Camera image: untouched, top-left.
+    vis_img.copyTo( split_screen( cv::Rect( 0, 0, vis_img.cols, vis_img.rows ) ) );
+
+    // Thermal image: untouched, vertically centered in the right-hand panel.
+    const int thermal_y_offset = ( canvas_height - cv_thermal_img.rows ) / 2;
+    cv_thermal_img.copyTo( split_screen(
+        cv::Rect( vis_img.cols, thermal_y_offset, cv_thermal_img.cols, cv_thermal_img.rows ) ) );
+
+    vis_img = split_screen;
+  }
+
   cv_bridge::CvImage cvImg;
-  img_detected.copyTo( cvImg.image );
+  vis_img.copyTo( cvImg.image );
   // cvImg.header = img->header;
   cvImg.encoding = sensor_msgs::image_encodings::BGR8;
-  const auto info = std::make_shared<sensor_msgs::msg::CameraInfo>();
-  info->header = image->header;
+  // const auto info = std::make_shared<sensor_msgs::msg::CameraInfo>();
+  // info->header = image->header;
 
   RCLCPP_DEBUG( get_logger(), "Publishing detection image" );
 
-  image_detected_pub_.publish( cvImg.toImageMsg() );
-}
-
-void DetectionAggregator::imageDetectionCallback( const Detection2DArray::ConstSharedPtr &percept,
-                                                  const rclcpp::MessageInfo &info )
-{
-  {
-    const size_t perceptions = percept->detections.size();
-    RCLCPP_DEBUG_STREAM( get_logger(), "Aggregating "
-                                           << perceptions << " Perception"
-                                           << ( perceptions != 1 ? "s" : "" ) << " from "
-                                           << info.get_rmw_message_info().publisher_gid.data );
-  }
-
-  if ( detection_aggregator_->AddDetection( percept, info ) )
-    createImage();
-}
-
-void DetectionAggregator::imageCallback( const sensor_msgs::msg::Image::ConstSharedPtr &image )
-{
-  if ( detection_aggregator_->AddImage( image ) )
-    createImage();
-}
-
-void DetectionAggregator::startSubscribers()
-{
-  std::vector<rclcpp::TopicEndpointInfo> publishers = get_publishers_info_by_topic( "/image" );
-  RCLCPP_INFO( get_logger(), "Starting subscribers" );
-  image_subscriber_ =
-      image_transport_->subscribe( "/image", 1, &DetectionAggregator::imageCallback, this );
-  image_percept_sub_ = create_subscription<Detection2DArray>(
-      robot_namespace_ + "/" + detection_topic_, 1,
-      std::bind( &DetectionAggregator::imageDetectionCallback, this, std::placeholders::_1,
-                 std::placeholders::_2 ) );
-
-  real_detection_topic_ = image_percept_sub_->get_topic_name();
-}
-
-void DetectionAggregator::stopSubscribers()
-{
-  RCLCPP_INFO( get_logger(), "Stopping subscribers" );
-  image_subscriber_.shutdown();
-  image_percept_sub_.reset();
-}
-
-void DetectionAggregator::checkPublisherSubscriptions()
-{
-  const size_t subscribers = image_detected_pub_.getNumSubscribers();
-
-  RCLCPP_DEBUG_STREAM( get_logger(), "Subscribers: " << subscribers
-                                                     << " has_subscribers_: " << has_subscribers_ );
-
-  // Changed to no subscribers
-  if ( subscribers == 0 && has_subscribers_ ) {
-    has_subscribers_ = false;
-    stopSubscribers();
-  }
-  // Changed from no subscribers
-  if ( subscribers > 0 && !has_subscribers_ ) {
-    has_subscribers_ = true;
-    startSubscribers();
-  }
-}
-
-void DetectionAggregator::checkEnvironmentCallback()
-{
-  checkPublisherSubscriptions();
-  const std::vector<rclcpp::TopicEndpointInfo> detector_info =
-      get_publishers_info_by_topic( real_detection_topic_ );
-  detection_aggregator_->UpdatePublishers( detector_info );
+  auto vis_img_msg = cvImg.toImageMsg();
+  vis_img_msg->header = cam_img->header;
+  vis_pub_.publish( *vis_img_msg );
 }
 
 } // namespace hector_detection_aggregator
-
-#include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE( hector_detection_aggregator::DetectionAggregator );

@@ -32,7 +32,6 @@ CameraDummyNode::CameraDummyNode( const rclcpp::Node::SharedPtr &node )
   node_->declare_parameter( "image_frames", 25 );
   node_->declare_parameter( "image_topic", "image" );
 
-
   image_dir_ = node_->get_parameter( "image_dir" ).as_string();
   const double image_frequency = node_->get_parameter( "image_frequency" ).as_double();
   image_frames_ = static_cast<int>( node_->get_parameter( "image_frames" ).as_int() );
@@ -56,7 +55,8 @@ CameraDummyNode::CameraDummyNode( const rclcpp::Node::SharedPtr &node )
     }
   }
 
-  camera_publisher_ = image_transport_.advertiseCamera( node_->get_parameter("image_topic").as_string(), 10 );
+  camera_publisher_ =
+      image_transport_.advertiseCamera( node_->get_parameter( "image_topic" ).as_string(), 10 );
 
   publish_timer_ = node_->create_wall_timer(
       std::chrono::milliseconds(

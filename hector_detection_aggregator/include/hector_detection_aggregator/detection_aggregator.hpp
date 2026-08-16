@@ -4,18 +4,18 @@
 #include <map>
 #include <memory>
 
+#include <cv_bridge/cv_bridge.hpp>
 #include <hector_ros2_utils/node.hpp>
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/synchronizer.h>
 
+#include <hector_perception_msgs/msg/object_detection2_d_array.hpp>
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
-#include <hector_perception_msgs/msg/object_detection2_d_array.hpp>
 
 #include <hector_detection_aggregator/hector_detection_aggregator_params.hpp>
 #include <hector_detection_aggregator/time_sync.hpp>
@@ -31,6 +31,7 @@ class DetectionAggregator : public hector::Node
 public:
   DetectionAggregator();
   void Setup();
+
 private:
   std::vector<std::string> detection_topics_;
 

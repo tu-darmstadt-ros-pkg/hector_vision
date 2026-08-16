@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v14.0.6
+    rev: v22.1.8
     hooks:
       - id: clang-format
         name: Clang Format
@@ -17,7 +17,7 @@ repos:
         files: \.(cpp|hpp|h|c|cc)$
 
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 26.5.1
     hooks:
       - id: black
         name: Black

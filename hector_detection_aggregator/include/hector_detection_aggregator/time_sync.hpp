@@ -78,8 +78,9 @@ public:
 
 private:
   typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
-  find_matching_entry( const int64_t ) override { return this->buffer_.begin(); }; // Unused in this class
-  typename std::shared_ptr<const StorageType> find( const int64_t  ) override { return dummy_; };
+  find_matching_entry( const int64_t ) override
+  { return this->buffer_.begin(); }; // Unused in this class
+  typename std::shared_ptr<const StorageType> find( const int64_t ) override { return dummy_; };
   void erase( const int64_t ) override { };
 
   const std::shared_ptr<const StorageType> dummy_;
@@ -106,9 +107,10 @@ using DistributionCallback = std::function<void(
 class TimeSyncFilter
 {
 public:
-  TimeSyncFilter( ) { };
+  TimeSyncFilter() { };
 
-  void init(  std::shared_ptr<rclcpp::Node> node, DistributionCallback dataCb, std::shared_ptr<detection_aggregator::Params> params,
+  void init( std::shared_ptr<rclcpp::Node> node, DistributionCallback dataCb,
+             std::shared_ptr<detection_aggregator::Params> params,
              std::shared_ptr<image_transport::ImageTransport> image_transport );
 
 private:

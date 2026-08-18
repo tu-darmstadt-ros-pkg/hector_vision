@@ -30,7 +30,7 @@ class DetectionAggregator : public hector::Node
 {
 public:
   DetectionAggregator();
-  void Setup();
+  bool setup();
 
 private:
   std::vector<std::string> detection_topics_;
@@ -49,8 +49,7 @@ private:
 
   TimeSyncFilter time_sync_filter_;
 
-  void CreateVisualization();
-  void ReadParameters();
+  bool readParameters();
 
   void processDetectionSet( std::shared_ptr<const sensor_msgs::msg::Image> cam_img,
                             std::shared_ptr<const sensor_msgs::msg::Image> thermal_img,

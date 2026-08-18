@@ -6,7 +6,12 @@ int main( int argc, char **argv )
   rclcpp::init( argc, argv );
 
   auto node = std::make_shared<hector_detection_aggregator::DetectionAggregator>();
-  node->Setup();
+
+  bool success = node->setup();
+  if ( !success ) {
+    return 1;
+  }
+
   rclcpp::spin( node );
   rclcpp::shutdown();
   return 0;

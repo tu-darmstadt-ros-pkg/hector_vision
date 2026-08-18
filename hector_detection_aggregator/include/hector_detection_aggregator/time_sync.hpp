@@ -1,8 +1,8 @@
+#ifndef TIME_SYNC_HPP_
+#define TIME_SYNC_HPP_
 
 #include <cstddef>
 #include <cstdint>
-#include <map>
-#include <memory>
 #include <mutex>
 
 #include <hector_ros2_utils/node.hpp>
@@ -37,14 +37,11 @@ public:
     buffer_.emplace( stamp, data );
   };
 
-  virtual typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
-  find_matching_entry( const int64_t stamp ) = 0;
-
   virtual typename std::shared_ptr<const StorageType> find( const int64_t stamp )
   {
     std::lock_guard guard( buffer_mutex );
 
-    const auto it = find_matching_entry( stamp );
+    const auto it = findMatchingEntry( stamp );
     if ( it == buffer_.end() )
       return nullptr;
 
@@ -59,6 +56,9 @@ public:
   };
 
 protected:
+  virtual typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
+  findMatchingEntry( const int64_t stamp ) = 0;
+
   std::size_t size_;
   std::map<int64_t, std::shared_ptr<const StorageType>> buffer_;
   std::mutex buffer_mutex;
@@ -77,9 +77,9 @@ public:
       : FixedSizeStampedBuffer<StorageType>( 0 ), dummy_( std::make_shared<StorageType>() ) { };
 
 private:
-  typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
-  find_matching_entry( const int64_t ) override
-  { return this->buffer_.begin(); }; // Unused in this class
+  typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator virtual findMatchingEntry(
+      const int64_t ) override
+  { return this->buffer_.end(); }; // Unused in this class
   typename std::shared_ptr<const StorageType> find( const int64_t ) override { return dummy_; };
   void erase( const int64_t ) override { };
 
@@ -94,8 +94,56 @@ public:
 
 private:
   virtual typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
-  find_matching_entry( const int64_t stamp )
+  findMatchingEntry( const int64_t stamp )
   { return this->buffer_.find( stamp ); };
+};
+
+template<typename StorageType>
+class ApproximateTimeBuffer : public FixedSizeStampedBuffer<StorageType>
+{
+public:
+  ApproximateTimeBuffer( std::size_t size, double eps )
+      : FixedSizeStampedBuffer<StorageType>( size ), eps_( eps )
+  {
+  }
+
+private:
+  double eps_; // Maximum time difference in nanoseconds to still be considered an approximate match
+
+  virtual typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
+  findMatchingEntry( const int64_t stamp )
+  {
+    auto &buffer = this->buffer_;
+
+    if ( buffer.empty() ) {
+      return buffer.end();
+    }
+
+    auto best = buffer.end();
+    // lower_bound is O(log n) (tree traversal) -- the binary search step.
+    auto it = buffer.lower_bound( stamp );
+
+    if ( it == buffer.begin() ) {
+      // stamp is <= the smallest key in the buffer -> that's the closest we have.
+      best = buffer.begin();
+    } else if ( it == buffer.end() ) {
+      // stamp is > every key in the buffer -> the last entry is closest.
+      best = std::prev( it );
+    } else {
+      // it points to the first entry with key >= stamp; the true closest match
+      // is either this entry or the one just before it.
+      const auto prev_it = std::prev( it );
+      const int64_t after_diff = it->first - stamp;
+      const int64_t before_diff = stamp - prev_it->first;
+
+      best = ( before_diff <= after_diff ) ? prev_it : it;
+    }
+
+    if ( std::abs( best->first - stamp ) <= eps_ )
+      return best;
+    else
+      return buffer.end();
+  };
 };
 
 using Detection2DArray = hector_perception_msgs::msg::ObjectDetection2DArray;
@@ -118,9 +166,9 @@ private:
   void insertAndCheck( std::shared_ptr<FixedSizeStampedBuffer<T>> buffer,
                        const std::shared_ptr<const T> msg );
 
-  void DistributeIfComplete( int64_t stamp );
+  void distributeIfComplete( int64_t stamp );
 
-  std::shared_ptr<image_transport::Subscriber> SetupImageTransport(
+  std::shared_ptr<image_transport::Subscriber> setupImageTransport(
       const std::string &topic,
       const std::function<void( const std::shared_ptr<const sensor_msgs::msg::Image> & )> &fp,
       const rclcpp::SubscriptionOptions &options );
@@ -133,6 +181,7 @@ private:
   bool use_motion_;
   bool use_obj_detection_;
 
+  std::mutex distribution_mutex_;
   DistributionCallback dataCb_;
 
   std::shared_ptr<image_transport::Subscriber> cam_sub_;
@@ -147,3 +196,5 @@ private:
 };
 
 } // namespace hector_detection_aggregator
+
+#endif

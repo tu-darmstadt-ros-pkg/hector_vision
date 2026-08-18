@@ -5,7 +5,6 @@ namespace hector_detection_aggregator
 
 DetectionAggregator::DetectionAggregator() : Node( "detection_aggregator" )
 {
-  // Color mappings A color for "unknown" is required to exist
   color_map_["motion"] = cv::Scalar( 0, 0, 255 );   // Red
   color_map_["QR"] = cv::Scalar( 255, 0, 0 );       // Blue
   color_map_["april"] = cv::Scalar( 216, 0, 134 );  // Purple
@@ -13,46 +12,52 @@ DetectionAggregator::DetectionAggregator() : Node( "detection_aggregator" )
   color_map_["hazmat"] = cv::Scalar( 255, 255, 0 ); // Turquoise
 }
 
-void DetectionAggregator::ReadParameters()
+bool DetectionAggregator::readParameters()
 {
   param_listener_ = std::make_shared<detection_aggregator::ParamListener>( this );
   if ( !param_listener_ ) {
     RCLCPP_ERROR( get_logger(), "Parameters could be loaded" );
-    return;
+    return false;
   }
   params_ = std::make_shared<detection_aggregator::Params>( param_listener_->get_params() );
 
   if ( params_->visualization_topic.empty() ) {
     RCLCPP_ERROR( get_logger(), "Visualization topic needs to be specified" );
-    return;
+    return false;
   }
 
   if ( params_->cam_topic.empty() ) {
     RCLCPP_ERROR( get_logger(), "Cam topic needs to be specified" );
-    return;
+    return false;
   }
 
   if ( params_->use_thermal && params_->thermal_topic.empty() ) {
     RCLCPP_ERROR( get_logger(), "If using thermal, thermal topic can't be empty" );
-    return;
+    return false;
   }
 
   if ( params_->use_motion && params_->motion_topic.empty() ) {
     RCLCPP_ERROR( get_logger(), "If using motion, motion topic can't be empty" );
-    return;
+    return false;
   }
 
   bool use_obj_detection = params_->use_hazmat || params_->use_qr || params_->use_april;
   if ( use_obj_detection && params_->object_detection_topic.empty() ) {
     RCLCPP_ERROR( get_logger(),
                   "If using QR april tags or hazmat, object detection topic can't be empty" );
-    return;
+    return false;
   }
+
+  return true;
 }
 
-void DetectionAggregator::Setup()
+bool DetectionAggregator::setup()
 {
-  ReadParameters();
+  bool success = readParameters();
+  if ( !success ) {
+    RCLCPP_ERROR( get_logger(), "Parameter reading failed. Aborting." );
+    return false;
+  }
 
   image_transport_ = std::make_shared<image_transport::ImageTransport>( shared_from_this() );
   time_sync_filter_.init( shared_from_this(),
@@ -62,6 +67,8 @@ void DetectionAggregator::Setup()
                           params_, image_transport_ );
 
   vis_pub_ = image_transport_->advertise( params_->visualization_topic, 1 );
+
+  return true;
 }
 
 void DetectionAggregator::processDetectionSet(
@@ -70,6 +77,9 @@ void DetectionAggregator::processDetectionSet(
     std::shared_ptr<const Detection2DArray> motion_detections,
     std::shared_ptr<const Detection2DArray> obj_detections )
 {
+
+  if ( vis_pub_.getNumSubscribers() == 0 )
+    return;
 
   RCLCPP_INFO( get_logger(),
                "Received full detection set for image timestamp: %d.%09u. Creating visualization.",
@@ -113,7 +123,8 @@ void DetectionAggregator::processDetectionSet(
     cv::Scalar detection_color;
     const auto color_find = color_map_.find( type );
     if ( color_find == color_map_.end() )
-      detection_color = color_map_["unknown"];
+      // Unknown detection type
+      continue;
     else
       detection_color = color_find->second;
 

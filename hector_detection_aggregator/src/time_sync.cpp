@@ -3,7 +3,7 @@
 namespace hector_detection_aggregator
 {
 
-std::shared_ptr<image_transport::Subscriber> TimeSyncFilter::SetupImageTransport(
+std::shared_ptr<image_transport::Subscriber> TimeSyncFilter::setupImageTransport(
     const std::string &topic,
     const std::function<void( const std::shared_ptr<const sensor_msgs::msg::Image> & )> &fp,
     const rclcpp::SubscriptionOptions &options )
@@ -47,16 +47,19 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
 
   RCLCPP_INFO( node_->get_logger(), "Setting up image transport for %s", params->cam_topic.c_str() );
 
+  std::lock_guard distrib_guard(
+      distribution_mutex_ ); // Prevents checking of any buffers before they are initialized
+
   cam_buffer_ = std::make_shared<ExactTimeBuffer<sensor_msgs::msg::Image>>( params->buffer_size );
-  cam_sub_ = SetupImageTransport( params->cam_topic,
+  cam_sub_ = setupImageTransport( params->cam_topic,
                                   std::bind( &TimeSyncFilter::insertAndCheck<sensor_msgs::msg::Image>,
                                              this, cam_buffer_, std::placeholders::_1 ),
                                   options );
 
   if ( use_thermal_ ) {
-    thermal_buffer_ =
-        std::make_shared<ExactTimeBuffer<sensor_msgs::msg::Image>>( params->buffer_size );
-    thermal_sub_ = SetupImageTransport(
+    thermal_buffer_ = std::make_shared<ApproximateTimeBuffer<sensor_msgs::msg::Image>>(
+        params->buffer_size, 1e9 ); // 1s tolerance
+    thermal_sub_ = setupImageTransport(
         params->thermal_topic,
         [&]( const std::shared_ptr<const sensor_msgs::msg::Image> &msg ) {
           insertAndCheck<sensor_msgs::msg::Image>( thermal_buffer_, msg );
@@ -89,20 +92,25 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
     obj_detection_buffer_ = std::make_shared<DummyFixedSizeStampedBuffer<Detection2DArray>>();
 }
 
-void TimeSyncFilter::DistributeIfComplete( int64_t stamp )
+void TimeSyncFilter::distributeIfComplete( int64_t stamp )
 {
+  distribution_mutex_.lock();
+
   auto m1 = cam_buffer_->find( stamp );
   auto m2 = thermal_buffer_->find( stamp );
   auto m3 = motion_buffer_->find( stamp );
   auto m4 = obj_detection_buffer_->find( stamp );
 
   if ( m1 && m2 && m3 && m4 ) {
-    dataCb_( m1, m2, m3, m4 );
-
     cam_buffer_->erase( stamp );
     thermal_buffer_->erase( stamp );
     motion_buffer_->erase( stamp );
     obj_detection_buffer_->erase( stamp );
+
+    distribution_mutex_
+        .unlock(); // Unlocking safe here since data has been erased which prevents repetitive data processing
+
+    dataCb_( m1, m2, m3, m4 );
   }
 }
 
@@ -112,7 +120,7 @@ void TimeSyncFilter::insertAndCheck( std::shared_ptr<FixedSizeStampedBuffer<T>> 
 {
   int64_t stamp = rclcpp::Time( msg->header.stamp ).nanoseconds();
   buffer->insert( stamp, msg );
-  DistributeIfComplete( stamp );
+  distributeIfComplete( stamp );
 }
 
 } // namespace hector_detection_aggregator

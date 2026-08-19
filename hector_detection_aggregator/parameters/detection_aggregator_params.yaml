@@ -19,6 +19,11 @@ detection_aggregator:
     type: string
     default_value: ""
     description: Topic where thermal images are published.
+
+  thermal_eps:
+    type: int
+    default_value: 1000000000
+    description: Time tolerance in nanoseconds for approximate time synchronization with other input types.
   
   use_april:
     type: bool

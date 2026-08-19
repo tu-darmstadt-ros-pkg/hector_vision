@@ -50,7 +50,8 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
   std::lock_guard distrib_guard(
       distribution_mutex_ ); // Prevents checking of any buffers before they are initialized
 
-  cam_buffer_ = std::make_shared<ExactTimeBuffer<sensor_msgs::msg::Image>>( params->buffer_size );
+  cam_buffer_ = std::make_shared<ApproximateTimeBuffer<sensor_msgs::msg::Image>>(
+      params->buffer_size, params->thermal_eps );
   cam_sub_ = setupImageTransport( params->cam_topic,
                                   std::bind( &TimeSyncFilter::insertAndCheck<sensor_msgs::msg::Image>,
                                              this, cam_buffer_, std::placeholders::_1 ),
@@ -58,7 +59,7 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
 
   if ( use_thermal_ ) {
     thermal_buffer_ = std::make_shared<ApproximateTimeBuffer<sensor_msgs::msg::Image>>(
-        params->buffer_size, 1e9 ); // 1s tolerance
+        params->buffer_size, params->thermal_eps ); // 1s tolerance
     thermal_sub_ = setupImageTransport(
         params->thermal_topic,
         [&]( const std::shared_ptr<const sensor_msgs::msg::Image> &msg ) {
@@ -69,7 +70,8 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
     thermal_buffer_ = std::make_shared<DummyFixedSizeStampedBuffer<sensor_msgs::msg::Image>>();
 
   if ( use_motion_ ) {
-    motion_buffer_ = std::make_shared<ExactTimeBuffer<Detection2DArray>>( params->buffer_size );
+    motion_buffer_ = std::make_shared<ApproximateTimeBuffer<Detection2DArray>>(
+        params->buffer_size, params->thermal_eps );
     motion_sub_ = node_->create_subscription<Detection2DArray>(
         params->motion_topic, rclcpp::SensorDataQoS(),
         [&]( const std::shared_ptr<const hector_perception_msgs::msg::ObjectDetection2DArray> &msg ) {
@@ -79,8 +81,8 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
   } else
     motion_buffer_ = std::make_shared<DummyFixedSizeStampedBuffer<Detection2DArray>>();
   if ( use_obj_detection_ ) {
-    obj_detection_buffer_ =
-        std::make_shared<ExactTimeBuffer<Detection2DArray>>( params->buffer_size );
+    obj_detection_buffer_ = std::make_shared<ApproximateTimeBuffer<Detection2DArray>>(
+        params->buffer_size, params->thermal_eps );
     object_detection_sub_ = node_->create_subscription<Detection2DArray>(
         params->object_detection_topic, rclcpp::SensorDataQoS(),
         [&]( const std::shared_ptr<const hector_perception_msgs::msg::ObjectDetection2DArray> &msg ) {
@@ -101,17 +103,33 @@ void TimeSyncFilter::distributeIfComplete( int64_t stamp )
   auto m3 = motion_buffer_->find( stamp );
   auto m4 = obj_detection_buffer_->find( stamp );
 
-  if ( m1 && m2 && m3 && m4 ) {
-    cam_buffer_->erase( stamp );
-    thermal_buffer_->erase( stamp );
-    motion_buffer_->erase( stamp );
-    obj_detection_buffer_->erase( stamp );
+  if ( m1.second && m2.second && m3.second && m4.second &&
+       consistencyCheck( m1.first, m3.first, m4.first ) ) {
+
+    cam_buffer_->erase( m1.first );
+    thermal_buffer_->erase( m2.first );
+    motion_buffer_->erase( m3.first );
+    obj_detection_buffer_->erase( m4.first );
 
     distribution_mutex_
         .unlock(); // Unlocking safe here since data has been erased which prevents repetitive data processing
 
-    dataCb_( m1, m2, m3, m4 );
+    dataCb_( m1.second, m2.second, m3.second, m4.second );
   }
+}
+
+bool TimeSyncFilter::consistencyCheck( int64_t cam_stamp, int64_t motion_stamp,
+                                       int64_t obj_detection_stamp )
+{
+  // Motion is disabled and provided by dummy buffer. Not required for consistency check
+  if ( motion_stamp == -1 )
+    motion_stamp = cam_stamp;
+
+  // Object detections are disabled and provided by dummy buffer. Not required for consistency check
+  if ( obj_detection_stamp == -1 )
+    obj_detection_stamp = cam_stamp;
+
+  return ( cam_stamp == motion_stamp ) && ( motion_stamp == obj_detection_stamp );
 }
 
 template<typename T>

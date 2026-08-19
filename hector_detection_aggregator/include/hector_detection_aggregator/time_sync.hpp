@@ -37,15 +37,16 @@ public:
     buffer_.emplace( stamp, data );
   };
 
-  virtual typename std::shared_ptr<const StorageType> find( const int64_t stamp )
+  // Also return found stamp since this may not be identical to stamp parameter depending on derived class
+  virtual typename std::pair<int64_t, std::shared_ptr<const StorageType>> find( const int64_t stamp )
   {
     std::lock_guard guard( buffer_mutex );
 
     const auto it = findMatchingEntry( stamp );
     if ( it == buffer_.end() )
-      return nullptr;
+      return std::make_pair( -1, nullptr );
 
-    return it->second;
+    return std::make_pair( it->first, it->second );
   };
 
   // Call if element was sucessfully processed and can be erased permanently
@@ -80,7 +81,10 @@ private:
   typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator virtual findMatchingEntry(
       const int64_t ) override
   { return this->buffer_.end(); }; // Unused in this class
-  typename std::shared_ptr<const StorageType> find( const int64_t ) override { return dummy_; };
+
+  typename std::pair<int64_t, std::shared_ptr<const StorageType>> find( const int64_t ) override
+  { return std::make_pair( -1, dummy_ ); };
+
   void erase( const int64_t ) override { };
 
   const std::shared_ptr<const StorageType> dummy_;
@@ -108,7 +112,7 @@ public:
   }
 
 private:
-  double eps_; // Maximum time difference in nanoseconds to still be considered an approximate match
+  int eps_; // Maximum time difference in nanoseconds to still be considered an approximate match
 
   virtual typename std::map<int64_t, std::shared_ptr<const StorageType>>::iterator
   findMatchingEntry( const int64_t stamp )
@@ -167,6 +171,8 @@ private:
                        const std::shared_ptr<const T> msg );
 
   void distributeIfComplete( int64_t stamp );
+
+  bool consistencyCheck( int64_t stamp_1, int64_t stamp_2, int64_t stamp_3 );
 
   std::shared_ptr<image_transport::Subscriber> setupImageTransport(
       const std::string &topic,

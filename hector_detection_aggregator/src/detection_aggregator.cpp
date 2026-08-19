@@ -36,6 +36,11 @@ bool DetectionAggregator::readParameters()
     return false;
   }
 
+  if ( params_->thermal_eps < 0 ) {
+    RCLCPP_ERROR( get_logger(), "Thermal eps can't be negative" );
+    return false;
+  }
+
   if ( params_->use_motion && params_->motion_topic.empty() ) {
     RCLCPP_ERROR( get_logger(), "If using motion, motion topic can't be empty" );
     return false;
@@ -81,9 +86,10 @@ void DetectionAggregator::processDetectionSet(
   if ( vis_pub_.getNumSubscribers() == 0 )
     return;
 
-  RCLCPP_INFO( get_logger(),
-               "Received full detection set for image timestamp: %d.%09u. Creating visualization.",
-               cam_img->header.stamp.sec, cam_img->header.stamp.nanosec );
+  RCLCPP_DEBUG_THROTTLE(
+      get_logger(), *get_clock(), 1000,
+      "Received full detection set for image timestamp: %d.%09u. Creating visualization.",
+      cam_img->header.stamp.sec, cam_img->header.stamp.nanosec );
 
   cv::Mat vis_img;
   try {

@@ -1,4 +1,8 @@
 repositories:
+  hector_ros2_utils:
+    type: git
+    url: https://github.com/tu-darmstadt-ros-pkg/hector_ros2_utils.git
+    version: jazzy
   hector_perception_msgs:
     type: git
     url: https://github.com/tu-darmstadt-ros-pkg/hector_perception_msgs.git

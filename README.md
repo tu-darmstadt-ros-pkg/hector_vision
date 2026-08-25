@@ -1,35 +1,18 @@
 # Hector Vision
 
-## Status
+Contains
 
-| Package                                                     | Status                                    |
-| ----------------------------------------------------------- | ----------------------------------------- |
-| hector_bar_detection                                        | <span style="color:red">Not Ported</span> |
-| hector_barrel_detection_nodelet                             | <span style="color:red">Not Ported</span> |
-| hector_barrels_detection                                    | <span style="color:red">Not Ported</span> |
-| hector_color_detection_nodelet                              | <span style="color:red">Not Ported</span> |
-| [hector_detection_aggregator](#hector_detection_aggregator) | <span style="color:green">Ported</span>   |
-| hector_head_detection                                       | <span style="color:red">Not Ported</span> |
-| hector_image_rotate                                         | <span style="color:red">Not Ported</span> |
-| [hector_motion_detection](#hector_motion_detection)         | <span style="color:green">Ported</span>   |
-| hector_pipe_detection                                       | <span style="color:red">Not Ported</span> |
-| hector_stair_detection                                      | <span style="color:red">Not Ported</span> |
-| [hector_tag_detection](#hector_tag_detection)               | <span style="color:green">Ported</span>   |
-| hector_thermal_image_conversion                             | <span style="color:red">Not Ported</span> |
-| hector_thermal_self_filter                                  | <span style="color:red">Not Ported</span> |
-| hector_vision_algorithm                                     | <span style="color:red">Not Ported</span> |
-| hector_vision_algorithm_py                                  | <span style="color:red">Not Ported</span> |
-| [hector_vision_test](#hector_vision_test)                   | <span style="color:blue">New</span>       |
+- hector_detection_aggregator
+- hector_motion_detection
+- hector_tag_detection
+- hector_vision_test
+
 
 ## hector_detection_aggregator
 
-The package for the `detection_aggregator` node
-
-### detection_aggregator
-
-This node collects data on detected objects and overlays them on an image feed.
-Additionally detected contacts are buffered for a configurable ammount of time.
-The detections are tagged with the detection type and an additional value (e.g. the string of a qr-code).
+Contains a node collecting data on detected objects and overlays them on an image feed.
+Subscribed detections are buffered and synchronized based on their time stamps.
+Detections tagged with the detection type and an additional value (e.g. the string of a qr-code).
 Detections are colored according to their type:
 
 | Detection Type | Color     |
@@ -37,61 +20,32 @@ Detections are colored according to their type:
 | motion         | red       |
 | qr-code        | blue      |
 | apriltag       | purple    |
-| heat           | green     |
 | hazmat         | turquoise |
-| unknown/other  | grey      |
 
-#### Subscribed Topics
-
-| Topic                           | Type                               | Description                                    |
-| ------------------------------- | ---------------------------------- | ---------------------------------------------- |
-| `/image`                        | `image_transport/Camera`           | The image that detections are overlaid on      |
-| `/detection/visual_detection`   | `vision_msgs/msg/Detection2DArray` | Lists of perceptions that are aggregated       |
-| `/detection_aggregator/enabled` | `std_msgs/msg/Bool`                | The node can be enabled/disabled on this topic |
-
-#### Published Topics
-
-| Topic                                    | Type                     | Description                                                             |
-| ---------------------------------------- | ------------------------ | ----------------------------------------------------------------------- |
-| `/detection/aggregated_detections_image` | `image_transport/Camera` | This image overlays the received detection on the received camera image |
-| `/detection_aggregator/enabled_status`   | `std_msgs/msg/Bool`      | The node will publish it's state here after being enabled/disabled      |
+If avaivable the thermal image is also integrated into this visualization.
 
 #### Parameters
 
-| Parameter           | Type     | Default                                   | Description                                                                                                                                               |
-| ------------------- | -------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`           | `bool`   | `true`                                    | Enables/disables the node                                                                                                                                 |
-| `detection_topic`   | `string` | `"detection/visual_detection"`            | Parameter for setting the detection topic                                                                                                                 |
-| `aggregation_topic` | `string` | `"detection/aggregated_detections_image"` | Parameter for setting the aggregation topic                                                                                                               |
-| `aggregation_mode`  | `string` | `"NEWEST"`                                | Determines how detections and immages are aggregated. Possible values are `"NEWEST"` or `"COMPLETE"`                                                      |
-| `storage_duration`  | `double` | `1.5`                                     | Time after which detections are disregarded in seconds. Newer detections of the same objects replace the old. Only used if `aggregation_mode` is `NEWEST` |
-| `buffer_size`       | `int`    | `16`                                      | Number of frames (both detections and images) that can be buffered. Only used when `aggregation_mode` is `COMPLETE`                                       |
-| `robot_namespace`   | `string` | `""`                                      | Parameter to enforce namespacing of topics                                                                                                                |
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `visualization_topic` | `string` | `"aggregated_detections"` | Topic where the visualizations of aggregated detections are published to. |
+| `cam_topic` | `string` | `"camera/image_raw"` | Camera topic name all detections are extracted from. |
+| `use_thermal` | `bool` | `false` | Whether to use thermal images for detection aggregation. |
+| `thermal_topic` | `string` | `""` | Topic where thermal images are published. |
+| `thermal_eps` | `int` | `1000000000` | Time tolerance in nanoseconds for approximate time synchronization with other input types. |
+| `use_april` | `bool` | `false` | Whether to use april tag detections for detection aggregation. |
+| `use_hazmat` | `bool` | `false` | Whether to use hazmat detections for detection aggregation. |
+| `use_qr` | `bool` | `true` | Whether to use QR detections for detection aggregation. |
+| `object_detection_topic` | `string` | `""` | Topic where object detections are published. This includes hazmats, apriltags, and QR codes. |
+| `use_motion` | `bool` | `false` | Whether to use motion detections for detection aggregation. |
+| `motion_topic` | `string` | `""` | Topic where motion detections are published. |
+| `buffer_size` | `int` | `20` | Maximum amount of stored messages per detection type by time sync buffers. |
+| `debug` | `bool` | `false` | Whether node is in debug mode. |
 
 ## hector_motion_detection
 
-The package for the `motion_detection` node
-
-### motion_detection
-
 The motion_detection node can detect multiple moving objects in an image sequence.
-
-#### Subscribed Topics
-
-| Topic     | Type                     | Description                             |
-| --------- | ------------------------ | --------------------------------------- |
-| `/enable` | `std_msgs/msg/bool`      | Enables or disables the node            |
-| `/image`  | `image_transport/camera` | The image that tags will be searched on |
-
-#### Published Topics
-
-| Topic                         | Type                                 | Description                 |
-| ----------------------------- | ------------------------------------ | --------------------------- |
-| `enabled_status`              | `std_msgs/msg/bool`                  | Whether the node is enabled |
-| `detection/image_detection`   | `vision_msgs/msg/detection2_d_array` | The detected moving objects |
-| `image_motion`                | `sensor_msgs/msg/image`              | TODO                        |
-| `image_detected`              | `sensor_msgs/msg/image`              | TODO                        |
-| `image_background_subtracted` | `sensor_msgs/msg/image`              | TODO                        |
+                      |
 
 #### Parameters
 
@@ -150,13 +104,6 @@ A package for testing the other packages in hector_vision
 
 This node is a simple standin for a camera, publishing a configurable series of images at a configurable frequency
 
-#### Published Topics
-
-| Topic          | Type                         | Description                                   |
-| -------------- | ---------------------------- | --------------------------------------------- |
-| `/image`       | `sensor_msgs/msg/image`      | The image sequence is published on this topic |
-| `/camera_info` | `sensor_msgs/msg/CameraInfo` | Camera info is currently left empty           |
-
 #### Parameters
 
 | Parameter         | Type     | Default                      | Description                                                   |
@@ -164,4 +111,3 @@ This node is a simple standin for a camera, publishing a configurable series of 
 | `image_dir`       | `string` | `"<share_directory>/images"` | Directory containing the images to be published               |
 | `image_frequency` | `double` | `0.2`                        | Frequency with which images are changed                       |
 | `image_frames`    | `int`    | `25`                         | Times each image is published before changing to the next one |
-

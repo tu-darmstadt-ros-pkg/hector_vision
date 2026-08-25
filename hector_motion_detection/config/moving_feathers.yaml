@@ -9,4 +9,3 @@ motion_detect_max_area: 5000
 motion_detect_min_area: 60
 motion_detect_shadows: false
 moving_average_weight: 0.3
-     

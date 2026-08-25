@@ -7,8 +7,10 @@
 
     use_qr: true
 
-    object_detection_topic: semantic_detection_node/object_detections
+    use_april: true
 
-    use_motion: true
+    object_detection_topic: victim_crate/perceptions
+
+    use_motion: false
 
     motion_topic: motion_detection

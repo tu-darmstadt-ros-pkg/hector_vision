@@ -37,27 +37,63 @@ jobs:
     container:
       image: ros:${{ matrix.setup.rosdistro }}-ros-base
     steps:
-    - name: install build tools
+    - name: Install Build Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y ros-dev-tools
-    - uses: actions/checkout@v4
+        sudo apt-get install -y ros-dev-tools python3-vcstool
+
+    - name: Checkout Local Repo
+      uses: actions/checkout@v4
       with:
-        repository: tu-darmstadt-ros-pkg/hector_ros2_utils
-        path: src/hector_ros2_utils
-    - uses: actions/checkout@v4
-      with:
-        path: src/repo
+        path: src/${{ github.event.repository.name }}
+
+    - name: Recursive VCS Import
+      run: |
+        cd src
+        PREVIOUS_HASH=""
+        for i in {1..10}; do
+          REPOS_FILES=$(find . -name "*.repos")
+          CURRENT_HASH=$(echo "$REPOS_FILES" | sort | md5sum)
+          if [ "$CURRENT_HASH" == "$PREVIOUS_HASH" ]; then
+            echo "Dependency tree fully resolved at level $((i-1))."
+            break
+          fi
+          echo "Processing Level $i dependencies..."
+          for f in $REPOS_FILES; do
+            vcs import . < "$f" --skip-existing
+          done
+          PREVIOUS_HASH="$CURRENT_HASH"
+        done
+
     - name: rosdep
       run: |
         rosdep update --rosdistro ${{ matrix.setup.rosdistro }} --include-eol-distros
         rosdep install -y --from-paths src --ignore-src --rosdistro ${{ matrix.setup.rosdistro }}
-    - name: build
+
+    - name: Identify Local Packages
       run: |
         source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
-        colcon build
-    - name: test
+        # Filter for local repo and flatten newlines to spaces
+        PKGS=$(colcon list --names-only --base-paths src/${{ github.event.repository.name }} | tr '\n' ' ')
+        if [ -z "$PKGS" ]; then
+          echo "::error::No packages found in src/${{ github.event.repository.name }}"
+          exit 1
+        fi
+        echo "LOCAL_PKGS=$PKGS" >> $GITHUB_ENV
+        echo "Found packages: $PKGS"
+
+    - name: Build Local Packages
       run: |
         source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
-        colcon test
+        colcon build --packages-up-to ${{ env.LOCAL_PKGS }} --event-handlers console_direct+
+
+    - name: Test Local Packages
+      run: |
+        source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
+        colcon test --packages-select ${{ env.LOCAL_PKGS }} --event-handlers console_direct+
+
+    - name: Test Results
+      if: always()
+      run: |
+        source /opt/ros/${{ matrix.setup.rosdistro }}/setup.bash
         colcon test-result --verbose

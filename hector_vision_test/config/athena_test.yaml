@@ -8,7 +8,7 @@
     use_qr: true
 
     use_april: true
-    
+
     object_detection_topic: victim_crate/perceptions
 
     use_motion: false

@@ -111,4 +111,3 @@ This node is a simple standin for a camera, publishing a configurable series of 
 | `image_dir`       | `string` | `"<share_directory>/images"` | Directory containing the images to be published               |
 | `image_frequency` | `double` | `0.2`                        | Frequency with which images are changed                       |
 | `image_frames`    | `int`    | `25`                         | Times each image is published before changing to the next one |
-

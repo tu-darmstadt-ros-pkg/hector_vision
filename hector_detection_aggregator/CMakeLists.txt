@@ -56,7 +56,7 @@ ament_target_dependencies(detection_aggregator PUBLIC
   hector_perception_msgs
 )
 
-ament_target_dependencies(time_sync PUBLIC 
+ament_target_dependencies(time_sync PUBLIC
 hector_ros2_utils
 image_transport
 sensor_msgs

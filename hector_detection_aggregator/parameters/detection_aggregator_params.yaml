@@ -2,12 +2,12 @@ detection_aggregator:
 
   visualization_topic:
     type: string
-    default_value: "aggregated_detections"
-    description: "Topic where the visualizations of aggregated detections are published to."
+    default_value: aggregated_detections
+    description: Topic where the visualizations of aggregated detections are published to.
 
   cam_topic:
     type: string
-    default_value: "camera/image_raw"
+    default_value: camera/image_raw
     description: Camera topic name all detections are extracted from.
 
   use_thermal:
@@ -17,24 +17,24 @@ detection_aggregator:
 
   thermal_topic:
     type: string
-    default_value: ""
+    default_value: ''
     description: Topic where thermal images are published.
 
   thermal_eps:
     type: int
     default_value: 1000000000
     description: Time tolerance in nanoseconds for approximate time synchronization with other input types.
-  
+
   use_april:
     type: bool
     default_value: false
     description: Whether to use april tag detections for detection aggregation.
-  
+
   use_hazmat:
     type: bool
     default_value: false
     description: Whether to use hazmat detections for detection aggregation.
-  
+
   use_qr:
     type: bool
     default_value: true
@@ -42,17 +42,17 @@ detection_aggregator:
 
   object_detection_topic:
     type: string
-    default_value: ""
+    default_value: ''
     description: Topic where object detections are published. This includes hazmats, apriltags, and QR codes.
 
   use_motion:
     type: bool
     default_value: false
     description: Whether to use motion detections for detection aggregation.
-  
+
   motion_topic:
     type: string
-    default_value: ""
+    default_value: ''
     description: Topic where motion detections are published.
 
   buffer_size:

@@ -12,4 +12,3 @@
     use_motion: true
 
     motion_topic: motion_detection
-

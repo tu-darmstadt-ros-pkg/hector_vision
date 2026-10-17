@@ -97,7 +97,6 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
 void TimeSyncFilter::distributeIfComplete( int64_t stamp )
 {
   distribution_mutex_.lock();
-
   auto m1 = cam_buffer_->find( stamp );
   auto m2 = thermal_buffer_->find( stamp );
   auto m3 = motion_buffer_->find( stamp );
@@ -116,6 +115,7 @@ void TimeSyncFilter::distributeIfComplete( int64_t stamp )
 
     dataCb_( m1.second, m2.second, m3.second, m4.second );
   }
+  distribution_mutex_.unlock();
 }
 
 bool TimeSyncFilter::consistencyCheck( int64_t cam_stamp, int64_t motion_stamp,

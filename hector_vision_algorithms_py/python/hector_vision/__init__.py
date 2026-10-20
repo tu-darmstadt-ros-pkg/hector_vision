@@ -1,1 +1,0 @@
-from libhector_vision_algorithms_py import *

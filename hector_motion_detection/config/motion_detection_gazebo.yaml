@@ -3,5 +3,5 @@ motion_detect_min_area: 200
 motion_detect_max_area: 3000
 motion_detect_erosion: 1
 motion_detect_dilation: 3
-motion_detect_shadows: False
-motion_detect_debug_contours: False
+motion_detect_shadows: false
+motion_detect_debug_contours: false

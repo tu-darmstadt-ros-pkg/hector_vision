@@ -1,14 +1,16 @@
 /**:
   ros__parameters:
 
-    cam_topic: gripper_rgbd/image_raw
+    cam_topic: gripper_rgbd/color/image_raw/compressed
 
-    use_thermal: false
+    thermal_topic: gripper_thermal/image_raw
 
-    use_qr: true
+    use_thermal: true
+
+    use_qr: false
 
     object_detection_topic: semantic_detection_node/object_detections
 
-    use_motion: true
+    use_motion: false
 
     motion_topic: motion_detection

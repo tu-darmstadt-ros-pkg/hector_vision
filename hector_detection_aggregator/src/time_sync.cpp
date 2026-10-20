@@ -54,7 +54,7 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
       params->buffer_size, params->thermal_eps );
   cam_sub_ = setupImageTransport( params->cam_topic,
                                   std::bind( &TimeSyncFilter::insertAndCheck<sensor_msgs::msg::Image>,
-                                             this, cam_buffer_, std::placeholders::_1 ),
+                                             this, cam_buffer_, true, std::placeholders::_1 ),
                                   options );
 
   if ( use_thermal_ ) {
@@ -63,7 +63,7 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
     thermal_sub_ = setupImageTransport(
         params->thermal_topic,
         [&]( const std::shared_ptr<const sensor_msgs::msg::Image> &msg ) {
-          insertAndCheck<sensor_msgs::msg::Image>( thermal_buffer_, msg );
+          insertAndCheck<sensor_msgs::msg::Image>( thermal_buffer_, !params_->publish_newest, msg );
         },
         options );
   } else
@@ -75,7 +75,8 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
     motion_sub_ = node_->create_subscription<Detection2DArray>(
         params->motion_topic, rclcpp::SensorDataQoS(),
         [&]( const std::shared_ptr<const hector_perception_msgs::msg::ObjectDetection2DArray> &msg ) {
-          insertAndCheck<hector_perception_msgs::msg::ObjectDetection2DArray>( motion_buffer_, msg );
+          insertAndCheck<hector_perception_msgs::msg::ObjectDetection2DArray>(
+              motion_buffer_, !params_->publish_newest, msg );
         },
         options );
   } else
@@ -86,8 +87,8 @@ void TimeSyncFilter::init( std::shared_ptr<rclcpp::Node> node, DistributionCallb
     object_detection_sub_ = node_->create_subscription<Detection2DArray>(
         params->object_detection_topic, rclcpp::SensorDataQoS(),
         [&]( const std::shared_ptr<const hector_perception_msgs::msg::ObjectDetection2DArray> &msg ) {
-          insertAndCheck<hector_perception_msgs::msg::ObjectDetection2DArray>( obj_detection_buffer_,
-                                                                               msg );
+          insertAndCheck<hector_perception_msgs::msg::ObjectDetection2DArray>(
+              obj_detection_buffer_, !params_->publish_newest, msg );
         },
         options );
   } else
@@ -134,11 +135,13 @@ bool TimeSyncFilter::consistencyCheck( int64_t cam_stamp, int64_t motion_stamp,
 
 template<typename T>
 void TimeSyncFilter::insertAndCheck( std::shared_ptr<FixedSizeStampedBuffer<T>> buffer,
-                                     const std::shared_ptr<const T> msg )
+                                     bool distribute, const std::shared_ptr<const T> msg )
 {
   int64_t stamp = rclcpp::Time( msg->header.stamp ).nanoseconds();
   buffer->insert( stamp, msg );
-  distributeIfComplete( stamp );
+
+  if ( distribute )
+    distributeIfComplete( stamp );
 }
 
 } // namespace hector_detection_aggregator

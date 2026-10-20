@@ -164,6 +164,15 @@ void DetectionAggregator::processDetectionSet(
       return;
     }
 
+    // Normalize img relative to its min/max values to [0, 255] range
+    cv::normalize( cv_thermal_img, cv_thermal_img, 0, 255, cv::NORM_MINMAX, CV_8UC1 );
+
+    // Apply hot colormap to thermal image
+    cv::applyColorMap( cv_thermal_img, cv_thermal_img, cv::COLORMAP_HOT );
+
+    // Turn image 90 deg clockwise
+    cv::rotate( cv_thermal_img, cv_thermal_img, cv::ROTATE_90_CLOCKWISE );
+
     // Canvas grows to fit both images at their native resolution — neither is resized.
     const int canvas_width = vis_img.cols + cv_thermal_img.cols;
     const int canvas_height = std::max( vis_img.rows, cv_thermal_img.rows );

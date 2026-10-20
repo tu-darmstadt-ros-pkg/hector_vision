@@ -60,6 +60,11 @@ detection_aggregator:
     default_value: 20
     description: Maximum amount of stored messages per detection type by time sync buffers.
 
+  publish_newest:
+    type: bool
+    default_value: true
+    description: Whether republish older complete detections sets inluding older camera images or only the newest complete detection set.
+
   debug:
     type: bool
     default_value: false

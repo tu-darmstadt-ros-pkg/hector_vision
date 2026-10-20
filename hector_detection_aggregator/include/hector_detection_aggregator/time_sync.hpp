@@ -29,7 +29,9 @@ public:
 
   void insert( const int64_t stamp, std::shared_ptr<const StorageType> data )
   {
+
     std::lock_guard guard( buffer_mutex );
+
     if ( buffer_.size() == size_ )
       // Erase oldest element
       buffer_.erase( buffer_.begin() );
@@ -167,7 +169,7 @@ public:
 
 private:
   template<typename T>
-  void insertAndCheck( std::shared_ptr<FixedSizeStampedBuffer<T>> buffer,
+  void insertAndCheck( std::shared_ptr<FixedSizeStampedBuffer<T>> buffer, bool distribute,
                        const std::shared_ptr<const T> msg );
 
   void distributeIfComplete( int64_t stamp );

@@ -40,7 +40,6 @@
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/bool.hpp>
-#include <tf2_ros/buffer.h>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
 #include <hector_tag_detection/tag_detection.hpp>

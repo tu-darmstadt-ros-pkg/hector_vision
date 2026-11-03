@@ -20,6 +20,7 @@ find_package(cv_bridge REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(hector_perception_msgs REQUIRED)
+find_package(vision_msgs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 
 include_directories(include ${OpenCV_INCLUDE_DIRS})
@@ -44,23 +45,29 @@ add_executable(detection_aggregator_node src/detection_aggregator_node.cpp)
 target_link_libraries(detection_aggregator_node detection_aggregator)
 
 
-ament_target_dependencies(detection_aggregator PUBLIC
-  OpenCV
-  rclcpp
-  rclcpp_components
-  hector_ros2_utils
-  cv_bridge
-  image_transport
-  std_msgs
-  sensor_msgs
-  hector_perception_msgs
+# hector_ros2_utils: pick up whichever export style the package uses
+foreach(_tgt detection_aggregator time_sync)
+  target_include_directories(${_tgt} PUBLIC ${hector_ros2_utils_INCLUDE_DIRS})
+  target_link_libraries(${_tgt} PUBLIC ${hector_ros2_utils_TARGETS}
+                        ${hector_ros2_utils_LIBRARIES})
+endforeach()
+
+target_link_libraries(detection_aggregator PUBLIC
+  ${hector_perception_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${vision_msgs_TARGETS}
+  image_transport::image_transport
+  rclcpp::rclcpp
+  rclcpp_components::component
 )
 
-ament_target_dependencies(time_sync PUBLIC
-hector_ros2_utils
-image_transport
-sensor_msgs
-hector_perception_msgs
+target_link_libraries(time_sync PUBLIC
+  ${hector_perception_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${vision_msgs_TARGETS}
+  image_transport::image_transport
+  rclcpp::rclcpp
 )
 
 install(

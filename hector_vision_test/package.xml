@@ -14,7 +14,9 @@
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
   <!-- Dependencies needed to compile this package. -->
+  <depend>libopencv-dev</depend>
   <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
   <depend>rqt_image_view</depend>
 
   <exec_depend>hector_detection_aggregator</exec_depend>

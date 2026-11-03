@@ -20,8 +20,8 @@
   <!-- Dependencies needed to compile this package. -->
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>vision_msgs</depend>
   <depend>zbar_ros</depend>
 

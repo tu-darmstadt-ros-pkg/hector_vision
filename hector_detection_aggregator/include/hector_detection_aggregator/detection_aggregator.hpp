@@ -9,10 +9,6 @@
 #include <opencv2/opencv.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/synchronizer.h>
-
 #include <hector_perception_msgs/msg/object_detection2_d_array.hpp>
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>

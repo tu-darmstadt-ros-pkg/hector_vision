@@ -31,16 +31,18 @@ target_include_directories(
   $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(motion_detection_component PUBLIC
-  OpenCV
-  rclcpp
-  rclcpp_components
-  hector_ros2_utils
-  cv_bridge
-  image_transport
-  sensor_msgs
-  std_msgs
-  vision_msgs
+target_include_directories(motion_detection_component PUBLIC ${hector_ros2_utils_INCLUDE_DIRS})
+target_link_libraries(motion_detection_component PUBLIC
+  ${hector_ros2_utils_TARGETS}
+  ${hector_ros2_utils_LIBRARIES}
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${vision_msgs_TARGETS}
+  ${OpenCV_LIBS}
+  cv_bridge::cv_bridge
+  image_transport::image_transport
+  rclcpp::rclcpp
+  rclcpp_components::component
 )
 
 rclcpp_components_register_node(

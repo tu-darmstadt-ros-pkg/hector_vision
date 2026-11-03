@@ -14,11 +14,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(hector_ros2_utils REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(apriltag REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(vision_msgs REQUIRED)
 
 include_directories(include)
@@ -31,18 +31,20 @@ target_include_directories(
   $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(tag_detection_component
-  rclcpp
-  rclcpp_components
-  hector_ros2_utils
-  tf2
-  tf2_ros
-  cv_bridge
-  image_transport
-  apriltag
-  vision_msgs
+target_include_directories(tag_detection_component PUBLIC ${hector_ros2_utils_INCLUDE_DIRS})
+target_link_libraries(tag_detection_component PUBLIC
+  ${hector_ros2_utils_TARGETS}
+  ${hector_ros2_utils_LIBRARIES}
+  ${sensor_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${vision_msgs_TARGETS}
+  apriltag::apriltag
+  cv_bridge::cv_bridge
+  image_transport::image_transport
+  rclcpp::rclcpp
+  rclcpp_components::component
+  zbar
 )
-target_link_libraries(tag_detection_component zbar apriltag)
 
 rclcpp_components_register_node(
   tag_detection_component PLUGIN

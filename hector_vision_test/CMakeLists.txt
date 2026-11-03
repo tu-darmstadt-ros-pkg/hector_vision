@@ -8,15 +8,19 @@ find_package(rclcpp REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(include)
 
 add_executable(camera_dummy_node src/camera_dummy_node.cpp)
-ament_target_dependencies(camera_dummy_node
-  rclcpp
-  cv_bridge
-  image_transport
-  ament_index_cpp
+target_link_libraries(camera_dummy_node PUBLIC
+  ${sensor_msgs_TARGETS}
+  ${OpenCV_LIBS}
+  ament_index_cpp::ament_index_cpp
+  cv_bridge::cv_bridge
+  image_transport::image_transport
+  rclcpp::rclcpp
 )
 install(TARGETS camera_dummy_node
   DESTINATION lib/${PROJECT_NAME}

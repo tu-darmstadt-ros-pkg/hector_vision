@@ -1,8 +1,16 @@
-detection_aggregator:
+/**:
   ros__parameters:
-    enabled: "true"
-    detection_topic: "detection/visual_detection"
-    aggregation_topic: "detection/aggregated_detections_image"
-    aggregation_mode: "NEWEST"
-    buffer_size: "64"
-    robot_namespace: "athena"
+
+    cam_topic: gripper_rgbd/color/image_raw/compressed
+
+    thermal_topic: gripper_thermal/image_raw
+
+    use_thermal: true
+
+    use_qr: false
+
+    object_detection_topic: semantic_detection_node/object_detections
+
+    use_motion: false
+
+    motion_topic: motion_detection

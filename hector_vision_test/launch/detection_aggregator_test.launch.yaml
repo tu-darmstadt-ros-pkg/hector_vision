@@ -1,36 +1,40 @@
 launch:
 - arg:
-    name: "image_dir"
-    default: "$(find-pkg-share hector_vision_test)/images"
+    name: image_dir
+    default: $(find-pkg-share hector_vision_test)/images
 - arg:
-    name: "image_frequency"
-    default: "0.2"
+    name: image_frequency
+    default: '0.2'
 - arg:
-    name: "image_frames"
-    default: "25"
+    name: image_frames
+    default: '25'
+- arg:
+    name: image_topic
+    default: image
 
 - node:
-    pkg: "hector_vision_test"
-    exec: "camera_dummy_node"
+    pkg: hector_vision_test
+    exec: camera_dummy_node
     param:
-      - name: "image_dir"
-        value: "$(var image_dir)"
-      - name: "image_frequency"
-        value: "$(var image_frequency)"
-      - name: "image_frames"
-        value: "$(var image_frames)"
+    - name: image_dir
+      value: $(var image_dir)
+    - name: image_frequency
+      value: $(var image_frequency)
+    - name: image_frames
+      value: $(var image_frames)
+    - name: image_topic
+      value: $(var image_topic)
 
 - node:
-    pkg: "hector_tag_detection"
-    exec: "tag_detection"
+    pkg: hector_tag_detection
+    exec: tag_detection
     remap:
-    - from: "perception/image_percept"
-      to: "detection/visual_detection"
+    - from: perception/image_percept
+      to: detection/visual_detection
+
+- include:
+    file: $(find-pkg-share hector_detection_aggregator)/launch/robot.launch.py
 
 - node:
-    pkg: "hector_detection_aggregator"
-    exec: "detection_aggregator"
-
-- node:
-    pkg: "rqt_image_view"
-    exec: "rqt_image_view"
+    pkg: rqt_image_view
+    exec: rqt_image_view

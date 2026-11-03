@@ -11,6 +11,8 @@
 
   <depend>camera_info_manager</depend>
   <depend>cv_bridge</depend>
+  <depend>generate_parameter_library</depend>
+  <depend>hector_perception_msgs</depend>
   <depend>hector_ros2_utils</depend>
   <depend>image_transport</depend>
   <depend>libopencv-dev</depend>
